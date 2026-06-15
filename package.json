@@ -40,6 +40,7 @@
 		"@tiptap/extension-placeholder": "^3.26.1",
 		"@tiptap/pm": "^3.26.1",
 		"@tiptap/starter-kit": "^3.26.1",
+		"@tiptap/suggestion": "^3.26.1",
 		"gray-matter": "^4.0.3",
 		"svelte-dnd-action": "^0.9.70",
 		"tippy.js": "^6.3.7",

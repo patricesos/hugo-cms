@@ -5,6 +5,7 @@
 	import Placeholder from '@tiptap/extension-placeholder';
 	import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 	import { Markdown } from 'tiptap-markdown';
+	import { SlashCommands } from '$lib/editor/slash-commands';
 	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow } from '@lucide/svelte';
 
 	interface EditorProps {
@@ -53,6 +54,15 @@
 	}
 
 	onMount(() => {
+		function onSlashImage(e: Event) {
+			const detail = (e as CustomEvent).detail as { editor: TiptapEditor; range: import('@tiptap/core').Range };
+			const url = window.prompt('URL de l\'image :');
+			if (!url) return;
+			const alt = window.prompt('Texte alternatif (alt) :');
+			detail.editor.chain().focus().deleteRange(detail.range).setImage({ src: url, alt: alt || '' }).run();
+		}
+		window.addEventListener('slash:image', onSlashImage);
+
 		editor = new TiptapEditor({
 			element: editorEl,
 			extensions: [
@@ -66,6 +76,7 @@
 					linkify: true,
 					breaks: true,
 				}),
+				SlashCommands,
 			],
 			content,
 			onUpdate: markUnsaved,
@@ -75,6 +86,7 @@
 		onSaveState?.('saved');
 
 		return () => {
+			window.removeEventListener('slash:image', onSlashImage);
 			editor?.destroy();
 			if (saveTimeout) clearTimeout(saveTimeout);
 		};

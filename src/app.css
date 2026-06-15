@@ -61,3 +61,74 @@ body {
 button {
 	font-family: inherit;
 }
+
+.slash-menu {
+	padding: 4px;
+	min-width: 200px;
+	max-height: 280px;
+	overflow-y: auto;
+	background: var(--c-bg);
+	border: 1px solid var(--c-border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+}
+
+.slash-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.slash-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border: none;
+	background: transparent;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	font-size: 13px;
+	color: var(--c-text);
+	text-align: left;
+	width: 100%;
+	font-family: inherit;
+	transition: background 0.1s;
+}
+
+.slash-item:hover,
+.slash-item.active {
+	background: var(--c-primary-light);
+	color: var(--c-primary);
+}
+
+.slash-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+	opacity: 0.7;
+}
+
+.slash-item.active .slash-icon {
+	opacity: 1;
+}
+
+.slash-label {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tippy-box[data-theme~='slash'] {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+}
+
+.tippy-box[data-theme~='slash'] .tippy-content {
+	padding: 0;
+}

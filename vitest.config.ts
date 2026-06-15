@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import path from 'node:path';
 
 export default defineConfig({
 	plugins: [
@@ -8,6 +9,9 @@ export default defineConfig({
 		}),
 	],
 	resolve: {
+		alias: {
+			$lib: path.resolve('./src/lib'),
+		},
 		conditions: ['browser'],
 	},
 	test: {
