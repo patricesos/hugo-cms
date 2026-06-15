@@ -5,8 +5,10 @@
 	import Placeholder from '@tiptap/extension-placeholder';
 	import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 	import { Markdown } from 'tiptap-markdown';
+	import Image from '@tiptap/extension-image';
 	import { SlashCommands } from '$lib/editor/slash-commands';
 	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow } from '@lucide/svelte';
+	import ImagePicker from './ImagePicker.svelte';
 
 	interface EditorProps {
 		content?: string;
@@ -22,6 +24,9 @@
 	let bubbleEl: HTMLDivElement;
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
+	let showImagePicker = $state(false);
+	let pendingImageInsert = $state<{ editor: TiptapEditor; range: import('@tiptap/core').Range } | null>(null);
+
 	function updateStats() {
 		if (!editor) return;
 		const text = editor.state.doc.textContent;
@@ -33,6 +38,18 @@
 
 	function getMarkdown(): string {
 		return ((editor?.storage as unknown) as Record<string, Record<string, () => string>>).markdown?.getMarkdown() ?? '';
+	}
+
+	function handleImageSelect(url: string) {
+		if (!pendingImageInsert) return;
+		const { editor: ed, range } = pendingImageInsert;
+		ed.chain().focus().deleteRange(range).setImage({ src: url }).run();
+		pendingImageInsert = null;
+	}
+
+	function handleImagePickerClose() {
+		showImagePicker = false;
+		pendingImageInsert = null;
 	}
 
 	function markUnsaved() {
@@ -56,10 +73,8 @@
 	onMount(() => {
 		function onSlashImage(e: Event) {
 			const detail = (e as CustomEvent).detail as { editor: TiptapEditor; range: import('@tiptap/core').Range };
-			const url = window.prompt('URL de l\'image :');
-			if (!url) return;
-			const alt = window.prompt('Texte alternatif (alt) :');
-			detail.editor.chain().focus().deleteRange(detail.range).setImage({ src: url, alt: alt || '' }).run();
+			pendingImageInsert = detail;
+			showImagePicker = true;
 		}
 		window.addEventListener('slash:image', onSlashImage);
 
@@ -76,6 +91,7 @@
 					linkify: true,
 					breaks: true,
 				}),
+				Image,
 				SlashCommands,
 			],
 			content,
@@ -160,6 +176,12 @@
 		<button onclick={setLink} class:active={editor?.isActive('link')} title="Lien"><Link size={14} /></button>
 	</div>
 </div>
+
+<ImagePicker
+	show={showImagePicker}
+	onSelect={handleImageSelect}
+	onClose={handleImagePickerClose}
+/>
 
 <style>
 	.editor-container {

@@ -150,13 +150,13 @@ export const SlashCommands = Extension.create({
 							event.preventDefault();
 							const item = currentItems[selectedIndex];
 							if (item) item.command({ editor, range });
-							view.dispatch(view.state.tr.setMeta(pluginKey, { exit: true }));
+							view.dispatch(view.state.tr.setMeta(slashPluginKey, { exit: true }));
 							return true;
 						}
 						if (event.key === 'Escape') {
 							event.preventDefault();
 							popup?.hide();
-							view.dispatch(view.state.tr.setMeta(pluginKey, { exit: true }));
+							view.dispatch(view.state.tr.setMeta(slashPluginKey, { exit: true }));
 							return true;
 						}
 						return false;
