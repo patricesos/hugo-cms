@@ -15,9 +15,10 @@ export interface CmsConfig {
 }
 
 function loadConfig(): CmsConfig {
+	const contentDir = process.env.HUGO_CONTENT_PATH || resolve(process.cwd(), 'demo-content');
 	const config: CmsConfig = {
-		hugoContentPath: process.env.HUGO_CONTENT_PATH || resolve(process.cwd(), 'demo-content'),
-		hugoStaticPath: process.env.HUGO_STATIC_PATH || resolve(process.cwd(), 'static'),
+		hugoContentPath: contentDir,
+		hugoStaticPath: process.env.HUGO_STATIC_PATH || resolve(contentDir, '..', 'static'),
 		defaultAuthor: 'patricesos',
 		dateFormat: 'YYYY-MM-DD',
 		git: {
@@ -30,7 +31,7 @@ function loadConfig(): CmsConfig {
 
 	if (!existsSync(config.hugoContentPath)) {
 		console.warn(`⚠ HUGO_CONTENT_PATH does not exist: ${config.hugoContentPath}`);
-		console.warn('Using demo-content/ directory. Set HUGO_CONTENT_PATH in .env.local for a real Hugo repo.');
+		console.warn('Using demo-content/ directory. Set HUGO_CONTENT_PATH in .env for a real Hugo repo.');
 	}
 
 	return config;
