@@ -32,6 +32,7 @@
 	let editing = $state(false);
 	let editValue = $state('');
 	let inputEl = $state<HTMLInputElement | null>(null);
+	let dragOver = $state(false);
 
 	function toggle() {
 		open = !open;
@@ -73,11 +74,48 @@
 		if (e.key === 'Enter') commitEdit();
 		if (e.key === 'Escape') cancelEdit();
 	}
+
+	function handleDragStart(e: DragEvent) {
+		if (node.type !== 'file') return;
+		e.dataTransfer?.setData('text/plain', node.slug);
+		e.dataTransfer!.effectAllowed = 'move';
+	}
+
+	function handleDragOver(e: DragEvent) {
+		if (node.type !== 'directory') return;
+		e.preventDefault();
+		dragOver = true;
+	}
+
+	function handleDragLeave() {
+		dragOver = false;
+	}
+
+	function handleDrop(e: DragEvent) {
+		e.preventDefault();
+		dragOver = false;
+		if (node.type !== 'directory' || !onRenameFile) return;
+		const sourceSlug = e.dataTransfer?.getData('text/plain');
+		if (!sourceSlug) return;
+		const fileName = sourceSlug.includes('/') ? sourceSlug.split('/').pop()! : sourceSlug;
+		const newSlug = node.slug ? `${node.slug}/${fileName}` : fileName;
+		if (newSlug !== sourceSlug) {
+			onRenameFile(sourceSlug, newSlug);
+		}
+	}
 </script>
 
 <div class="tree-node" style="padding-left: {indent}px">
 	{#if node.type === 'directory'}
-		<button class="tree-item dir" onclick={toggle} title={open ? 'Réduire' : 'Développer'}>
+		<button
+			class="tree-item dir"
+			class:drag-over={dragOver}
+			onclick={toggle}
+			title={open ? 'Réduire' : 'Développer'}
+			ondragover={handleDragOver}
+			ondragleave={handleDragLeave}
+			ondrop={handleDrop}
+		>
 			<span class="chevron">
 				{#if open}
 					<ChevronDown size={13} />
@@ -116,6 +154,8 @@
 					class:active={currentSlug === node.slug}
 					onclick={() => onLoadFile(node.slug)}
 					ondblclick={startEdit}
+					draggable="true"
+					ondragstart={handleDragStart}
 				>
 					<span class="icon"><FileText size={15} /></span>
 					<span class="name">{node.name}</span>
@@ -174,6 +214,13 @@
 	.tree-item.dir {
 		color: var(--c-text);
 		font-weight: 500;
+	}
+
+	.tree-item.dir.drag-over {
+		background: var(--c-primary-light);
+		color: var(--c-primary);
+		border: 1px dashed var(--c-primary);
+		padding: 4px 7px;
 	}
 
 	.chevron {

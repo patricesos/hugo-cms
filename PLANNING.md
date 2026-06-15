@@ -1,7 +1,7 @@
 # Planning — Prochaines fonctionnalités
 
 ## Sprint 4
-- [ ] Déplacer un fichier entre sections (drag & drop utile)
+- [x] Déplacer un fichier entre sections (drag & drop)
 - [x] Renommer un fichier
 - [ ] Draft/Publish toggle dans le frontmatter
 - [x] Masquer/afficher la sidebar (toggle)
