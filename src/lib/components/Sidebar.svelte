@@ -17,12 +17,14 @@
 		onLoadFile,
 		onRefresh,
 		onCreateFile,
+		onDeleteFile,
 	}: {
 		tree: TreeNodeData[];
 		currentSlug: string | null;
 		onLoadFile: (slug: string) => void;
 		onRefresh: () => void;
 		onCreateFile?: () => void;
+		onDeleteFile?: (slug: string) => void;
 	} = $props();
 </script>
 
@@ -46,7 +48,7 @@
 
 	<nav class="file-tree">
 		{#each tree as node}
-			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} />
+			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} />
 		{/each}
 	</nav>
 </aside>

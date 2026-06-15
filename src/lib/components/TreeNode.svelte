@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
-	import { Folder, FileText, ChevronRight, ChevronDown } from '@lucide/svelte';
+	import { Folder, FileText, ChevronRight, ChevronDown, Trash2 } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -17,11 +17,13 @@
 		depth = 0,
 		currentSlug = '',
 		onLoadFile,
+		onDeleteFile,
 	}: {
 		node: TreeNodeData;
 		depth: number;
 		currentSlug: string | null;
 		onLoadFile: (slug: string) => void;
+		onDeleteFile?: (slug: string) => void;
 	} = $props();
 
 	let open = $state(false);
@@ -50,22 +52,30 @@
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} />
 				{/each}
 			</div>
 		{/if}
 	{:else}
-		<button
-			class="tree-item file"
-			class:active={currentSlug === node.slug}
-			onclick={() => onLoadFile(node.slug)}
-		>
-			<span class="icon"><FileText size={15} /></span>
-			<span class="name">{node.name}</span>
-			{#if node.frontmatter?.draft === true}
-				<span class="badge-draft">DRAFT</span>
+		<div class="file-row">
+			<button
+				class="tree-item file"
+				class:active={currentSlug === node.slug}
+				onclick={() => onLoadFile(node.slug)}
+			>
+				<span class="icon"><FileText size={15} /></span>
+				<span class="name">{node.name}</span>
+				{#if node.frontmatter?.draft === true}
+					<span class="badge-draft">DRAFT</span>
+				{/if}
+			</button>
+			{#if onDeleteFile}
+				<button class="delete-node-btn" onclick={() => onDeleteFile(node.slug)} title="Supprimer">
+					<Trash2 size={13} />
+				</button>
 			{/if}
-		</button>
+		</div>
+	{/if}
 	{/if}
 </div>
 
@@ -151,5 +161,40 @@
 
 	.children {
 		overflow: hidden;
+	}
+
+	.file-row {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.file-row .tree-item {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.delete-node-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border: none;
+		background: transparent;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		opacity: 0;
+		transition: all 0.12s;
+		flex-shrink: 0;
+	}
+
+	.file-row:hover .delete-node-btn {
+		opacity: 1;
+	}
+
+	.delete-node-btn:hover {
+		color: var(--c-danger);
+		background: #fef2f2;
 	}
 </style>

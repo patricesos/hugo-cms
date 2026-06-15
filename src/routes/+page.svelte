@@ -77,13 +77,16 @@
 		await loadFile(fullSlug);
 	}
 
-	async function handleDelete() {
-		if (!currentSlug) return;
-		if (!window.confirm(`Supprimer "${currentSlug}" ?\n\nLe fichier sera déplacé dans _trash/.`)) return;
-		await fetch(`/api/content/${currentSlug}`, { method: 'DELETE' });
-		currentSlug = null;
-		editorContent = '';
-		currentFrontmatter = {};
+	async function handleDelete(slug?: string) {
+		const target = slug || currentSlug;
+		if (!target) return;
+		if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans _trash/.`)) return;
+		await fetch(`/api/content/${target}`, { method: 'DELETE' });
+		if (slug || currentSlug === target) {
+			currentSlug = null;
+			editorContent = '';
+			currentFrontmatter = {};
+		}
 		await loadTree();
 	}
 </script>
@@ -95,6 +98,7 @@
 		onRefresh={loadTree}
 		onLoadFile={loadFile}
 		onCreateFile={() => showCreateDialog = true}
+		onDeleteFile={handleDelete}
 	/>
 
 	<main class="editor-panel">
