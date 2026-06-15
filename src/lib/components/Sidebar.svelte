@@ -71,11 +71,18 @@
 	.sidebar {
 		width: 280px;
 		min-width: 280px;
+		height: 100%;
 		border-right: 1px solid var(--c-border);
 		background: var(--c-bg-sidebar);
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+
+	.sidebar::-webkit-scrollbar {
+		display: none;
 	}
 
 	.sidebar-header {

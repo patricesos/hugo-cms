@@ -32,6 +32,27 @@
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
+	let sidebarWidth = $state(260);
+
+	function startResize(e: MouseEvent) {
+		e.preventDefault();
+		const startX = e.clientX;
+		const startWidth = sidebarWidth;
+		function onMove(ev: MouseEvent) {
+			const newWidth = Math.max(180, Math.min(500, startWidth + ev.clientX - startX));
+			sidebarWidth = newWidth;
+		}
+		function onUp() {
+			document.removeEventListener('mousemove', onMove);
+			document.removeEventListener('mouseup', onUp);
+			document.body.style.cursor = '';
+			document.body.style.userSelect = '';
+		}
+		document.addEventListener('mousemove', onMove);
+		document.addEventListener('mouseup', onUp);
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+	}
 
 	let directories = $derived(
 		tree.filter((n) => n.type === 'directory').map((n) => ({ slug: n.slug, name: n.name }))
@@ -128,16 +149,19 @@
 
 <div class="cms-layout" class:sidebar-collapsed={!sidebarOpen}>
 	{#if sidebarOpen}
-		<Sidebar
-			tree={tree}
-			{currentSlug}
-			onRefresh={loadTree}
-			onLoadFile={loadFile}
-			onCreateFile={() => showCreateDialog = true}
-			onDeleteFile={handleDelete}
-			onSearch={() => showSearch = true}
-			onToggle={() => sidebarOpen = !sidebarOpen}
-		/>
+		<div class="sidebar-wrap" style="width: {sidebarWidth}px">
+			<Sidebar
+				tree={tree}
+				{currentSlug}
+				onRefresh={loadTree}
+				onLoadFile={loadFile}
+				onCreateFile={() => showCreateDialog = true}
+				onDeleteFile={handleDelete}
+				onSearch={() => showSearch = true}
+				onToggle={() => sidebarOpen = !sidebarOpen}
+			/>
+		</div>
+		<div class="resize-handle" onmousedown={startResize}></div>
 	{/if}
 
 	<main class="editor-panel">
@@ -260,11 +284,34 @@
 	}
 
 	.cms-layout :global(.sidebar) {
-		transition: width 0s;
+		width: 100%;
+		min-width: 0;
 	}
 
 	.cms-layout.sidebar-collapsed :global(.sidebar) {
 		display: none;
+	}
+
+	.sidebar-wrap {
+		flex-shrink: 0;
+		overflow: hidden;
+		height: 100%;
+		display: flex;
+	}
+
+	.resize-handle {
+		width: 4px;
+		flex-shrink: 0;
+		cursor: col-resize;
+		background: transparent;
+		transition: background 0.15s;
+		position: relative;
+		z-index: 5;
+	}
+
+	.resize-handle:hover,
+	.resize-handle:active {
+		background: var(--c-primary);
 	}
 
 	.editor-header {

@@ -4,8 +4,8 @@
 - [ ] Déplacer un fichier entre sections (drag & drop utile)
 - [ ] Renommer un fichier
 - [ ] Draft/Publish toggle dans le frontmatter
-- [ ] Masquer/afficher la sidebar (toggle)
-- [ ] Sidebar redimensionnable (poignée de glissement)
+- [x] Masquer/afficher la sidebar (toggle)
+- [x] Sidebar redimensionnable (poignée de glissement)
 - [ ] Bascule éditeur WYSIWYG / Markdown brut
 
 ## Sprint 5
