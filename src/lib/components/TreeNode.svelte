@@ -29,8 +29,8 @@
 		open = !open;
 	}
 
-	const indent = depth * 16;
-	const hasChildren = node.type === 'directory' && node.children !== undefined && node.children.length > 0;
+	const indent = $derived(depth * 16);
+	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
 </script>
 
 <div class="tree-node" style="padding-left: {indent}px">
