@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
-	import { Folder, FileText, ChevronRight, ChevronDown, Trash2 } from '@lucide/svelte';
+	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Check, X } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -18,15 +18,20 @@
 		currentSlug = '',
 		onLoadFile,
 		onDeleteFile,
+		onRenameFile,
 	}: {
 		node: TreeNodeData;
 		depth: number;
 		currentSlug: string | null;
 		onLoadFile: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
+		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 	} = $props();
 
 	let open = $state(false);
+	let editing = $state(false);
+	let editValue = $state('');
+	let inputEl = $state<HTMLInputElement | null>(null);
 
 	function toggle() {
 		open = !open;
@@ -34,6 +39,40 @@
 
 	const indent = $derived(depth * 16);
 	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
+	const fileName = $derived(node.name.replace(/\.md$/, ''));
+
+	function startEdit() {
+		if (node.type !== 'file') return;
+		editValue = fileName;
+		editing = true;
+	}
+
+	$effect(() => {
+		if (editing && inputEl) {
+			inputEl.focus();
+			inputEl.select();
+		}
+	});
+
+	function commitEdit() {
+		if (!onRenameFile || !editValue.trim()) return;
+		const parentDir = node.slug.includes('/') ? node.slug.substring(0, node.slug.lastIndexOf('/') + 1) : '';
+		const newName = editValue.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || editValue.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+		const newSlug = parentDir + newName;
+		if (newSlug !== node.slug && newName) {
+			onRenameFile(node.slug, newSlug);
+		}
+		editing = false;
+	}
+
+	function cancelEdit() {
+		editing = false;
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') commitEdit();
+		if (e.key === 'Escape') cancelEdit();
+	}
 </script>
 
 <div class="tree-node" style="padding-left: {indent}px">
@@ -52,27 +91,43 @@
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} />
 				{/each}
 			</div>
 		{/if}
 	{:else}
 		<div class="file-row">
-			<button
-				class="tree-item file"
-				class:active={currentSlug === node.slug}
-				onclick={() => onLoadFile(node.slug)}
-			>
-				<span class="icon"><FileText size={15} /></span>
-				<span class="name">{node.name}</span>
-				{#if node.frontmatter?.draft === true}
-					<span class="badge-draft">DRAFT</span>
-				{/if}
-			</button>
-			{#if onDeleteFile}
-				<button class="delete-node-btn" onclick={() => onDeleteFile(node.slug)} title="Supprimer">
-					<Trash2 size={13} />
+			{#if editing}
+				<div class="rename-wrap">
+					<input
+						bind:this={inputEl}
+						type="text"
+						class="rename-input"
+						bind:value={editValue}
+						onkeydown={handleKeydown}
+						onblur={commitEdit}
+					/>
+					<button class="rename-btn" onclick={commitEdit} title="Valider"><Check size={13} /></button>
+					<button class="rename-btn" onclick={cancelEdit} title="Annuler"><X size={13} /></button>
+				</div>
+			{:else}
+				<button
+					class="tree-item file"
+					class:active={currentSlug === node.slug}
+					onclick={() => onLoadFile(node.slug)}
+					ondblclick={startEdit}
+				>
+					<span class="icon"><FileText size={15} /></span>
+					<span class="name">{node.name}</span>
+					{#if node.frontmatter?.draft === true}
+						<span class="badge-draft">DRAFT</span>
+					{/if}
 				</button>
+				{#if onDeleteFile}
+					<button class="delete-node-btn" onclick={() => onDeleteFile(node.slug)} title="Supprimer">
+						<Trash2 size={13} />
+					</button>
+				{/if}
 			{/if}
 		</div>
 	{/if}
@@ -195,5 +250,45 @@
 	.delete-node-btn:hover {
 		color: var(--c-danger);
 		background: #fef2f2;
+	}
+
+	.rename-wrap {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		flex: 1;
+		padding: 3px 0;
+	}
+
+	.rename-input {
+		flex: 1;
+		min-width: 0;
+		font-size: 13px;
+		font-family: inherit;
+		padding: 3px 6px;
+		border: 1px solid var(--c-primary);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text);
+		outline: none;
+	}
+
+	.rename-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 3px;
+		border: 1px solid var(--c-border);
+		background: var(--c-bg);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		transition: all 0.1s;
+		flex-shrink: 0;
+	}
+
+	.rename-btn:hover {
+		color: var(--c-text);
+		background: var(--c-bg-muted);
 	}
 </style>

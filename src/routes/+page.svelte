@@ -145,6 +145,19 @@
 		}
 		await loadTree();
 	}
+
+	async function handleRename(oldSlug: string, newSlug: string) {
+		const res = await fetch(`/api/content/${oldSlug}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ newSlug }),
+		});
+		if (!res.ok) return;
+		if (currentSlug === oldSlug) {
+			currentSlug = newSlug;
+		}
+		await loadTree();
+	}
 </script>
 
 <div class="cms-layout" class:sidebar-collapsed={!sidebarOpen}>
@@ -157,6 +170,7 @@
 				onLoadFile={loadFile}
 				onCreateFile={() => showCreateDialog = true}
 				onDeleteFile={handleDelete}
+				onRenameFile={handleRename}
 				onSearch={() => showSearch = true}
 				onToggle={() => sidebarOpen = !sidebarOpen}
 			/>

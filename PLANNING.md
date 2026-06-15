@@ -2,7 +2,7 @@
 
 ## Sprint 4
 - [ ] Déplacer un fichier entre sections (drag & drop utile)
-- [ ] Renommer un fichier
+- [x] Renommer un fichier
 - [ ] Draft/Publish toggle dans le frontmatter
 - [x] Masquer/afficher la sidebar (toggle)
 - [x] Sidebar redimensionnable (poignée de glissement)

@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { readContent, createContent, updateContent, deleteContent } from '$lib/server/content';
+import { readContent, createContent, updateContent, deleteContent, renameContent } from '$lib/server/content';
 
 export async function GET({ params }) {
 	const slug = params.slug;
@@ -44,5 +44,18 @@ export async function DELETE({ params }) {
 		return new Response(null, { status: 204 });
 	} catch (e) {
 		error(404, (e as Error).message);
+	}
+}
+
+export async function PATCH({ params, request }) {
+	const slug = params.slug;
+	if (!slug) error(400, 'Slug is required');
+	const { newSlug } = await request.json();
+	if (!newSlug) error(400, 'newSlug is required');
+	try {
+		const item = await renameContent(slug, newSlug);
+		return json(item);
+	} catch (e) {
+		error(409, (e as Error).message);
 	}
 }

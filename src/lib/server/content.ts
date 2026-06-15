@@ -1,5 +1,5 @@
 import { readFile, writeFile, readdir, mkdir, rename } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
 import { parseFrontmatter, serializeFrontmatter } from './markdown';
@@ -123,6 +123,14 @@ export async function deleteContent(slug: string): Promise<void> {
 	}
 	const trashPath = join(TRASH_DIR, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}.md`);
 	await rename(filePath, trashPath);
+}
+
+export async function renameContent(slug: string, newSlug: string): Promise<ContentItem> {
+	const filePath = safeResolve(slug + '.md');
+	const newFilePath = safeResolve(newSlug + '.md');
+	await mkdir(dirname(newFilePath), { recursive: true });
+	await rename(filePath, newFilePath);
+	return readContent(newSlug);
 }
 
 export async function listAssets(): Promise<string[]> {
