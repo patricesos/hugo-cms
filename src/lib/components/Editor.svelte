@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Editor as TiptapEditor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
-import { Markdown } from 'tiptap-markdown';
+	import StarterKit from '@tiptap/starter-kit';
+	import Placeholder from '@tiptap/extension-placeholder';
+	import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
+	import { Markdown } from 'tiptap-markdown';
+	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow } from '@lucide/svelte';
 
 	interface EditorProps {
 		content?: string;
@@ -120,31 +121,31 @@ import { Markdown } from 'tiptap-markdown';
 
 <div class="editor-container">
 	<div class="editor-toolbar">
-		<button onclick={() => exec('undo')} title="Annuler (Ctrl+Z)">↩</button>
-		<button onclick={() => exec('redo')} title="Rétablir (Ctrl+Shift+Z)">↪</button>
+		<button onclick={() => exec('undo')} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
+		<button onclick={() => exec('redo')} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => toggleHeading(1)} class:active={editor?.isActive('heading', { level: 1 })}>H1</button>
-		<button onclick={() => toggleHeading(2)} class:active={editor?.isActive('heading', { level: 2 })}>H2</button>
-		<button onclick={() => toggleHeading(3)} class:active={editor?.isActive('heading', { level: 3 })}>H3</button>
+		<button onclick={() => toggleHeading(1)} class:active={editor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
+		<button onclick={() => toggleHeading(2)} class:active={editor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
+		<button onclick={() => toggleHeading(3)} class:active={editor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')}><strong>B</strong></button>
-		<button onclick={() => exec('toggleItalic')} class:active={editor?.isActive('italic')}><em>I</em></button>
-		<button onclick={() => exec('toggleCode')} class:active={editor?.isActive('code')}>{'</>' }</button>
-		<button onclick={setLink} class:active={editor?.isActive('link')}>🔗</button>
+		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
+		<button onclick={() => exec('toggleItalic')} class:active={editor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
+		<button onclick={() => exec('toggleCode')} class:active={editor?.isActive('code')} title="Code"><Code size={15} /></button>
+		<button onclick={setLink} class:active={editor?.isActive('link')} title="Lien"><Link size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => exec('toggleBlockquote')} class:active={editor?.isActive('blockquote')}>"</button>
-		<button onclick={() => exec('toggleBulletList')} class:active={editor?.isActive('bulletList')}>•</button>
-		<button onclick={() => exec('toggleOrderedList')} class:active={editor?.isActive('orderedList')}>1.</button>
-		<button onclick={() => exec('setHorizontalRule')}>—</button>
+		<button onclick={() => exec('toggleBlockquote')} class:active={editor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
+		<button onclick={() => exec('toggleBulletList')} class:active={editor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
+		<button onclick={() => exec('toggleOrderedList')} class:active={editor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
+		<button onclick={() => exec('setHorizontalRule')} title="Ligne horizontale"><Minus size={15} /></button>
 	</div>
 
 	<div bind:this={editorEl} class="editor-content"></div>
 
 	<div bind:this={bubbleEl} class="bubble-menu">
-		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')}><strong>B</strong></button>
-		<button onclick={() => exec('toggleItalic')} class:active={editor?.isActive('italic')}><em>I</em></button>
-		<button onclick={() => exec('toggleCode')} class:active={editor?.isActive('code')}>{'</>' }</button>
-		<button onclick={setLink} class:active={editor?.isActive('link')}>🔗</button>
+		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')} title="Gras"><Bold size={14} /></button>
+		<button onclick={() => exec('toggleItalic')} class:active={editor?.isActive('italic')} title="Italique"><Italic size={14} /></button>
+		<button onclick={() => exec('toggleCode')} class:active={editor?.isActive('code')} title="Code"><Code size={14} /></button>
+		<button onclick={setLink} class:active={editor?.isActive('link')} title="Lien"><Link size={14} /></button>
 	</div>
 </div>
 
@@ -158,41 +159,44 @@ import { Markdown } from 'tiptap-markdown';
 	.editor-toolbar {
 		display: flex;
 		align-items: center;
-		gap: 2px;
+		gap: 1px;
 		padding: 6px 12px;
-		border-bottom: 1px solid #e5e7eb;
-		background: #fafafa;
+		border-bottom: 1px solid var(--c-border);
+		background: var(--c-bg-subtle);
 		flex-shrink: 0;
 	}
 
 	.editor-toolbar button, .bubble-menu button {
-		padding: 4px 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
 		border: 1px solid transparent;
-		border-radius: 4px;
+		border-radius: var(--radius-md);
 		background: transparent;
 		cursor: pointer;
-		font-size: 13px;
-		color: #374151;
+		color: var(--c-text-secondary);
 		transition: all 0.12s;
-		line-height: 1.4;
 	}
 
 	.editor-toolbar button:hover, .bubble-menu button:hover {
-		background: #e5e7eb;
-		border-color: #d1d5db;
+		background: var(--c-bg-muted);
+		color: var(--c-text);
 	}
 
 	.editor-toolbar button.active, .bubble-menu button.active {
-		background: #e0e7ff;
-		border-color: #6366f1;
-		color: #4338ca;
+		background: var(--c-primary-light);
+		color: var(--c-primary);
 	}
 
 	.sep {
 		width: 1px;
 		height: 20px;
-		background: #e5e7eb;
+		background: var(--c-border);
 		margin: 0 4px;
+		flex-shrink: 0;
 	}
 
 	.editor-content {
@@ -202,37 +206,37 @@ import { Markdown } from 'tiptap-markdown';
 		margin: 0 auto;
 		width: 100%;
 		outline: none;
-		font-family: Georgia, 'Times New Roman', serif;
+		font-family: var(--font-serif);
 		font-size: 16px;
 		line-height: 1.8;
 		overflow-y: auto;
 	}
 
-	.editor-content :global(h1) { font-size: 2em; margin: 0.67em 0; font-weight: 700; }
-	.editor-content :global(h2) { font-size: 1.5em; margin: 0.75em 0; font-weight: 600; }
-	.editor-content :global(h3) { font-size: 1.17em; margin: 0.83em 0; font-weight: 600; }
+	.editor-content :global(h1) { font-size: 2em; margin: 0.67em 0; font-weight: 700; color: var(--c-text); }
+	.editor-content :global(h2) { font-size: 1.5em; margin: 0.75em 0; font-weight: 600; color: var(--c-text); }
+	.editor-content :global(h3) { font-size: 1.17em; margin: 0.83em 0; font-weight: 600; color: var(--c-text); }
 	.editor-content :global(p) { margin: 0.5em 0; }
 	.editor-content :global(blockquote) {
-		border-left: 3px solid #d0d0d0;
+		border-left: 3px solid var(--c-border);
 		margin: 1em 0;
 		padding: 0.5em 1em 0.5em 1.2em;
-		color: #555;
+		color: var(--c-text-secondary);
 		font-style: italic;
 	}
 	.editor-content :global(pre) {
 		background: #1e1e2e;
 		color: #cdd6f4;
 		padding: 16px;
-		border-radius: 8px;
-		font-family: 'JetBrains Mono', 'Fira Code', monospace;
+		border-radius: var(--radius-lg);
+		font-family: var(--font-mono);
 		font-size: 14px;
 		overflow-x: auto;
 	}
 	.editor-content :global(code) {
-		background: #f0f0f0;
+		background: var(--c-bg-muted);
 		padding: 2px 6px;
-		border-radius: 3px;
-		font-family: 'JetBrains Mono', monospace;
+		border-radius: var(--radius-sm);
+		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
 	.editor-content :global(pre code) {
@@ -245,20 +249,20 @@ import { Markdown } from 'tiptap-markdown';
 	}
 	.editor-content :global(hr) {
 		border: none;
-		border-top: 2px solid #e5e7eb;
+		border-top: 2px solid var(--c-border);
 		margin: 2em 0;
 	}
 	.editor-content :global(img) {
 		max-width: 100%;
 		height: auto;
-		border-radius: 4px;
+		border-radius: var(--radius-md);
 	}
 	.editor-content :global(a) {
-		color: #6366f1;
+		color: var(--c-primary);
 		text-decoration: underline;
 	}
 	.editor-content :global(p.is-editor-empty:first-child::before) {
-		color: #adb5bd;
+		color: var(--c-text-muted);
 		content: attr(data-placeholder);
 		float: left;
 		height: 0;
@@ -268,10 +272,10 @@ import { Markdown } from 'tiptap-markdown';
 	.bubble-menu {
 		display: flex;
 		gap: 2px;
-		padding: 4px;
-		background: white;
-		border: 1px solid #e5e7eb;
-		border-radius: 8px;
-		box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+		padding: 6px;
+		background: var(--c-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-md);
 	}
 </style>

@@ -14,7 +14,7 @@ describe('StatusBar', () => {
 
 	it('shows saved state', () => {
 		render(StatusBar, { wordCount: 0, charCount: 0, saveState: 'saved' });
-		expect(screen.getByText(/✓/)).toBeTruthy();
+		expect(screen.getByText('Enregistré')).toBeTruthy();
 	});
 
 	it('shows unsaved state', () => {
@@ -29,6 +29,7 @@ describe('StatusBar', () => {
 
 	it('displays zero counts', () => {
 		render(StatusBar, { wordCount: 0, charCount: 0, saveState: 'saved' });
-		expect(screen.getByText('0 mots · 0 caractères')).toBeTruthy();
+		expect(screen.getByText(/0 mots/)).toBeTruthy();
+		expect(screen.getByText(/0 caractères/)).toBeTruthy();
 	});
 });

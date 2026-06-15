@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { X, Plus, AlertTriangle } from '@lucide/svelte';
+
 	interface FrontMatter {
 		title?: string;
 		date?: string;
@@ -45,11 +47,16 @@
 </script>
 
 <div class="fm-panel">
-	<h3 class="fm-title">Front Matter</h3>
+	<div class="fm-header">
+		<h3 class="fm-title">Front Matter</h3>
+		{#if local.draft}
+			<span class="draft-badge"><AlertTriangle size={11} />Brouillon</span>
+		{/if}
+	</div>
 
 	<div class="field">
 		<label for="fm-title">Titre</label>
-		<input id="fm-title" type="text" value={local.title || ''} oninput={(e) => update('title', (e.target as HTMLInputElement).value)} />
+		<input id="fm-title" type="text" value={local.title || ''} oninput={(e) => update('title', (e.target as HTMLInputElement).value)} placeholder="Titre de la page" />
 	</div>
 
 	<div class="field">
@@ -66,7 +73,7 @@
 
 	<div class="field">
 		<label for="fm-desc">Description</label>
-		<textarea id="fm-desc" value={local.description || ''} oninput={(e) => update('description', (e.target as HTMLTextAreaElement).value)} maxlength={160}></textarea>
+		<textarea id="fm-desc" value={local.description || ''} oninput={(e) => update('description', (e.target as HTMLTextAreaElement).value)} maxlength={160} placeholder="Résumé pour les moteurs de recherche…"></textarea>
 		<span class="counter">{(local.description || '').length}/160</span>
 	</div>
 
@@ -74,16 +81,18 @@
 		<span class="field-label">Tags</span>
 		{#each local.tags || [] as tag, i}
 			<div class="tag-row">
-				<input id="fm-tag-{i}" type="text" value={tag} oninput={(e) => updateTag(i, (e.target as HTMLInputElement).value)} />
-				<button onclick={() => removeTag(i)}>×</button>
+				<input type="text" value={tag} oninput={(e) => updateTag(i, (e.target as HTMLInputElement).value)} placeholder="tag" />
+				<button class="tag-remove" onclick={() => removeTag(i)}><X size={14} /></button>
 			</div>
 		{/each}
-		<button class="add-btn" onclick={addTag}>+ Ajouter un tag</button>
+		<button class="add-btn" onclick={addTag}>
+			<Plus size={13} /> Ajouter un tag
+		</button>
 	</div>
 
 	<div class="field">
 		<label for="fm-cats">Catégories</label>
-		<input id="fm-cats" type="text" value={(local.categories || []).join(', ')} oninput={(e) => update('categories', (e.target as HTMLInputElement).value.split(',').map(s => s.trim()).filter(Boolean))} />
+		<input id="fm-cats" type="text" value={(local.categories || []).join(', ')} oninput={(e) => update('categories', (e.target as HTMLInputElement).value.split(',').map(s => s.trim()).filter(Boolean))} placeholder="cat1, cat2, cat3" />
 	</div>
 </div>
 
@@ -93,11 +102,30 @@
 		font-size: 13px;
 	}
 
+	.fm-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 16px;
+	}
+
 	.fm-title {
 		font-size: 14px;
 		font-weight: 600;
-		margin-bottom: 16px;
-		color: #374151;
+		color: var(--c-text);
+	}
+
+	.draft-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 10px;
+		font-weight: 600;
+		padding: 2px 6px;
+		border-radius: 3px;
+		background: #fef3c7;
+		color: #92400e;
+		text-transform: uppercase;
 	}
 
 	.field {
@@ -108,9 +136,9 @@
 	.field-label {
 		display: block;
 		font-weight: 500;
-		color: #6b7280;
+		color: var(--c-text-muted);
 		margin-bottom: 4px;
-		font-size: 12px;
+		font-size: 11px;
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 	}
@@ -122,7 +150,7 @@
 		font-size: 13px;
 		text-transform: none;
 		letter-spacing: normal;
-		color: #374151;
+		color: var(--c-text);
 		cursor: pointer;
 	}
 
@@ -131,19 +159,19 @@
 	.field textarea {
 		width: 100%;
 		padding: 6px 8px;
-		border: 1px solid #d1d5db;
-		border-radius: 4px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
 		font-size: 13px;
-		color: #1f2937;
-		background: white;
-		box-sizing: border-box;
+		color: var(--c-text);
+		background: var(--c-bg);
+		font-family: inherit;
 		transition: border-color 0.15s;
 	}
 
 	.field input:focus,
 	.field textarea:focus {
 		outline: none;
-		border-color: #6366f1;
+		border-color: var(--c-primary);
 		box-shadow: 0 0 0 2px rgba(99,102,241,0.1);
 	}
 
@@ -156,7 +184,7 @@
 		display: block;
 		text-align: right;
 		font-size: 11px;
-		color: #9ca3af;
+		color: var(--c-text-muted);
 		margin-top: 2px;
 	}
 
@@ -170,27 +198,42 @@
 		flex: 1;
 	}
 
-	.tag-row button {
-		padding: 4px 8px;
+	.tag-remove {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		padding: 0;
 		border: none;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
-		color: #ef4444;
-		font-size: 16px;
+		color: var(--c-danger);
+		transition: all 0.12s;
+	}
+
+	.tag-remove:hover {
+		background: #fef2f2;
 	}
 
 	.add-btn {
-		padding: 4px 8px;
-		border: 1px dashed #d1d5db;
-		border-radius: 4px;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 5px 10px;
+		border: 1px dashed var(--c-border);
+		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
 		font-size: 12px;
-		color: #6366f1;
-		width: 100%;
+		color: var(--c-primary);
+		transition: all 0.12s;
+		font-family: inherit;
 	}
 
 	.add-btn:hover {
-		background: #f9fafb;
+		background: var(--c-primary-bg);
+		border-color: var(--c-primary);
 	}
 </style>

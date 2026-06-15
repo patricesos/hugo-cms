@@ -2,6 +2,22 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/svelte';
 
+vi.mock('@lucide/svelte', () => {
+	function IconMock(_props: Record<string, unknown>) { return { $$render: () => '' }; }
+	const icons = [
+		'Undo2', 'Redo2', 'Heading1', 'Heading2', 'Heading3',
+		'Bold', 'Italic', 'Code', 'Link', 'Quote',
+		'List', 'ListOrdered', 'Minus', 'Pilcrow',
+		'CheckCircle2', 'AlertCircle', 'Loader2', 'Type', 'Hash',
+		'FileText', 'RefreshCw', 'ChevronRight', 'ArrowUp', 'Folder',
+		'PanelRightOpen', 'PanelRightClose', 'PenLine',
+		'X', 'Plus', 'AlertTriangle',
+	] as const;
+	const mod: Record<string, unknown> = {};
+	for (const name of icons) mod[name] = IconMock;
+	return mod;
+});
+
 vi.mock('@tiptap/core', () => {
 	const noop = { configure: () => noop };
 	const extension = { extend: () => extension, configure: () => extension };
@@ -45,10 +61,15 @@ describe('Editor', () => {
 		expect(container.querySelector('.editor-toolbar')).toBeTruthy();
 
 		const buttons = container.querySelectorAll('.editor-toolbar button');
-		const labels = Array.from(buttons).map((b) => b.textContent?.trim());
-		const expected = ['↩', '↪', 'H1', 'H2', 'H3', 'B', 'I', '</>', '🔗', '"', '•', '1.', '—'];
-		for (const label of expected) {
-			expect(labels.some((t) => t?.startsWith(label))).toBe(true);
+		const titles = Array.from(buttons).map((b) => b.getAttribute('title'));
+		const expected = [
+			'Annuler', 'Rétablir',
+			'Titre 1', 'Titre 2', 'Titre 3',
+			'Gras', 'Italique', 'Code', 'Lien',
+			'Citation', 'Liste à puces', 'Liste numérotée', 'Ligne horizontale',
+		];
+		for (const title of expected) {
+			expect(titles.some((t) => t?.startsWith(title))).toBe(true);
 		}
 	});
 
