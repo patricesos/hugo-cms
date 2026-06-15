@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { env } from '$env/static/private';
 
 export interface CmsConfig {
 	hugoContentPath: string;
@@ -16,10 +15,10 @@ export interface CmsConfig {
 }
 
 function loadConfig(): CmsConfig {
-	const contentDir = env.HUGO_CONTENT_PATH || resolve(process.cwd(), 'demo-content');
+	const contentDir = process.env.HUGO_CONTENT_PATH || resolve(process.cwd(), 'demo-content');
 	const config: CmsConfig = {
 		hugoContentPath: contentDir,
-		hugoStaticPath: env.HUGO_STATIC_PATH || resolve(contentDir, '..', 'static'),
+		hugoStaticPath: process.env.HUGO_STATIC_PATH || resolve(contentDir, '..', 'static'),
 		defaultAuthor: 'patricesos',
 		dateFormat: 'YYYY-MM-DD',
 		git: {

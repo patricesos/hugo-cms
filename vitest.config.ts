@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { resolve } from 'path';
 
 export default defineConfig({
 	plugins: [
@@ -10,9 +9,6 @@ export default defineConfig({
 	],
 	resolve: {
 		conditions: ['browser'],
-		alias: {
-			'$env/static/private': resolve('src/test-env-mock.ts'),
-		},
 	},
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
