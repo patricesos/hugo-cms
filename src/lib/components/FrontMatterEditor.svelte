@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, Plus, AlertTriangle } from '@lucide/svelte';
+	import { X, Plus, AlertTriangle, Send, FileEdit } from '@lucide/svelte';
 
 	interface FrontMatter {
 		title?: string;
@@ -49,9 +49,25 @@
 <div class="fm-panel">
 	<div class="fm-header">
 		<h3 class="fm-title">Front Matter</h3>
-		{#if local.draft}
-			<span class="draft-badge"><AlertTriangle size={11} />Brouillon</span>
-		{/if}
+		<div class="fm-header-right">
+			<button
+				class="draft-toggle"
+				class:draft={local.draft}
+				onclick={() => update('draft', !local.draft)}
+				title={local.draft ? 'Publier' : 'Passer en brouillon'}
+			>
+				{#if local.draft}
+					<Send size={13} />
+					<span>Publier</span>
+				{:else}
+					<FileEdit size={13} />
+					<span>Brouillon</span>
+				{/if}
+			</button>
+			{#if local.draft}
+				<span class="draft-badge"><AlertTriangle size={11} />Brouillon</span>
+			{/if}
+		</div>
 	</div>
 
 	<div class="field">
@@ -107,12 +123,51 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 16px;
+		gap: 8px;
+	}
+
+	.fm-header-right {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
 	}
 
 	.fm-title {
 		font-size: 14px;
 		font-weight: 600;
 		color: var(--c-text);
+	}
+
+	.draft-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 4px 10px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-md);
+		background: var(--c-bg);
+		cursor: pointer;
+		font-size: 11px;
+		font-family: inherit;
+		font-weight: 500;
+		color: var(--c-text-secondary);
+		transition: all 0.12s;
+	}
+
+	.draft-toggle.draft {
+		background: #fef3c7;
+		border-color: #fde68a;
+		color: #92400e;
+	}
+
+	.draft-toggle:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+	}
+
+	.draft-toggle.draft:hover {
+		background: #fde68a;
 	}
 
 	.draft-badge {

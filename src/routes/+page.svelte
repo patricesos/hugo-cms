@@ -117,6 +117,22 @@
 	function handleFrontmatterChange(fm: Record<string, unknown>) {
 		currentFrontmatter = fm;
 		saveState = 'unsaved';
+		if (currentSlug) updateTreeFrontmatter(currentSlug, fm);
+	}
+
+	function updateTreeFrontmatter(slug: string, fm: Record<string, unknown>) {
+		function walk(nodes: TreeNode[]): boolean {
+			for (const n of nodes) {
+				if (n.slug === slug) {
+					n.frontmatter = fm;
+					return true;
+				}
+				if (n.children && walk(n.children)) return true;
+			}
+			return false;
+		}
+		walk(tree);
+		tree = tree; // trigger reactivity
 	}
 
 	async function handleCreate(title: string, section: string) {
