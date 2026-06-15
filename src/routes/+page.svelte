@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2 } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
@@ -26,6 +26,7 @@
 	let wordCount = $state(0);
 	let charCount = $state(0);
 	let saveState = $state<'saved' | 'unsaved' | 'saving'>('saved');
+	let saveRequest = $state(0);
 	let loading = $state(false);
 	let fmOpen = $state(true);
 	let showCreateDialog = $state(false);
@@ -191,7 +192,7 @@
 				onToggle={() => sidebarOpen = !sidebarOpen}
 			/>
 		</div>
-		<div class="resize-handle" onmousedown={startResize}></div>
+		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
 	{/if}
 
 	<main class="editor-panel">
@@ -217,9 +218,25 @@
 				<div class="header-left">
 					<PenLine size={14} color="var(--c-text-muted)" />
 					<span class="filename">{currentSlug}.md</span>
+					<button
+						class="save-btn"
+						class:saved={saveState === 'saved'}
+						class:unsaved={saveState === 'unsaved'}
+						class:saving={saveState === 'saving'}
+						onclick={() => saveRequest++}
+						title={saveState === 'saving' ? 'Sauvegarde…' : saveState === 'unsaved' ? 'Enregistrer' : 'Enregistré'}
+					>
+						{#if saveState === 'saving'}
+							<Loader2 size={13} class="spin" />
+						{:else if saveState === 'unsaved'}
+							<Save size={13} />
+						{:else}
+							<CheckCircle2 size={13} />
+						{/if}
+					</button>
 				</div>
 				<div class="header-actions">
-					<button class="icon-btn delete-btn" onclick={handleDelete} title="Supprimer">
+					<button class="icon-btn delete-btn" onclick={() => handleDelete()} title="Supprimer">
 						<Trash2 size={15} />
 					</button>
 					<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
@@ -235,6 +252,7 @@
 				<div class="editor-area">
 					<Editor
 						content={editorContent}
+						{saveRequest}
 						onSave={handleSave}
 						onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
 						onSaveState={(s) => { saveState = s; }}
@@ -366,6 +384,32 @@
 		color: var(--c-text-secondary);
 		font-family: var(--font-mono);
 	}
+
+	.save-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		padding: 0;
+		border: 1px solid transparent;
+		border-radius: var(--radius-md);
+		background: transparent;
+		cursor: pointer;
+		transition: all 0.12s;
+		color: var(--c-text-muted);
+	}
+
+	.save-btn.saved { color: var(--c-text-muted); cursor: default; }
+	.save-btn.saved:hover { background: transparent; }
+
+	.save-btn.unsaved { color: var(--c-text-secondary); }
+	.save-btn.unsaved:hover { background: var(--c-bg-muted); color: var(--c-text); }
+
+	.save-btn.saving { color: var(--c-primary); pointer-events: none; }
+	.save-btn.saving :global(.spin) { animation: spin 0.8s linear infinite; }
+
+	@keyframes spin { to { transform: rotate(360deg); } }
 
 	.header-actions {
 		display: flex;

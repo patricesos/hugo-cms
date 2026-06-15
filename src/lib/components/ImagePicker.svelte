@@ -99,8 +99,8 @@
 </script>
 
 {#if show}
-	<div class="ip-backdrop" transition:fade={{ duration: 100 }} onclick={onClose}></div>
-	<div class="ip-dialog {dragOver ? 'drag-over' : ''}" transition:fade={{ duration: 120 }} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop}>
+	<div class="ip-backdrop" role="presentation" transition:fade={{ duration: 100 }} onclick={onClose}></div>
+	<div class="ip-dialog {dragOver ? 'drag-over' : ''}" role="dialog" tabindex="-1" transition:fade={{ duration: 120 }} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop}>
 		<div class="ip-header">
 			<Image size={16} />
 			<span>Insérer une image</span>
@@ -110,7 +110,7 @@
 		<div class="ip-upload">
 			<label class="ip-upload-btn" class:uploading>
 				{#if uploading}
-					<Loader2 size={16} class="spin" />
+					<Loader2 size={16} style="animation: spin 0.8s linear infinite;" />
 					<span>Upload en cours…</span>
 				{:else}
 					<Upload size={16} />
@@ -123,7 +123,7 @@
 
 		<div class="ip-grid-wrap">
 			{#if loading}
-				<div class="ip-loading"><Loader2 size={20} class="spin" /></div>
+				<div class="ip-loading"><Loader2 size={20} style="animation: spin 0.8s linear infinite;" /></div>
 			{:else if images.length === 0}
 				<div class="ip-empty">Aucune image trouvée</div>
 			{:else}
@@ -309,6 +309,5 @@
 	.ip-btn.secondary { background: var(--c-bg); color: var(--c-text); }
 	.ip-btn.secondary:hover { background: var(--c-bg-muted); }
 
-	.spin { animation: spin 0.8s linear infinite; }
 	@keyframes spin { to { transform: rotate(360deg); } }
 </style>

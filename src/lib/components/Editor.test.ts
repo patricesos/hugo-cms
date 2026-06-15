@@ -11,7 +11,7 @@ vi.mock('@lucide/svelte', () => {
 		'CheckCircle2', 'AlertCircle', 'Loader2', 'Type', 'Hash',
 		'FileText', 'RefreshCw', 'ChevronRight', 'ArrowUp', 'Folder',
 		'PanelRightOpen', 'PanelRightClose', 'PenLine',
-		'X', 'Plus', 'AlertTriangle',
+		'X', 'Plus', 'AlertTriangle', 'Code2',
 	] as const;
 	const mod: Record<string, unknown> = {};
 	for (const name of icons) mod[name] = IconMock;
@@ -67,6 +67,7 @@ describe('Editor', () => {
 			'Titre 1', 'Titre 2', 'Titre 3',
 			'Gras', 'Italique', 'Code', 'Lien',
 			'Citation', 'Liste à puces', 'Liste numérotée', 'Ligne horizontale',
+			'Mode Markdown brut',
 		];
 		for (const title of expected) {
 			expect(titles.some((t) => t?.startsWith(title))).toBe(true);

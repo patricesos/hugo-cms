@@ -79,8 +79,8 @@
 </script>
 
 {#if show}
-	<div class="search-backdrop" transition:fade={{ duration: 100 }} onclick={onClose}></div>
-	<div class="search-dialog" transition:slide={{ duration: 150, axis: 'y' }} onkeydown={handleKeydown}>
+	<div class="search-backdrop" role="presentation" transition:fade={{ duration: 100 }} onclick={onClose}></div>
+	<div class="search-dialog" role="dialog" tabindex="-1" transition:slide={{ duration: 150, axis: 'y' }} onkeydown={handleKeydown}>
 		<div class="search-input-wrap">
 			<Search size={16} />
 			<input

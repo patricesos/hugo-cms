@@ -3,10 +3,10 @@
 ## Sprint 4
 - [x] Déplacer un fichier entre sections (drag & drop)
 - [x] Renommer un fichier
-- [ ] Draft/Publish toggle dans le frontmatter
+- [x] Draft/Publish toggle dans le frontmatter
 - [x] Masquer/afficher la sidebar (toggle)
 - [x] Sidebar redimensionnable (poignée de glissement)
-- [ ] Bascule éditeur WYSIWYG / Markdown brut
+- [x] Bascule éditeur WYSIWYG / Markdown brut
 
 ## Sprint 5
 - [ ] Git intégré (commit/push depuis le CMS)
@@ -17,6 +17,6 @@
 - [ ] Dupliquer un fichier
 
 ## Backlog
-- [ ] Historique des versions / undo
+- [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
 - [ ] Thème clair/sombre
 - [ ] Sitemap visuel

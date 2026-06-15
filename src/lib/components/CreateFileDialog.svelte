@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { X } from '@lucide/svelte';
 
@@ -22,7 +23,18 @@
 	} = $props();
 
 	let title = $state('');
-	let section = $state(directories.length > 0 ? directories[0].slug : '');
+	let section = $state('');
+	let inputEl = $state<HTMLInputElement | null>(null);
+
+	$effect(() => {
+		if (directories.length > 0 && !directories.find(d => d.slug === section)) {
+			section = directories[0].slug;
+		}
+	});
+
+	onMount(() => {
+		inputEl?.focus();
+	});
 	let slugPreview = $derived(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '');
 
 	function handleSubmit() {
@@ -38,8 +50,8 @@
 </script>
 
 {#if show}
-	<div class="overlay" transition:fade={{ duration: 120 }} onclick={onClose} onkeydown={handleKeydown} role="dialog" aria-modal="true">
-		<div class="dialog" transition:fly={{ duration: 180, y: 12 }} onclick={(e) => e.stopPropagation()} onkeydown={handleKeydown}>
+	<div class="overlay" tabindex="-1" transition:fade={{ duration: 120 }} onclick={onClose} onkeydown={handleKeydown} role="dialog" aria-modal="true">
+		<div class="dialog" role="presentation" transition:fly={{ duration: 180, y: 12 }} onclick={(e) => e.stopPropagation()} onkeydown={handleKeydown}>
 			<div class="dialog-header">
 				<h3>Nouveau fichier</h3>
 				<button class="icon-btn" onclick={onClose} title="Fermer"><X size={16} /></button>
@@ -60,9 +72,9 @@
 					<span class="label">Titre</span>
 					<input
 						type="text"
+						bind:this={inputEl}
 						bind:value={title}
 						placeholder="Mon super article"
-						autofocus
 					/>
 				</label>
 

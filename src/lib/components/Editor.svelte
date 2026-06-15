@@ -7,22 +7,26 @@
 	import { Markdown } from 'tiptap-markdown';
 	import Image from '@tiptap/extension-image';
 	import { SlashCommands } from '$lib/editor/slash-commands';
-	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow } from '@lucide/svelte';
+	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2 } from '@lucide/svelte';
 	import ImagePicker from './ImagePicker.svelte';
 
 	interface EditorProps {
 		content?: string;
+		rawMode?: boolean;
+		saveRequest?: number;
 		onSave?: (markdown: string) => void;
 		onStats?: (stats: { words: number; chars: number }) => void;
 		onSaveState?: (state: 'saved' | 'unsaved' | 'saving') => void;
 	}
 
-	let { content = '', onSave, onStats, onSaveState }: EditorProps = $props();
+	let { content = '', rawMode = $bindable(false), saveRequest = 0, onSave, onStats, onSaveState }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
-	let editorEl: HTMLDivElement;
+	let editorEl = $state<HTMLDivElement | null>(null);
 	let bubbleEl: HTMLDivElement;
+	let textareaEl = $state<HTMLTextAreaElement | null>(null);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+	let rawContent = $state('');
 
 	let showImagePicker = $state(false);
 	let pendingImageInsert = $state<{ editor: TiptapEditor; range: import('@tiptap/core').Range } | null>(null);
@@ -52,6 +56,8 @@
 		pendingImageInsert = null;
 	}
 
+	let rawSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
 	function markUnsaved() {
 		onSaveState?.('unsaved');
 		if (saveTimeout) clearTimeout(saveTimeout);
@@ -63,10 +69,23 @@
 		}, 2000);
 	}
 
+	function markRawUnsaved() {
+		onSaveState?.('unsaved');
+		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
+		rawSaveTimeout = setTimeout(() => {
+			onSaveState?.('saving');
+			onSave?.(rawContent);
+			onSaveState?.('saved');
+		}, 2000);
+	}
+
 	function handleManualSave() {
-		if (!editor) return;
 		onSaveState?.('saving');
-		onSave?.(getMarkdown());
+		if (rawMode) {
+			onSave?.(rawContent);
+		} else if (editor) {
+			onSave?.(getMarkdown());
+		}
 		onSaveState?.('saved');
 	}
 
@@ -105,13 +124,44 @@
 			window.removeEventListener('slash:image', onSlashImage);
 			editor?.destroy();
 			if (saveTimeout) clearTimeout(saveTimeout);
+			if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		};
 	});
 
 	$effect(() => {
-		if (editor && content && getMarkdown() !== content) {
+		if (!editor || !content) return;
+		if (getMarkdown() === content) return;
+		if (rawMode) {
+			rawContent = content;
+		} else {
 			editor.commands.setContent(content);
 			updateStats();
+		}
+	});
+
+	let prevRawMode = $state(rawMode);
+
+	$effect(() => {
+		if (rawMode === prevRawMode) return;
+		if (rawMode) {
+			// switching to raw: Tiptap → textarea
+			rawContent = getMarkdown();
+		} else {
+			// switching to WYSIWYG: textarea → Tiptap
+			if (editor) {
+				editor.commands.setContent(rawContent);
+				updateStats();
+			}
+		}
+		prevRawMode = rawMode;
+	});
+
+	let prevSaveRequest = $state(0);
+
+	$effect(() => {
+		if (saveRequest !== prevSaveRequest && saveRequest > 0) {
+			handleManualSave();
+			prevSaveRequest = saveRequest;
 		}
 	});
 
@@ -165,9 +215,19 @@
 		<button onclick={() => exec('toggleBulletList')} class:active={editor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
 		<button onclick={() => exec('toggleOrderedList')} class:active={editor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
 		<button onclick={() => exec('setHorizontalRule')} title="Ligne horizontale"><Minus size={15} /></button>
+		<span class="sep"></span>
+		<button class:toggle-active={rawMode} onclick={() => rawMode = !rawMode} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
 	</div>
 
-	<div bind:this={editorEl} class="editor-content"></div>
+	<textarea
+		bind:this={textareaEl}
+		class="raw-textarea"
+		class:active={rawMode}
+		bind:value={rawContent}
+		oninput={markRawUnsaved}
+		placeholder="Commencez à écrire…"
+	></textarea>
+	<div bind:this={editorEl} class="editor-content" class:active={!rawMode}></div>
 
 	<div bind:this={bubbleEl} class="bubble-menu">
 		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')} title="Gras"><Bold size={14} /></button>
@@ -225,6 +285,11 @@
 		color: var(--c-primary);
 	}
 
+	.editor-toolbar button.toggle-active {
+		background: var(--c-primary);
+		color: white;
+	}
+
 	.sep {
 		width: 1px;
 		height: 20px;
@@ -244,6 +309,11 @@
 		font-size: 16px;
 		line-height: 1.8;
 		overflow-y: auto;
+		display: none;
+	}
+
+	.editor-content.active {
+		display: block;
 	}
 
 	.editor-content :global(h1) { font-size: 2em; margin: 0.67em 0; font-weight: 700; color: var(--c-text); }
@@ -301,6 +371,30 @@
 		float: left;
 		height: 0;
 		pointer-events: none;
+	}
+
+	.raw-textarea {
+		flex: 1;
+		width: 100%;
+		padding: 24px 32px;
+		font-family: var(--font-mono);
+		font-size: 14px;
+		line-height: 1.7;
+		border: none;
+		outline: none;
+		resize: none;
+		background: var(--c-bg);
+		color: var(--c-text);
+		tab-size: 2;
+		display: none;
+	}
+
+	.raw-textarea.active {
+		display: block;
+	}
+
+	.raw-textarea::placeholder {
+		color: var(--c-text-muted);
 	}
 
 	.bubble-menu {

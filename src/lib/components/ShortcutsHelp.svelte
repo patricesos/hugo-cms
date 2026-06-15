@@ -29,8 +29,8 @@
 </script>
 
 {#if show}
-	<div class="sh-backdrop" transition:fade={{ duration: 100 }} onclick={onClose}></div>
-	<div class="sh-dialog" transition:fade={{ duration: 120 }} onkeydown={handleKeydown}>
+	<div class="sh-backdrop" role="presentation" transition:fade={{ duration: 100 }} onclick={onClose}></div>
+	<div class="sh-dialog" role="dialog" tabindex="-1" transition:fade={{ duration: 120 }} onkeydown={handleKeydown}>
 		<div class="sh-header">
 			<span>Raccourcis clavier</span>
 			<button class="sh-close" onclick={onClose} title="Fermer"><X size={16} /></button>
