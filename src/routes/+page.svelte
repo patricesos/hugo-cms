@@ -6,6 +6,7 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import CreateFileDialog from '$lib/components/CreateFileDialog.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -25,6 +26,11 @@
 	let saveState = $state<'saved' | 'unsaved' | 'saving'>('saved');
 	let loading = $state(false);
 	let fmOpen = $state(true);
+	let showCreateDialog = $state(false);
+
+	let directories = $derived(
+		tree.filter((n) => n.type === 'directory').map((n) => ({ slug: n.slug, name: n.name }))
+	);
 
 	onMount(() => { loadTree(); });
 
@@ -56,6 +62,20 @@
 		currentFrontmatter = fm;
 		saveState = 'unsaved';
 	}
+
+	async function handleCreate(title: string, section: string) {
+		const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+		const fullSlug = section ? `${section}/${slug}` : slug;
+		const frontmatter = { title, date: new Date().toISOString().split('T')[0], draft: true };
+		await fetch(`/api/content/${fullSlug}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ body: '', frontmatter }),
+		});
+		showCreateDialog = false;
+		await loadTree();
+		await loadFile(fullSlug);
+	}
 </script>
 
 <div class="cms-layout">
@@ -64,6 +84,7 @@
 		{currentSlug}
 		onRefresh={loadTree}
 		onLoadFile={loadFile}
+		onCreateFile={() => showCreateDialog = true}
 	/>
 
 	<main class="editor-panel">
@@ -117,6 +138,13 @@
 		{/if}
 	</main>
 </div>
+
+<CreateFileDialog
+	show={showCreateDialog}
+	{directories}
+	onClose={() => showCreateDialog = false}
+	onCreate={handleCreate}
+/>
 
 <style>
 	.cms-layout {

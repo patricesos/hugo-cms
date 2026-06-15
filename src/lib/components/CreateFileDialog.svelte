@@ -1,0 +1,234 @@
+<script lang="ts">
+	import { fade, fly } from 'svelte/transition';
+	import { X } from '@lucide/svelte';
+
+	interface TreeNode {
+		type: 'file' | 'directory';
+		name: string;
+		slug: string;
+		path: string;
+	}
+
+	let {
+		show = false,
+		directories = [] as { slug: string; name: string }[],
+		onClose,
+		onCreate,
+	}: {
+		show: boolean;
+		directories: { slug: string; name: string }[];
+		onClose: () => void;
+		onCreate: (title: string, section: string) => void;
+	} = $props();
+
+	let title = $state('');
+	let section = $state(directories.length > 0 ? directories[0].slug : '');
+	let slugPreview = $derived(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '');
+
+	function handleSubmit() {
+		if (!title.trim()) return;
+		onCreate(title.trim(), section);
+		title = '';
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') onClose();
+		if (e.key === 'Enter' && title.trim()) handleSubmit();
+	}
+</script>
+
+{#if show}
+	<div class="overlay" transition:fade={{ duration: 120 }} onclick={onClose} onkeydown={handleKeydown} role="dialog" aria-modal="true">
+		<div class="dialog" transition:fly={{ duration: 180, y: 12 }} onclick={(e) => e.stopPropagation()} onkeydown={handleKeydown}>
+			<div class="dialog-header">
+				<h3>Nouveau fichier</h3>
+				<button class="icon-btn" onclick={onClose} title="Fermer"><X size={16} /></button>
+			</div>
+
+			<div class="dialog-body">
+				<label class="field">
+					<span class="label">Section</span>
+					<select bind:value={section}>
+						{#each directories as d}
+							<option value={d.slug}>{d.name}</option>
+						{/each}
+						<option value="">(racine)</option>
+					</select>
+				</label>
+
+				<label class="field">
+					<span class="label">Titre</span>
+					<input
+						type="text"
+						bind:value={title}
+						placeholder="Mon super article"
+						autofocus
+					/>
+				</label>
+
+				{#if slugPreview}
+					<div class="slug-preview">
+						<span class="label">Slug</span>
+						<code>{section ? `${section}/` : ''}{slugPreview}.md</code>
+					</div>
+				{/if}
+			</div>
+
+			<div class="dialog-footer">
+				<button class="btn secondary" onclick={onClose}>Annuler</button>
+				<button class="btn primary" onclick={handleSubmit} disabled={!title.trim()}>Créer</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	.overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0,0,0,0.3);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 100;
+	}
+
+	.dialog {
+		background: var(--c-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg);
+		width: 400px;
+		max-width: 90vw;
+		overflow: hidden;
+	}
+
+	.dialog-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 16px;
+		border-bottom: 1px solid var(--c-border);
+	}
+
+	.dialog-header h3 {
+		font-size: 15px;
+		font-weight: 600;
+		color: var(--c-text);
+	}
+
+	.dialog-body {
+		padding: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.label {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--c-text-secondary);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	select, input[type="text"] {
+		padding: 8px 10px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-md);
+		font-size: 14px;
+		font-family: inherit;
+		color: var(--c-text);
+		background: var(--c-bg);
+		outline: none;
+		transition: border-color 0.15s;
+	}
+
+	select:focus, input[type="text"]:focus {
+		border-color: var(--c-primary);
+		box-shadow: 0 0 0 2px var(--c-primary-light);
+	}
+
+	.slug-preview {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.slug-preview code {
+		font-size: 13px;
+		font-family: var(--font-mono);
+		color: var(--c-text-secondary);
+		background: var(--c-bg-muted);
+		padding: 6px 10px;
+		border-radius: var(--radius-md);
+	}
+
+	.dialog-footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		padding: 12px 16px;
+		border-top: 1px solid var(--c-border);
+	}
+
+	.btn {
+		padding: 8px 16px;
+		border-radius: var(--radius-md);
+		font-size: 13px;
+		font-weight: 500;
+		font-family: inherit;
+		cursor: pointer;
+		border: 1px solid var(--c-border);
+		transition: all 0.12s;
+	}
+
+	.btn.primary {
+		background: var(--c-primary);
+		color: #fff;
+		border-color: var(--c-primary);
+	}
+
+	.btn.primary:hover {
+		background: var(--c-primary-hover);
+	}
+
+	.btn.primary:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn.secondary {
+		background: var(--c-bg);
+		color: var(--c-text);
+	}
+
+	.btn.secondary:hover {
+		background: var(--c-bg-muted);
+	}
+
+	.icon-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		border: 1px solid transparent;
+		border-radius: var(--radius-md);
+		background: transparent;
+		cursor: pointer;
+		color: var(--c-text-secondary);
+		transition: all 0.12s;
+	}
+
+	.icon-btn:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+	}
+</style>
