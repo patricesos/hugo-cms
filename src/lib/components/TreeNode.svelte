@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 	import { Folder, FileText, ChevronRight, ChevronDown } from '@lucide/svelte';
+	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
 		type: 'file' | 'directory';
