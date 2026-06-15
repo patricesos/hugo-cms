@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, RefreshCw, FilePlus, Search } from '@lucide/svelte';
+	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -19,6 +19,7 @@
 		onCreateFile,
 		onDeleteFile,
 		onSearch,
+		onToggle,
 	}: {
 		tree: TreeNodeData[];
 		currentSlug: string | null;
@@ -27,6 +28,7 @@
 		onCreateFile?: () => void;
 		onDeleteFile?: (slug: string) => void;
 		onSearch?: () => void;
+		onToggle?: () => void;
 	} = $props();
 </script>
 
@@ -50,6 +52,11 @@
 			<button class="icon-btn" onclick={onRefresh} title="Rafraîchir">
 				<RefreshCw size={16} />
 			</button>
+			{#if onToggle}
+				<button class="icon-btn" onclick={onToggle} title="Réduire la sidebar">
+					<PanelLeftClose size={16} />
+				</button>
+			{/if}
 		</div>
 	</div>
 

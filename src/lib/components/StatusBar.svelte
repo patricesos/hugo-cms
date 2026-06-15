@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import { CheckCircle2, AlertCircle, Loader2, Type, Hash } from '@lucide/svelte';
+	import { CheckCircle2, AlertCircle, Loader2, Type, Hash, CircleHelp } from '@lucide/svelte';
 
 	let {
 		wordCount = 0,
 		charCount = 0,
 		saveState = 'saved',
+		onHelp,
 	}: {
 		wordCount?: number;
 		charCount?: number;
 		saveState?: 'saved' | 'unsaved' | 'saving';
+		onHelp?: () => void;
 	} = $props();
 </script>
 
@@ -31,6 +33,12 @@
 		{/key}
 	</div>
 	<div class="status-right">
+		{#if onHelp}
+			<button class="help-btn" onclick={onHelp} title="Raccourcis clavier (?)">
+				<CircleHelp size={13} />
+			</button>
+			<span class="stat-sep">·</span>
+		{/if}
 		<span class="stat">
 			<Type size={12} />
 			{wordCount} mots
@@ -104,5 +112,22 @@
 
 	.stat-sep {
 		color: var(--c-border);
+	}
+
+	.help-btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 2px;
+		border: none;
+		background: transparent;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		transition: all 0.1s;
+	}
+
+	.help-btn:hover {
+		color: var(--c-text);
+		background: var(--c-bg-muted);
 	}
 </style>

@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import CreateFileDialog from '$lib/components/CreateFileDialog.svelte';
 	import SearchDialog from '$lib/components/SearchDialog.svelte';
+	import ShortcutsHelp from '$lib/components/ShortcutsHelp.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -29,6 +30,8 @@
 	let fmOpen = $state(true);
 	let showCreateDialog = $state(false);
 	let showSearch = $state(false);
+	let showShortcuts = $state(false);
+	let sidebarOpen = $state(true);
 
 	let directories = $derived(
 		tree.filter((n) => n.type === 'directory').map((n) => ({ slug: n.slug, name: n.name }))
@@ -57,6 +60,9 @@
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
 				e.preventDefault();
 				showSearch = true;
+			}
+			if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+				showShortcuts = true;
 			}
 		}
 		document.addEventListener('keydown', handleKeydown);
@@ -120,18 +126,26 @@
 	}
 </script>
 
-<div class="cms-layout">
-	<Sidebar
-		tree={tree}
-		{currentSlug}
-		onRefresh={loadTree}
-		onLoadFile={loadFile}
-		onCreateFile={() => showCreateDialog = true}
-		onDeleteFile={handleDelete}
-		onSearch={() => showSearch = true}
-	/>
+<div class="cms-layout" class:sidebar-collapsed={!sidebarOpen}>
+	{#if sidebarOpen}
+		<Sidebar
+			tree={tree}
+			{currentSlug}
+			onRefresh={loadTree}
+			onLoadFile={loadFile}
+			onCreateFile={() => showCreateDialog = true}
+			onDeleteFile={handleDelete}
+			onSearch={() => showSearch = true}
+			onToggle={() => sidebarOpen = !sidebarOpen}
+		/>
+	{/if}
 
 	<main class="editor-panel">
+		{#if !sidebarOpen}
+			<button class="sidebar-reopen" onclick={() => sidebarOpen = true} title="Afficher la sidebar">
+				<PanelLeftOpen size={18} />
+			</button>
+		{/if}
 		{#if !currentSlug}
 			<div class="empty-state" transition:fade={{ duration: 200 }}>
 				<FileText size={48} color="var(--c-text-muted)" strokeWidth={1} />
@@ -181,7 +195,7 @@
 					</aside>
 				{/if}
 			</div>
-			<StatusBar {wordCount} {charCount} {saveState} />
+			<StatusBar {wordCount} {charCount} {saveState} onHelp={() => showShortcuts = true} />
 		{/if}
 	</main>
 </div>
@@ -200,6 +214,11 @@
 	onClose={() => showSearch = false}
 />
 
+<ShortcutsHelp
+	show={showShortcuts}
+	onClose={() => showShortcuts = false}
+/>
+
 <style>
 	.cms-layout {
 		display: flex;
@@ -212,6 +231,40 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		position: relative;
+	}
+
+	.sidebar-reopen {
+		position: absolute;
+		top: 8px;
+		left: 8px;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: 1px solid var(--c-border);
+		background: var(--c-bg);
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		box-shadow: var(--shadow-sm);
+		transition: all 0.12s;
+	}
+
+	.sidebar-reopen:hover {
+		color: var(--c-text);
+		background: var(--c-bg-muted);
+		border-color: var(--c-border);
+	}
+
+	.cms-layout :global(.sidebar) {
+		transition: width 0s;
+	}
+
+	.cms-layout.sidebar-collapsed :global(.sidebar) {
+		display: none;
 	}
 
 	.editor-header {
