@@ -49,7 +49,7 @@
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode {node} {child} depth={depth + 1} {currentSlug} {onLoadFile} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} />
 				{/each}
 			</div>
 		{/if}
