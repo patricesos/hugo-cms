@@ -4,6 +4,11 @@ export interface ContentMeta {
 	slug: string;
 	path: string;
 	frontmatter?: Record<string, unknown>;
+	children?: TreeNode[];
+}
+
+export interface TreeNode extends ContentMeta {
+	children: TreeNode[];
 }
 
 export interface ContentItem {

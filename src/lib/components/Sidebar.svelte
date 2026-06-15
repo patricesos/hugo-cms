@@ -1,45 +1,29 @@
 <script lang="ts">
-	import { fade, slide } from 'svelte/transition';
-	import { Folder, FileText, RefreshCw, ChevronRight, ArrowUp } from '@lucide/svelte';
+	import { FileText, RefreshCw, FilePlus } from '@lucide/svelte';
+	import TreeNode from './TreeNode.svelte';
 
-	interface ContentMeta {
+	interface TreeNodeData {
 		type: 'file' | 'directory';
 		name: string;
 		slug: string;
 		path: string;
+		children?: TreeNodeData[];
 		frontmatter?: Record<string, unknown>;
 	}
 
 	let {
-		files = [] as ContentMeta[],
-		currentDir = '',
+		tree = [] as TreeNodeData[],
 		currentSlug = '',
-		onNavigateDir,
-		onGoUp,
 		onLoadFile,
 		onRefresh,
+		onCreateFile,
 	}: {
-		files: ContentMeta[];
-		currentDir: string;
+		tree: TreeNodeData[];
 		currentSlug: string | null;
-		onNavigateDir: (dir: string) => void;
-		onGoUp: () => void;
 		onLoadFile: (slug: string) => void;
 		onRefresh: () => void;
+		onCreateFile?: () => void;
 	} = $props();
-
-	function breadcrumbPaths(dir: string): { name: string; path: string }[] {
-		const parts = dir.split('/').filter(Boolean);
-		const paths: { name: string; path: string }[] = [];
-		let acc = '';
-		for (const part of parts) {
-			acc = acc ? `${acc}/${part}` : part;
-			paths.push({ name: part, path: acc });
-		}
-		return paths;
-	}
-
-	let breadcrumbs = $derived(breadcrumbPaths(currentDir));
 </script>
 
 <aside class="sidebar">
@@ -48,55 +32,29 @@
 			<FileText size={18} color="var(--c-primary)" />
 			<h2>Hugo CMS</h2>
 		</div>
-		<button class="icon-btn" onclick={onRefresh} title="Rafraîchir">
-			<RefreshCw size={16} />
-		</button>
-	</div>
-
-	<div class="breadcrumb">
-		<button class="bread-link" onclick={() => onRefresh()}>root</button>
-		{#each breadcrumbs as crumb}
-			<span class="bread-sep"><ChevronRight size={10} /></span>
-			<button class="bread-link" onclick={() => onNavigateDir(crumb.path)}>{crumb.name}</button>
-		{/each}
+		<div class="header-actions">
+			{#if onCreateFile}
+				<button class="icon-btn" onclick={onCreateFile} title="Nouveau fichier">
+					<FilePlus size={16} />
+				</button>
+			{/if}
+			<button class="icon-btn" onclick={onRefresh} title="Rafraîchir">
+				<RefreshCw size={16} />
+			</button>
+		</div>
 	</div>
 
 	<nav class="file-tree">
-		{#if currentDir}
-			<button class="file-item dir-up" onclick={onGoUp}>
-				<ArrowUp size={15} />
-				<span class="name">..</span>
-			</button>
-		{/if}
-
-		{#each files as item, i}
-			<button
-				class="file-item"
-				class:active={currentSlug === item.slug}
-				class:directory={item.type === 'directory'}
-				onclick={() => item.type === 'directory' ? onNavigateDir(item.name) : onLoadFile(item.slug)}
-				transition:fade={{ duration: 150, delay: i * 20 }}
-			>
-				<span class="icon">
-					{#if item.type === 'directory'}
-						<Folder size={15} />
-					{:else}
-						<FileText size={15} />
-					{/if}
-				</span>
-				<span class="name">{item.name}</span>
-				{#if item.frontmatter?.draft === true}
-					<span class="badge-draft">DRAFT</span>
-				{/if}
-			</button>
+		{#each tree as node}
+			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} />
 		{/each}
 	</nav>
 </aside>
 
 <style>
 	.sidebar {
-		width: 260px;
-		min-width: 260px;
+		width: 280px;
+		min-width: 280px;
 		border-right: 1px solid var(--c-border);
 		background: var(--c-bg-sidebar);
 		display: flex;
@@ -124,6 +82,12 @@
 		color: var(--c-text);
 	}
 
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
 	.icon-btn {
 		display: flex;
 		align-items: center;
@@ -143,111 +107,10 @@
 		color: var(--c-text);
 	}
 
-	.breadcrumb {
-		display: flex;
-		align-items: center;
-		gap: 2px;
-		padding: 8px 12px;
-		font-size: 12px;
-		border-bottom: 1px solid var(--c-border);
-		overflow-x: auto;
-		white-space: nowrap;
-	}
-
-	.bread-link {
-		background: none;
-		border: none;
-		color: var(--c-primary);
-		cursor: pointer;
-		font-size: 12px;
-		padding: 2px 4px;
-		border-radius: var(--radius-sm);
-		font-family: inherit;
-	}
-
-	.bread-link:hover { background: var(--c-primary-bg); }
-
-	.bread-sep {
-		display: flex;
-		align-items: center;
-		color: var(--c-text-muted);
-	}
-
 	.file-tree {
 		display: flex;
 		flex-direction: column;
-		padding: 6px;
-		gap: 1px;
+		padding: 6px 0;
 		flex: 1;
-	}
-
-	.file-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		text-align: left;
-		padding: 7px 10px;
-		border: none;
-		background: transparent;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		font-size: 13px;
-		color: var(--c-text-secondary);
-		transition: all 0.12s;
-		width: 100%;
-		font-family: inherit;
-	}
-
-	.file-item:hover {
-		background: var(--c-bg-muted);
-		color: var(--c-text);
-	}
-
-	.file-item.active {
-		background: var(--c-primary-light);
-		color: var(--c-primary);
-	}
-
-	.file-item.active .name {
-		font-weight: 500;
-	}
-
-	.file-item.directory {
-		color: var(--c-text);
-		font-weight: 500;
-	}
-
-	.file-item.dir-up {
-		color: var(--c-text-muted);
-		font-size: 12px;
-		margin-bottom: 2px;
-	}
-
-	.icon {
-		display: flex;
-		align-items: center;
-		flex-shrink: 0;
-		opacity: 0.7;
-	}
-
-	.file-item.active .icon { opacity: 1; }
-	.file-item.directory .icon { opacity: 0.8; }
-
-	.name {
-		flex: 1;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.badge-draft {
-		font-size: 9px;
-		font-weight: 700;
-		padding: 1px 5px;
-		border-radius: 3px;
-		background: #fef3c7;
-		color: #92400e;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 	}
 </style>

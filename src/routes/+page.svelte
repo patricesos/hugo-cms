@@ -7,16 +7,16 @@
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 
-	interface ContentMeta {
+	interface TreeNode {
 		type: 'file' | 'directory';
 		name: string;
 		slug: string;
 		path: string;
+		children?: TreeNode[];
 		frontmatter?: Record<string, unknown>;
 	}
 
-	let files = $state<ContentMeta[]>([]);
-	let currentDir = $state('');
+	let tree = $state<TreeNode[]>([]);
 	let currentSlug = $state<string | null>(null);
 	let currentFrontmatter = $state<Record<string, unknown>>({});
 	let editorContent = $state('');
@@ -26,24 +26,11 @@
 	let loading = $state(false);
 	let fmOpen = $state(true);
 
-	onMount(() => { loadFiles(); });
+	onMount(() => { loadTree(); });
 
-	async function loadFiles(dir = '') {
-		currentDir = dir;
-		const qs = dir ? `?dir=${encodeURIComponent(dir)}` : '';
-		const res = await fetch(`/api/content${qs}`);
-		files = await res.json();
-	}
-
-	function navigateDir(dir: string) {
-		const path = currentDir ? `${currentDir}/${dir}` : dir;
-		loadFiles(path);
-	}
-
-	function goUp() {
-		if (!currentDir) return;
-		const parent = currentDir.includes('/') ? currentDir.substring(0, currentDir.lastIndexOf('/')) : '';
-		loadFiles(parent);
+	async function loadTree() {
+		const res = await fetch('/api/content?tree=true');
+		tree = await res.json();
 	}
 
 	async function loadFile(slug: string) {
@@ -73,12 +60,9 @@
 
 <div class="cms-layout">
 	<Sidebar
-		{files}
-		{currentDir}
+		tree={tree}
 		{currentSlug}
-		onRefresh={() => loadFiles(currentDir)}
-		onNavigateDir={navigateDir}
-		onGoUp={goUp}
+		onRefresh={loadTree}
 		onLoadFile={loadFile}
 	/>
 
@@ -91,9 +75,9 @@
 			</div>
 		{:else if loading}
 			<div class="loading-state" transition:fade={{ duration: 150 }}>
-				<div class="skeleton-block" />
-				<div class="skeleton-block short" />
-				<div class="skeleton-block" />
+				<div class="skeleton-block"></div>
+				<div class="skeleton-block short"></div>
+				<div class="skeleton-block"></div>
 			</div>
 		{:else}
 			<div class="editor-header" transition:fade={{ duration: 150 }}>

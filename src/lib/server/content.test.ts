@@ -66,6 +66,17 @@ describe('listContent', () => {
 		const hello = items.find((i) => i.name === 'hello.md');
 		expect(hello?.frontmatter?.draft).toBeUndefined();
 	});
+
+	it('returns tree with nested children', async () => {
+		const { listContentTree } = await import('./content');
+		const tree = await listContentTree();
+		const blog = tree.find((n) => n.name === 'blog');
+		expect(blog?.type).toBe('directory');
+		expect(blog?.children).toBeDefined();
+		const post = blog?.children?.find((c) => c.name === 'post.md');
+		expect(post?.type).toBe('file');
+		expect(post?.frontmatter?.title).toBe('Blog Post');
+	});
 });
 
 describe('path traversal prevention', () => {
