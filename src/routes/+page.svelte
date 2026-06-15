@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2 } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
@@ -76,6 +76,16 @@
 		await loadTree();
 		await loadFile(fullSlug);
 	}
+
+	async function handleDelete() {
+		if (!currentSlug) return;
+		if (!window.confirm(`Supprimer "${currentSlug}" ?\n\nLe fichier sera déplacé dans _trash/.`)) return;
+		await fetch(`/api/content/${currentSlug}`, { method: 'DELETE' });
+		currentSlug = null;
+		editorContent = '';
+		currentFrontmatter = {};
+		await loadTree();
+	}
 </script>
 
 <div class="cms-layout">
@@ -107,6 +117,9 @@
 					<span class="filename">{currentSlug}.md</span>
 				</div>
 				<div class="header-actions">
+					<button class="icon-btn delete-btn" onclick={handleDelete} title="Supprimer">
+						<Trash2 size={15} />
+					</button>
 					<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
 						{#if fmOpen}
 							<PanelRightClose size={15} />
@@ -206,6 +219,12 @@
 	.icon-btn:hover {
 		background: var(--c-bg-muted);
 		color: var(--c-text);
+	}
+
+	.icon-btn.delete-btn:hover {
+		background: #fef2f2;
+		color: var(--c-danger);
+		border-color: #fecaca;
 	}
 
 	.editor-body {
