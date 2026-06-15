@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2 } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import CreateFileDialog from '$lib/components/CreateFileDialog.svelte';
+	import SearchDialog from '$lib/components/SearchDialog.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -27,12 +28,40 @@
 	let loading = $state(false);
 	let fmOpen = $state(true);
 	let showCreateDialog = $state(false);
+	let showSearch = $state(false);
 
 	let directories = $derived(
 		tree.filter((n) => n.type === 'directory').map((n) => ({ slug: n.slug, name: n.name }))
 	);
 
-	onMount(() => { loadTree(); });
+	let searchEntries = $derived(
+		flattenTree(tree).map((n) => ({
+			slug: n.slug,
+			title: (n.frontmatter?.title as string) || n.name.replace(/\.md$/, ''),
+			type: n.type as 'file' | 'directory',
+		}))
+	);
+
+	function flattenTree(nodes: TreeNode[]): TreeNode[] {
+		const result: TreeNode[] = [];
+		for (const n of nodes) {
+			if (n.type === 'file') result.push(n);
+			if (n.children) result.push(...flattenTree(n.children));
+		}
+		return result;
+	}
+
+	onMount(() => {
+		loadTree();
+		function handleKeydown(e: KeyboardEvent) {
+			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+				e.preventDefault();
+				showSearch = true;
+			}
+		}
+		document.addEventListener('keydown', handleKeydown);
+		return () => document.removeEventListener('keydown', handleKeydown);
+	});
 
 	async function loadTree() {
 		const res = await fetch('/api/content?tree=true');
@@ -99,6 +128,7 @@
 		onLoadFile={loadFile}
 		onCreateFile={() => showCreateDialog = true}
 		onDeleteFile={handleDelete}
+		onSearch={() => showSearch = true}
 	/>
 
 	<main class="editor-panel">
@@ -161,6 +191,13 @@
 	{directories}
 	onClose={() => showCreateDialog = false}
 	onCreate={handleCreate}
+/>
+
+<SearchDialog
+	show={showSearch}
+	entries={searchEntries}
+	onSelect={loadFile}
+	onClose={() => showSearch = false}
 />
 
 <style>

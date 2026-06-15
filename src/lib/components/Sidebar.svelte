@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, RefreshCw, FilePlus } from '@lucide/svelte';
+	import { FileText, RefreshCw, FilePlus, Search } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -18,6 +18,7 @@
 		onRefresh,
 		onCreateFile,
 		onDeleteFile,
+		onSearch,
 	}: {
 		tree: TreeNodeData[];
 		currentSlug: string | null;
@@ -25,6 +26,7 @@
 		onRefresh: () => void;
 		onCreateFile?: () => void;
 		onDeleteFile?: (slug: string) => void;
+		onSearch?: () => void;
 	} = $props();
 </script>
 
@@ -35,6 +37,11 @@
 			<h2>Hugo CMS</h2>
 		</div>
 		<div class="header-actions">
+			{#if onSearch}
+				<button class="icon-btn" onclick={onSearch} title="Rechercher (Cmd+K)">
+					<Search size={16} />
+				</button>
+			{/if}
 			{#if onCreateFile}
 				<button class="icon-btn" onclick={onCreateFile} title="Nouveau fichier">
 					<FilePlus size={16} />
