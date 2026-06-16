@@ -163,7 +163,7 @@
 
 	let currentTab = $derived(tabs.find(t => t.slug === currentSlug));
 
-	let clientCfg = $state<{ externalPollInterval: number; fmSaveDelay: number; appTitle: string } | null>(null);
+	let clientCfg = $state<{ externalPollInterval: number; fmSaveDelay: number; appTitle: string; trashDir: string } | null>(null);
 	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 
 	function startConflictPoll() {
@@ -512,7 +512,8 @@
 	}
 
 	async function handleDeleteFolder(slug: string) {
-		if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans _trash/.`)) return;
+		const trashDirName = clientCfg?.trashDir ?? '_trash';
+		if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDirName}/.`)) return;
 		await fetch(`/api/directory/${slug}`, { method: 'DELETE' });
 		tabs = tabs.filter(t => t.slug !== slug && !t.slug.startsWith(slug + '/'));
 		if (tabs.length === 0) {
@@ -536,7 +537,7 @@
 	async function handleDelete(slug?: string) {
 		const target = slug || currentSlug;
 		if (!target) return;
-		if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans _trash/.`)) return;
+		if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans ${clientCfg?.trashDir ?? '_trash'}/.`)) return;
 		await fetch(`/api/content/${target}`, { method: 'DELETE' });
 		tabs = tabs.filter(t => t.slug !== target);
 		if (slug || currentSlug === target) {
@@ -843,7 +844,7 @@
 										getContent={(fn) => { editorGetContent = fn; }}
 										onSetContent={(fn) => { editorSetContent = fn; }}
 										onSave={handleSave}
-										onFrontmatterChange={handleFrontmatterChange}
+										onFrontmatterChange={(fm) => { currentFrontmatter = fm; if (currentSlug) { const tab = tabs.find(t => t.slug === currentSlug); if (tab) tab.frontmatter = fm; updateTreeFrontmatter(currentSlug, fm); } }}
 										onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
 										onSaveState={(s) => { saveState = s; }}
 									/>

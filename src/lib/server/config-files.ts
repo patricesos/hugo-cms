@@ -4,8 +4,7 @@ import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
 import type { TreeNode } from './types';
 
-const HUGO_ROOT = resolve(cmsConfig.hugoContentPath, '..');
-const CONFIG_DIR = join(HUGO_ROOT, cmsConfig.configDir);
+const CONFIG_DIR = join(cmsConfig.hugoSitePath, cmsConfig.configDir);
 const ROOT_CONFIG_PATTERNS = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
 
 const CONFIG_EXTENSIONS = new Set(['toml', 'yaml', 'yml', 'json']);

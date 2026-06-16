@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { cmsConfig } from './config';
 
 export interface ShortcodeParam {
@@ -95,8 +95,7 @@ const NATIVE_SHORTCODES: ShortcodeDef[] = [
 ];
 
 async function scanCustomShortcodes(): Promise<ShortcodeDef[]> {
-	const hugoRoot = resolve(cmsConfig.hugoContentPath, '..');
-	const shortcodesDir = join(hugoRoot, cmsConfig.shortcodesDir);
+	const shortcodesDir = join(cmsConfig.hugoSitePath, cmsConfig.shortcodesDir);
 
 	let files: string[];
 	try {

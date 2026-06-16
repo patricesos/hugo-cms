@@ -2,7 +2,9 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 
 function env(name: string, fallback: string): string {
-	return process.env[name] || fallback;
+	const v = process.env[name];
+	if (v === undefined || v === '') return fallback;
+	return v;
 }
 
 function envInt(name: string, fallback: number): number {
@@ -19,6 +21,7 @@ function envBool(name: string, fallback: boolean): boolean {
 }
 
 export interface CmsConfig {
+	hugoSitePath: string;
 	hugoContentPath: string;
 	hugoStaticPath: string;
 	hugoServerPort: number;
@@ -41,10 +44,16 @@ export interface CmsConfig {
 }
 
 function loadConfig(): CmsConfig {
-	const contentDir = env('HUGO_CONTENT_PATH', resolve(process.cwd(), 'demo-content'));
+	const sitePath = env('HUGO_SITE_PATH', '');
+	const contentDir = sitePath ? resolve(sitePath, 'content') : env('HUGO_CONTENT_PATH', resolve(process.cwd(), 'demo-content'));
+	const staticPath = sitePath
+		? resolve(sitePath, 'static')
+		: env('HUGO_STATIC_PATH', resolve(contentDir, '..', 'static'));
+	const hugoRoot = sitePath || resolve(contentDir, '..');
 	const config: CmsConfig = {
-		hugoContentPath: contentDir,
-		hugoStaticPath: env('HUGO_STATIC_PATH', resolve(contentDir, '..', 'static')),
+		hugoSitePath: hugoRoot,
+		hugoContentPath: sitePath ? env('HUGO_CONTENT_PATH', contentDir) : contentDir,
+		hugoStaticPath: sitePath ? env('HUGO_STATIC_PATH', staticPath) : staticPath,
 		hugoServerPort: envInt('HUGO_SERVER_PORT', 1313),
 		hugoBindAddress: env('HUGO_BIND_ADDRESS', '127.0.0.1'),
 		defaultAuthor: env('DEFAULT_AUTHOR', 'patricesos'),

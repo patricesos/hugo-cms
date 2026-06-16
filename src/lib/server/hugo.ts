@@ -15,21 +15,18 @@ let hugoUrl: string | null = null;
 let hugoError: string | null = null;
 
 function findHugoRoot(): string | null {
-	let dir = resolve(cmsConfig.hugoContentPath);
-	for (let i = 0; i < 10; i++) {
-		dir = resolve(dir, '..');
-		if (
-			existsSync(resolve(dir, 'hugo.toml')) ||
-			existsSync(resolve(dir, 'hugo.yaml')) ||
-			existsSync(resolve(dir, 'hugo.json')) ||
-			existsSync(resolve(dir, 'config.toml')) ||
-			existsSync(resolve(dir, 'config.yaml')) ||
-			existsSync(resolve(dir, 'config.json'))
-		) {
-			return dir;
-		}
+	const site = cmsConfig.hugoSitePath;
+	if (
+		existsSync(resolve(site, 'hugo.toml')) ||
+		existsSync(resolve(site, 'hugo.yaml')) ||
+		existsSync(resolve(site, 'hugo.json')) ||
+		existsSync(resolve(site, 'config.toml')) ||
+		existsSync(resolve(site, 'config.yaml')) ||
+		existsSync(resolve(site, 'config.json'))
+	) {
+		return site;
 	}
-	return resolve(cmsConfig.hugoContentPath, '..');
+	return site;
 }
 
 export function getHugoStatus(): HugoStatus {

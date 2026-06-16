@@ -1,5 +1,5 @@
 import { readFile, readdir, writeFile, mkdir, stat, unlink } from 'node:fs/promises';
-import { join, resolve, dirname, basename } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
 import type { TreeNode } from './types';
@@ -10,8 +10,7 @@ export interface Archetype {
 	source: string;
 }
 
-const HUGO_ROOT = resolve(cmsConfig.hugoContentPath, '..');
-const ARCHETYPES_DIR = join(HUGO_ROOT, cmsConfig.archetypesDir);
+const ARCHETYPES_DIR = join(cmsConfig.hugoSitePath, cmsConfig.archetypesDir);
 
 export function getArchetypesDir(): string {
 	return ARCHETYPES_DIR;

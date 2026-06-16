@@ -160,11 +160,12 @@ describe('listAssets', () => {
 });
 
 describe('deleteContent', () => {
-	it('moves file to _trash', async () => {
+	it('moves file to trash dir', async () => {
 		const { deleteContent } = await import('./content');
-		const { readdirSync, existsSync: fsExists } = await import('node:fs');
+		const { cmsConfig } = await import('./config');
+		const { readdirSync } = await import('node:fs');
 		await deleteContent('draft');
-		const trashDir = join(contentDir, '_trash');
+		const trashDir = join(contentDir, cmsConfig.trashDir);
 		const trashFiles = readdirSync(trashDir);
 		expect(trashFiles.length).toBeGreaterThan(0);
 		expect(trashFiles.some((f) => f.includes('draft'))).toBe(true);
