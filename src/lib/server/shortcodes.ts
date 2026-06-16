@@ -96,7 +96,7 @@ const NATIVE_SHORTCODES: ShortcodeDef[] = [
 
 async function scanCustomShortcodes(): Promise<ShortcodeDef[]> {
 	const hugoRoot = resolve(cmsConfig.hugoContentPath, '..');
-	const shortcodesDir = join(hugoRoot, 'layouts', 'shortcodes');
+	const shortcodesDir = join(hugoRoot, cmsConfig.shortcodesDir);
 
 	let files: string[];
 	try {

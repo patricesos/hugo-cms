@@ -23,6 +23,8 @@
 		onRefresh: () => void;
 	} = $props();
 
+	import { untrack } from 'svelte';
+
 	let openDirs = $state<Set<string>>(new Set());
 
 	$effect(() => {
@@ -34,12 +36,13 @@
 			}
 		}
 		collect(tree);
-		if (openDirs.size === 0) {
-			// Initial load: open all directories
+		const current = untrack(() => openDirs);
+		if (current.size === 0) {
 			openDirs = slugs;
 		} else {
-			// Refresh: preserve manual open/close state, only remove deleted dirs
-			openDirs = new Set([...openDirs].filter(s => slugs.has(s)));
+			const filtered = new Set([...current].filter(s => slugs.has(s)));
+			const changed = filtered.size !== current.size;
+			if (changed) openDirs = filtered;
 		}
 	});
 

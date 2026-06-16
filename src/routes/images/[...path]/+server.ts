@@ -13,7 +13,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 export async function GET({ params }) {
-	const filePath = safeResolveIn(cmsConfig.hugoStaticPath, 'images', params.path);
+	const filePath = safeResolveIn(cmsConfig.hugoStaticPath, cmsConfig.imagesDir, params.path);
 	const ext = filePath.split('.').pop()?.toLowerCase() || '';
 	const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 	try {

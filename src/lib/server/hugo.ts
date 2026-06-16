@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
 
@@ -57,8 +57,8 @@ export async function startHugoServer(): Promise<HugoStatus> {
 		'server',
 		'-D',
 		'--port', String(port),
-		'--bind', '127.0.0.1',
-		'--baseURL', `http://localhost:${port}`,
+		'--bind', cmsConfig.hugoBindAddress,
+		'--baseURL', `http://${cmsConfig.hugoBindAddress}:${port}`,
 		'--source', root,
 		'--disableFastRender',
 	], {
@@ -71,7 +71,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 			hugoError = "Le serveur Hugo n'a pas démarré dans les temps.";
 			startPromise = null;
 			resolvePromise(getHugoStatus());
-		}, 15000);
+		}, cmsConfig.hugoStartupTimeout);
 
 		proc.stdout?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
@@ -126,7 +126,7 @@ export async function stopHugoServer(): Promise<HugoStatus> {
 				hugoUrl = null;
 				hugoError = null;
 				resolve(getHugoStatus());
-			}, 5000);
+			}, cmsConfig.hugoStopTimeout);
 
 			hugoProcess!.on('exit', () => {
 				clearTimeout(timeout);

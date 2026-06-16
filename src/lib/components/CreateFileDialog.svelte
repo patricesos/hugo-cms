@@ -33,7 +33,9 @@
 
 	let title = $state('');
 	let section = $state('');
-	let selectedArchetype = $state('default');
+	import { getClientConfigSync } from '$lib/client-config';
+
+	let selectedArchetype = $state(getClientConfigSync()?.defaultArchetype ?? 'default');
 	let inputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {

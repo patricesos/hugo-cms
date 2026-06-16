@@ -24,7 +24,7 @@ export async function POST({ request }) {
 
 	const buffer = Buffer.from(await file.arrayBuffer());
 	let filename = basename(file.name).replace(/\0/g, '');
-	const imagesDir = safeResolveIn(cmsConfig.hugoStaticPath, 'images');
+	const imagesDir = safeResolveIn(cmsConfig.hugoStaticPath, cmsConfig.imagesDir);
 	if (existsSync(join(imagesDir, filename))) {
 		const parts = filename.split('.');
 		const ext = parts.pop();
@@ -35,7 +35,7 @@ export async function POST({ request }) {
 			counter++;
 		} while (existsSync(join(imagesDir, filename)));
 	}
-	const filepath = safeResolveIn(cmsConfig.hugoStaticPath, 'images', filename);
+	const filepath = safeResolveIn(cmsConfig.hugoStaticPath, cmsConfig.imagesDir, filename);
 
 	await mkdir(dirname(filepath), { recursive: true });
 	await writeFile(filepath, buffer);

@@ -7,7 +7,7 @@ import type { ContentMeta, ContentItem, TreeNode } from './types';
 import type { FrontmatterLanguage } from './markdown';
 
 const BASE = cmsConfig.hugoContentPath;
-const TRASH_DIR = join(BASE, '_trash');
+const TRASH_DIR = join(BASE, cmsConfig.trashDir);
 
 export function safeResolveIn(base: string, ...segments: string[]): string {
 	const resolvedPath = resolve(base, ...segments);

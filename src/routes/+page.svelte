@@ -79,6 +79,8 @@
 	let hugoStatus = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let hydrated = $state(false);
 
+	import { getClientConfig } from '$lib/client-config';
+
 	const STORAGE_KEY = 'hugo-cms-state';
 
 	function saveAppState() {
@@ -161,12 +163,14 @@
 
 	let currentTab = $derived(tabs.find(t => t.slug === currentSlug));
 
+	let clientCfg = $state<{ externalPollInterval: number; fmSaveDelay: number; appTitle: string } | null>(null);
 	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 
 	function startConflictPoll() {
 		stopConflictPoll();
 		if (!currentSlug) return;
-		conflictPollTimer = setInterval(checkExternalChanges, 5000);
+		const interval = clientCfg?.externalPollInterval ?? 5000;
+		conflictPollTimer = setInterval(checkExternalChanges, interval);
 	}
 
 	function stopConflictPoll() {
@@ -320,6 +324,7 @@
 	}
 
 	onMount(() => {
+		getClientConfig().then(cfg => { clientCfg = cfg; });
 		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(async () => {
 			await restoreAppState();
 		});
@@ -473,7 +478,8 @@
 			updateTreeFrontmatter(currentSlug, fm);
 		}
 		if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
-		fmSaveTimeout = setTimeout(() => saveRequest++, 2000);
+		const delay = clientCfg?.fmSaveDelay ?? 2000;
+		fmSaveTimeout = setTimeout(() => saveRequest++, delay);
 	}
 
 	function updateTreeFrontmatter(slug: string, fm: Record<string, unknown>) {
@@ -771,7 +777,7 @@
 					{#if !showSitemap}
 						<div class="empty-state" transition:fade={{ duration: 200 }}>
 							<img class="hugo-logo" src="/hugo-logo.svg" alt="Hugo logo" />
-							<h2>Hugo CMS</h2>
+			<h2>{clientCfg?.appTitle ?? 'Hugo CMS'}</h2>
 							<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 						</div>
 					{/if}

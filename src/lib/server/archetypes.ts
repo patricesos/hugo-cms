@@ -11,7 +11,7 @@ export interface Archetype {
 }
 
 const HUGO_ROOT = resolve(cmsConfig.hugoContentPath, '..');
-const ARCHETYPES_DIR = join(HUGO_ROOT, 'archetypes');
+const ARCHETYPES_DIR = join(HUGO_ROOT, cmsConfig.archetypesDir);
 
 export function getArchetypesDir(): string {
 	return ARCHETYPES_DIR;

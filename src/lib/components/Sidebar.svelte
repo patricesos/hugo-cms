@@ -82,7 +82,7 @@
 </script>
 
 <aside class="sidebar">
-	<div class="view-select" role="combobox" aria-haspopup="listbox" aria-expanded={dropdownOpen}>
+	<div class="view-select" role="combobox" aria-haspopup="listbox" aria-expanded={dropdownOpen} aria-controls="view-dropdown-menu">
 		<button class="view-dropdown-trigger" onclick={() => dropdownOpen = !dropdownOpen} onblur={handleBlur}>
 			<ChevronLeft size={12} />
 			{#if currentView.icon === FileText}
@@ -98,7 +98,7 @@
 			<ChevronRight size={12} />
 		</button>
 		{#if dropdownOpen}
-			<div class="view-dropdown-menu" transition:slide={{ duration: 120 }} role="listbox">
+			<div id="view-dropdown-menu" class="view-dropdown-menu" transition:slide={{ duration: 120 }} role="listbox">
 				{#each views as v}
 					<button class="view-dropdown-item" class:active={v.key === sidebarView} onmousedown={() => setView(v.key)} role="option" aria-selected={v.key === sidebarView}>
 						{#if v.icon === FileText}

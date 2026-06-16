@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Editor as TiptapEditor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
+	import { getClientConfigSync } from '$lib/client-config';
 	import Placeholder from '@tiptap/extension-placeholder';
 	import { Markdown } from 'tiptap-markdown';
 	import Image from '@tiptap/extension-image';
@@ -96,7 +97,8 @@
 		clearAutoSave();
 		++saveVersion;
 		onSaveState?.('unsaved');
-		autoSaveTimeout = setTimeout(doAutoSave, 2000);
+		const delay = getClientConfigSync()?.autoSaveDelay ?? 2000;
+		autoSaveTimeout = setTimeout(doAutoSave, delay);
 	}
 
 	async function doAutoSave() {
@@ -125,7 +127,8 @@
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		++saveVersion;
 		onSaveState?.('unsaved');
-		rawSaveTimeout = setTimeout(doRawAutoSave, 2000);
+		const delay = getClientConfigSync()?.autoSaveDelay ?? 2000;
+		rawSaveTimeout = setTimeout(doRawAutoSave, delay);
 	}
 
 	async function handleManualSave() {
