@@ -31,7 +31,7 @@
 
 	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
-	let editor: TiptapEditor | null = null;
+	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
 	let bubbleEl: HTMLDivElement;
 	let textareaEl = $state<HTMLTextAreaElement | null>(null);
@@ -227,7 +227,7 @@
 		};
 	});
 
-	let prevRawMode = $state(rawMode);
+	let prevRawMode = false;
 
 	$effect(() => {
 		if (rawMode === prevRawMode) return;

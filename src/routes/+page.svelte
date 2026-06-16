@@ -487,6 +487,7 @@
 			}
 			return false;
 		}
+		walk(tree);
 		tree = tree.map(n => ({ ...n }));
 	}
 
@@ -836,7 +837,7 @@
 										getContent={(fn) => { editorGetContent = fn; }}
 										onSetContent={(fn) => { editorSetContent = fn; }}
 										onSave={handleSave}
-										onFrontmatterChange={(fm) => { currentFrontmatter = fm; }}
+										onFrontmatterChange={handleFrontmatterChange}
 										onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
 										onSaveState={(s) => { saveState = s; }}
 									/>

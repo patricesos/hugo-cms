@@ -84,16 +84,32 @@
 <aside class="sidebar">
 	<div class="view-select" role="combobox" aria-haspopup="listbox" aria-expanded={dropdownOpen}>
 		<button class="view-dropdown-trigger" onclick={() => dropdownOpen = !dropdownOpen} onblur={handleBlur}>
-			<ChevronLeft size={12} class="chev-left" />
-			<svelte:component this={currentView.icon} size={14} />
+			<ChevronLeft size={12} />
+			{#if currentView.icon === FileText}
+				<FileText size={14} />
+			{:else if currentView.icon === FileCode}
+				<FileCode size={14} />
+			{:else if currentView.icon === Settings}
+				<Settings size={14} />
+			{:else if currentView.icon === Image}
+				<Image size={14} />
+			{/if}
 			<span>{currentView.label}</span>
-			<ChevronRight size={12} class="chev-right" />
+			<ChevronRight size={12} />
 		</button>
 		{#if dropdownOpen}
 			<div class="view-dropdown-menu" transition:slide={{ duration: 120 }} role="listbox">
 				{#each views as v}
 					<button class="view-dropdown-item" class:active={v.key === sidebarView} onmousedown={() => setView(v.key)} role="option" aria-selected={v.key === sidebarView}>
-						<svelte:component this={v.icon} size={14} />
+						{#if v.icon === FileText}
+							<FileText size={14} />
+						{:else if v.icon === FileCode}
+							<FileCode size={14} />
+						{:else if v.icon === Settings}
+							<Settings size={14} />
+						{:else if v.icon === Image}
+							<Image size={14} />
+						{/if}
 						<span>{v.label}</span>
 					</button>
 				{/each}
@@ -168,21 +184,6 @@
 
 	.view-dropdown-trigger:focus {
 		border-color: var(--c-primary);
-	}
-
-	.view-dropdown-trigger .chev-left,
-	.view-dropdown-trigger .chev-right {
-		position: absolute;
-		top: 50%;
-		transform: translateY(-50%);
-	}
-
-	.view-dropdown-trigger .chev-left {
-		left: 8px;
-	}
-
-	.view-dropdown-trigger .chev-right {
-		right: 8px;
 	}
 
 
