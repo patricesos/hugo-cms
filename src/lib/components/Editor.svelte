@@ -6,8 +6,9 @@
 	import { Markdown } from 'tiptap-markdown';
 	import Image from '@tiptap/extension-image';
 	import { SlashCommands } from '$lib/editor/slash-commands';
-	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2 } from '@lucide/svelte';
+	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2, Image as ImageIcon, Zap } from '@lucide/svelte';
 	import ImagePicker from './ImagePicker.svelte';
+	import ShortcodeDialog from './ShortcodeDialog.svelte';
 	import yaml from 'js-yaml';
 	import { parse, stringify } from '@iarna/toml';
 
@@ -36,6 +37,7 @@
 
 	let showImagePicker = $state(false);
 	let pendingImageInsert = $state<{ editor: TiptapEditor; range: import('@tiptap/core').Range } | null>(null);
+	let showShortcodeDialog = $state(false);
 
 	function updateStats() {
 		if (!editor) return;
@@ -51,10 +53,15 @@
 	}
 
 	function handleImageSelect(url: string) {
-		if (!pendingImageInsert) return;
-		const { editor: ed, range } = pendingImageInsert;
-		ed.chain().focus().deleteRange(range).setImage({ src: url }).run();
-		pendingImageInsert = null;
+		if (rawMode) {
+			rawWrap('![', `](${url})`);
+			showImagePicker = false;
+		} else if (pendingImageInsert) {
+			const { editor: ed, range } = pendingImageInsert;
+			ed.chain().focus().deleteRange(range).setImage({ src: url }).run();
+			pendingImageInsert = null;
+			showImagePicker = false;
+		}
 	}
 
 	function handleImagePickerClose() {
@@ -321,6 +328,38 @@
 		if (url) exec('setLink', { href: url });
 	}
 
+	function toolbarImage() {
+		if (rawMode) {
+			showImagePicker = true;
+		} else if (editor) {
+			const { from, to } = editor.state.selection;
+			pendingImageInsert = { editor, range: { from, to } };
+			showImagePicker = true;
+		}
+	}
+
+	function toolbarShortcode() {
+		if (rawMode) {
+			const name = window.prompt('Nom du shortcode:');
+			if (!name) return;
+			const params = window.prompt('Paramètres (optionnel):');
+			const inner = window.prompt('Contenu (optionnel):');
+			const sc = inner
+				? `{{< ${name} ${params || ''} >}}\n${inner}\n{{< /${name} >}}`
+				: `{{< ${name} ${params || ''} >}}`;
+			rawWrapInner(sc);
+		} else {
+			showShortcodeDialog = true;
+		}
+	}
+
+	function handleShortcodeInsert(shortcode: string) {
+		if (!editor) return;
+		const { from, to } = editor.state.selection;
+		editor.chain().focus().deleteRange({ from, to }).insertContent(shortcode).run();
+		showShortcodeDialog = false;
+	}
+
 	function toggleHeading(level: 1 | 2 | 3) {
 		if (editor?.isActive('heading', { level })) {
 			exec('setParagraph');
@@ -346,6 +385,19 @@
 			} else {
 				ta.setSelectionRange(start + prefix.length, start + prefix.length);
 			}
+		});
+	}
+
+	function rawWrapInner(text: string) {
+		const ta = textareaEl;
+		if (!ta) return;
+		const start = ta.selectionStart;
+		const cur = rawContent;
+		rawContent = cur.substring(0, start) + text + cur.substring(start);
+		markRawUnsaved();
+		requestAnimationFrame(() => {
+			ta.focus();
+			ta.setSelectionRange(start + text.length, start + text.length);
 		});
 	}
 
@@ -476,6 +528,8 @@
 		<button onclick={rawMode ? () => rawWrap('*', '*') : () => exec('toggleItalic')} class:active={!rawMode && editor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
 		<button onclick={rawMode ? () => rawWrap('`', '`') : () => exec('toggleCode')} class:active={!rawMode && editor?.isActive('code')} title="Code"><Code size={15} /></button>
 		<button onclick={rawMode ? rawLink : setLink} title="Lien"><Link size={15} /></button>
+		<button onclick={toolbarImage} title="Image"><ImageIcon size={15} /></button>
+		<button onclick={toolbarShortcode} title="Shortcode Hugo"><Zap size={15} /></button>
 		<span class="sep"></span>
 		<button onclick={rawMode ? rawBlockquote : () => exec('toggleBlockquote')} class:active={!rawMode && editor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
 		<button onclick={rawMode ? () => rawList(false) : () => exec('toggleBulletList')} class:active={!rawMode && editor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
@@ -507,6 +561,12 @@
 	show={showImagePicker}
 	onSelect={handleImageSelect}
 	onClose={handleImagePickerClose}
+/>
+
+<ShortcodeDialog
+	show={showShortcodeDialog}
+	onInsert={handleShortcodeInsert}
+	onClose={() => showShortcodeDialog = false}
 />
 
 <style>
