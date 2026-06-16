@@ -50,6 +50,7 @@
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
+	let fmWidth = $state(280);
 	let archetypes = $state<{ name: string; label: string }[]>([]);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
@@ -121,6 +122,26 @@
 		function onMove(ev: MouseEvent) {
 			const newWidth = Math.max(180, Math.min(500, startWidth + ev.clientX - startX));
 			sidebarWidth = newWidth;
+		}
+		function onUp() {
+			document.removeEventListener('mousemove', onMove);
+			document.removeEventListener('mouseup', onUp);
+			document.body.style.cursor = '';
+			document.body.style.userSelect = '';
+		}
+		document.addEventListener('mousemove', onMove);
+		document.addEventListener('mouseup', onUp);
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+	}
+
+	function startFmResize(e: MouseEvent) {
+		e.preventDefault();
+		const startX = e.clientX;
+		const startWidth = fmWidth;
+		function onMove(ev: MouseEvent) {
+			const newWidth = Math.max(200, Math.min(500, startWidth - (ev.clientX - startX)));
+			fmWidth = newWidth;
 		}
 		function onUp() {
 			document.removeEventListener('mousemove', onMove);
@@ -506,7 +527,8 @@
 							/>
 						</div>
 						{#if fmOpen}
-							<aside class="fm-sidebar" transition:slide={{ duration: 200, axis: 'x' }}>
+							<div class="fm-resize-handle" role="presentation" onmousedown={startFmResize}></div>
+							<aside class="fm-sidebar" style="width: {fmWidth}px; min-width: {fmWidth}px;" transition:slide={{ duration: 200, axis: 'x' }}>
 								<FrontMatterEditor
 									frontmatter={currentFrontmatter}
 									onChange={handleFrontmatterChange}
@@ -795,11 +817,31 @@
 	}
 
 	.fm-sidebar {
-		width: 280px;
-		min-width: 280px;
 		border-left: 1px solid var(--c-border);
 		background: var(--c-bg-sidebar);
 		overflow-y: auto;
+		flex-shrink: 0;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+
+	.fm-sidebar::-webkit-scrollbar {
+		display: none;
+	}
+
+	.fm-resize-handle {
+		width: 4px;
+		flex-shrink: 0;
+		cursor: col-resize;
+		background: transparent;
+		transition: background 0.15s;
+		position: relative;
+		z-index: 5;
+	}
+
+	.fm-resize-handle:hover,
+	.fm-resize-handle:active {
+		background: var(--c-primary);
 	}
 
 	.empty-state {
