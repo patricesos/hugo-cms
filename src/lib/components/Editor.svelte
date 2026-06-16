@@ -3,7 +3,6 @@
 	import { Editor as TiptapEditor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 	import Placeholder from '@tiptap/extension-placeholder';
-	import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 	import { Markdown } from 'tiptap-markdown';
 	import Image from '@tiptap/extension-image';
 	import { SlashCommands } from '$lib/editor/slash-commands';
@@ -113,6 +112,12 @@
 		onSaveState?.('saved');
 	}
 
+	function getSelectionRect(): DOMRect | null {
+		const sel = window.getSelection();
+		if (!sel || sel.rangeCount === 0) return null;
+		return sel.getRangeAt(0).getBoundingClientRect();
+	}
+
 	onMount(() => {
 		function onSlashImage(e: Event) {
 			const detail = (e as CustomEvent).detail as { editor: TiptapEditor; range: import('@tiptap/core').Range };
@@ -131,7 +136,6 @@
 						heading: { levels: [1, 2, 3] },
 					}),
 					Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
-					BubbleMenuExtension.configure({ element: bubbleEl }),
 					Markdown.configure({
 						html: true,
 						linkify: true,
@@ -142,6 +146,32 @@
 				],
 				content: initContent,
 				onUpdate: markUnsaved,
+				onSelectionUpdate: () => {
+					if (!editor || !bubbleEl) return;
+					const { empty } = editor.state.selection;
+					const { from: selFrom, to: selTo } = editor.state.selection;
+					const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
+					if (hasText) {
+						const rect = getSelectionRect();
+						if (rect) {
+							bubbleEl.style.display = 'flex';
+							bubbleEl.style.top = `${rect.top - bubbleEl.offsetHeight - 8}px`;
+							bubbleEl.style.left = `${rect.left + (rect.width - bubbleEl.offsetWidth) / 2}px`;
+						}
+					} else {
+						bubbleEl.style.display = 'none';
+					}
+				},
+				onBlur: () => {
+					if (bubbleEl) bubbleEl.style.display = 'none';
+				},
+				onFocus: () => {
+					if (!editor || !bubbleEl) return;
+					const { empty } = editor.state.selection;
+					const { from: selFrom, to: selTo } = editor.state.selection;
+					const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
+					if (!hasText) bubbleEl.style.display = 'none';
+				},
 			});
 			updateStats();
 		}
@@ -360,10 +390,10 @@
 	<div bind:this={editorEl} class="editor-content" class:active={!rawMode}></div>
 
 	<div bind:this={bubbleEl} class="bubble-menu">
-		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')} title="Gras"><Bold size={14} /></button>
-		<button onclick={() => exec('toggleItalic')} class:active={editor?.isActive('italic')} title="Italique"><Italic size={14} /></button>
-		<button onclick={() => exec('toggleCode')} class:active={editor?.isActive('code')} title="Code"><Code size={14} /></button>
-		<button onclick={setLink} class:active={editor?.isActive('link')} title="Lien"><Link size={14} /></button>
+		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleBold().run(); }} class:active={editor?.isActive('bold')} title="Gras"><Bold size={14} /></button>
+		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleItalic().run(); }} class:active={editor?.isActive('italic')} title="Italique"><Italic size={14} /></button>
+		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleCode().run(); }} class:active={editor?.isActive('code')} title="Code"><Code size={14} /></button>
+		<button onmousedown={(e) => { e.preventDefault(); const url = window.prompt('URL du lien:'); if (url) editor?.chain().focus().setLink({ href: url }).run(); }} class:active={editor?.isActive('link')} title="Lien"><Link size={14} /></button>
 	</div>
 </div>
 
@@ -528,7 +558,9 @@
 	}
 
 	.bubble-menu {
-		display: flex;
+		display: none;
+		position: fixed;
+		z-index: 100;
 		gap: 2px;
 		padding: 6px;
 		background: var(--c-bg);

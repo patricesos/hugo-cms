@@ -31,7 +31,7 @@
 - [x] Ajouter du padding à gauche dans la sidebar
 - [x] Sélecteur de vue sidebar : Content / Static (onglets)
 - [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
-- [ ] Bubble menu de l'éditeur visible en bas de page — ne s'afficher que quand du texte est sélectionné
+- [x] Bubble menu de l'éditeur — ne s'afficher que quand du texte est sélectionné
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
