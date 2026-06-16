@@ -165,7 +165,7 @@
 <div class="fm-panel">
 	<div class="fm-header">
 		<h3 class="fm-title">Front Matter</h3>
-		<div class="fm-header-right">
+		<div class="fm-header-actions">
 			<button
 				class="raw-toggle"
 				class:active={rawMode}
@@ -342,18 +342,14 @@
 	}
 
 	.fm-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
 		margin-bottom: 16px;
-		gap: 8px;
 	}
 
-	.fm-header-right {
+	.fm-header-actions {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		flex-shrink: 0;
+		margin-top: 6px;
 	}
 
 	.fm-title {
