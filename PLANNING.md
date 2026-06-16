@@ -10,7 +10,7 @@
 
 ## Sprint 5
 - [x] Onglets multiples (plusieurs fichiers ouverts)
-- [ ] Dupliquer un fichier
+- [x] Dupliquer un fichier
 
 ## Sprint 6
 - [ ] Git intégré (commit/push depuis le CMS)

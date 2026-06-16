@@ -230,6 +230,48 @@
 		await loadTree();
 	}
 
+	async function handleDuplicate(slug: string) {
+		let content: string;
+		let frontmatter: Record<string, unknown>;
+
+		const existingTab = tabs.find(t => t.slug === slug);
+		if (existingTab) {
+			content = existingTab.content;
+			frontmatter = { ...existingTab.frontmatter };
+		} else {
+			const res = await fetch(`/api/content/${slug}`);
+			const data = await res.json();
+			content = data.body || '';
+			frontmatter = (data.frontmatter as Record<string, unknown>) || {};
+		}
+
+		const allSlugs = new Set([
+			...tabs.map(t => t.slug),
+			...flattenTree(tree).map(n => n.slug),
+		]);
+
+		const baseSlug = slug.replace(/\.md$/, '') + '-copy';
+		let newSlug = baseSlug;
+		let counter = 0;
+
+		while (allSlugs.has(newSlug)) {
+			counter++;
+			newSlug = `${baseSlug}-${counter + 1}`;
+		}
+
+		const newTitle = (frontmatter.title as string) ? `${frontmatter.title} (copie)` : slug.split('/').pop() || '';
+		const newFrontmatter = { ...frontmatter, title: newTitle, date: new Date().toISOString().split('T')[0] };
+
+		await fetch(`/api/content/${newSlug}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ body: content, frontmatter: newFrontmatter }),
+		});
+
+		await loadTree();
+		await loadFile(newSlug);
+	}
+
 	function handleCloseTab(slug: string) {
 		const idx = tabs.findIndex(t => t.slug === slug);
 		if (idx === -1) return;
@@ -261,6 +303,7 @@
 				onCreateFile={() => showCreateDialog = true}
 				onDeleteFile={handleDelete}
 				onRenameFile={handleRename}
+				onDuplicateFile={handleDuplicate}
 				onSearch={() => showSearch = true}
 				onToggle={() => sidebarOpen = !sidebarOpen}
 			/>

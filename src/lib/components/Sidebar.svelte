@@ -21,6 +21,7 @@
 		onSearch,
 		onToggle,
 		onRenameFile,
+		onDuplicateFile,
 	}: {
 		tree: TreeNodeData[];
 		currentSlug: string | null;
@@ -31,6 +32,7 @@
 		onSearch?: () => void;
 		onToggle?: () => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
+		onDuplicateFile?: (slug: string) => void;
 	} = $props();
 </script>
 
@@ -64,7 +66,7 @@
 
 	<nav class="file-tree">
 		{#each tree as node}
-			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} />
+			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} />
 		{/each}
 	</nav>
 </aside>

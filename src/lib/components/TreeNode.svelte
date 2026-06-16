@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
-	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Check, X } from '@lucide/svelte';
+	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Copy, Check, X } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -19,6 +19,7 @@
 		onLoadFile,
 		onDeleteFile,
 		onRenameFile,
+		onDuplicateFile,
 	}: {
 		node: TreeNodeData;
 		depth: number;
@@ -26,6 +27,7 @@
 		onLoadFile: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
+		onDuplicateFile?: (slug: string) => void;
 	} = $props();
 
 	let open = $state(false);
@@ -129,7 +131,7 @@
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} />
 				{/each}
 			</div>
 		{/if}
@@ -163,6 +165,11 @@
 						<span class="badge-draft">DRAFT</span>
 					{/if}
 				</button>
+				{#if onDuplicateFile}
+					<button class="duplicate-node-btn" onclick={() => onDuplicateFile(node.slug)} title="Dupliquer">
+						<Copy size={13} />
+					</button>
+				{/if}
 				{#if onDeleteFile}
 					<button class="delete-node-btn" onclick={() => onDeleteFile(node.slug)} title="Supprimer">
 						<Trash2 size={13} />
@@ -297,6 +304,30 @@
 	.delete-node-btn:hover {
 		color: var(--c-danger);
 		background: #fef2f2;
+	}
+
+	.duplicate-node-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border: none;
+		background: transparent;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		opacity: 0;
+		transition: all 0.12s;
+		flex-shrink: 0;
+	}
+
+	.file-row:hover .duplicate-node-btn {
+		opacity: 1;
+	}
+
+	.duplicate-node-btn:hover {
+		color: var(--c-primary);
+		background: var(--c-primary-light);
 	}
 
 	.rename-wrap {
