@@ -92,8 +92,7 @@
 	async function doRawAutoSave() {
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		const { frontmatter: fm, body, format } = splitRawContent(rawContent);
-		if (fm) onFrontmatterChange?.(fm);
+		const body = getRawBody(rawContent);
 		await onSave?.(body);
 		if (version !== saveVersion) return;
 		onSaveState?.('saved');
@@ -217,13 +216,28 @@
 			rawContent = fmString ? `${fmString}\n\n${body}` : body;
 		} else {
 			// switching to WYSIWYG: textarea → Tiptap, strip frontmatter
-			const { body } = splitRawContent(rawContent);
+			const { frontmatter: fm, body, format } = splitRawContent(rawContent);
+			if (fm) {
+				onFrontmatterChange?.(fm);
+			}
 			if (editor) {
 				editor.commands.setContent(body);
 				updateStats();
 			}
 		}
 		prevRawMode = rawMode;
+	});
+
+	// when frontmatter changes in raw mode, refresh the raw textarea
+	let prevFmSnapshot = $state('');
+	$effect(() => {
+		if (!rawMode) return;
+		const snapshot = JSON.stringify(frontmatter) + '|' + frontmatterFormat;
+		if (snapshot === prevFmSnapshot) return;
+		prevFmSnapshot = snapshot;
+		const body = getRawBody(rawContent);
+		const fmString = serializeFm(frontmatter, frontmatterFormat);
+		rawContent = fmString ? `${fmString}\n\n${body}` : body;
 	});
 
 	function serializeFm(fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
