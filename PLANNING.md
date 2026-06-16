@@ -16,12 +16,12 @@
 - [ ] Git intégré (commit/push depuis le CMS)
 - [x] Aperçu Hugo (ouvrir le site dans un onglet)
 - [x] Création d'articles via archétypes (sélection d'archetype dans le dialogue Nouveau fichier)
-- [ ] Afficher / gérer les archétypes dans l'app (visualisation + édition)
+- [x] Afficher / gérer les archétypes dans l'app (visualisation + édition)
 - [x] Création de dossier [+] depuis la sidebar
 - [x] Afficher le dossier static (images, fichiers) dans la sidebar
 - [ ] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
 - [x] Réorganiser le dialogue Nouveau fichier : Titre / Archétype / Section
-- [ ] Déplacer « Hugo CMS » du sidebar vers le header (barre du haut)
+- [x] Déplacer « Hugo CMS » du sidebar vers le header (barre du haut)
 - [x] Logo Hugo SVG en fond quand aucun fichier n'est ouvert
 - [x] Résoudre conflit Ctrl+K (lien Tiptap vs recherche) — utiliser Ctrl+Shift+F pour la recherche
 - [x] Panneau Front Matter redimensionnable (poignée de glissement)
@@ -32,6 +32,8 @@
 - [x] Sélecteur de vue sidebar : Content / Static (onglets)
 - [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
 - [x] Bubble menu de l'éditeur — ne s'afficher que quand du texte est sélectionné
+
+## Done
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)

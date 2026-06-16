@@ -1,7 +1,8 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { readFile, readdir, writeFile, mkdir, stat, unlink } from 'node:fs/promises';
+import { join, resolve, dirname, basename } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
+import type { TreeNode } from './types';
 
 export interface Archetype {
 	name: string;
@@ -11,6 +12,14 @@ export interface Archetype {
 
 const HUGO_ROOT = resolve(cmsConfig.hugoContentPath, '..');
 const ARCHETYPES_DIR = join(HUGO_ROOT, 'archetypes');
+
+export function getArchetypesDir(): string {
+	return ARCHETYPES_DIR;
+}
+
+export function archetypeSlugToPath(slug: string): string {
+	return join(ARCHETYPES_DIR, slug + '.md');
+}
 
 async function walkArchetypes(dir: string, prefix: string): Promise<Archetype[]> {
 	if (!existsSync(dir)) return [];
@@ -50,6 +59,79 @@ export async function listArchetypes(): Promise<Archetype[]> {
 	});
 
 	return results;
+}
+
+export async function listArchetypeTree(dir: string = ''): Promise<TreeNode[]> {
+	const target = dir ? join(ARCHETYPES_DIR, dir) : ARCHETYPES_DIR;
+	if (!existsSync(target)) return [];
+
+	const entries = await readdir(target, { withFileTypes: true });
+	const results: TreeNode[] = [];
+
+	for (const entry of entries) {
+		if (entry.name.startsWith('.')) continue;
+		const fullPath = join(target, entry.name);
+		const slug = dir ? `${dir}/${entry.name.replace(/\.md$/, '')}` : entry.name.replace(/\.md$/, '');
+
+		if (entry.isDirectory()) {
+			const children = await listArchetypeTree(slug);
+			results.push({ type: 'directory', name: entry.name, slug, path: slug, children, frontmatter: undefined });
+		} else if (entry.isFile() && entry.name.endsWith('.md')) {
+			results.push({
+				type: 'file',
+				name: entry.name,
+				slug,
+				path: slug,
+				children: [],
+				frontmatter: undefined,
+			});
+		}
+	}
+
+	return results.sort((a, b) => {
+		if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+		return a.name.localeCompare(b.name);
+	});
+}
+
+export async function readArchetype(slug: string): Promise<Archetype> {
+	const filePath = archetypeSlugToPath(slug);
+	if (!existsSync(filePath)) {
+		throw new Error(`Archetype not found: ${slug}`);
+	}
+	const source = await readFile(filePath, 'utf-8');
+	const label = slug.replace(/[/-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	return { name: slug, label, source };
+}
+
+export async function createArchetype(slug: string, source: string): Promise<Archetype> {
+	const filePath = archetypeSlugToPath(slug);
+	if (existsSync(filePath)) {
+		throw new Error(`Archetype already exists: ${slug}`);
+	}
+	const dir = dirname(filePath);
+	if (!existsSync(dir)) {
+		await mkdir(dir, { recursive: true });
+	}
+	await writeFile(filePath, source, 'utf-8');
+	return readArchetype(slug);
+}
+
+export async function updateArchetype(slug: string, source: string): Promise<Archetype> {
+	const filePath = archetypeSlugToPath(slug);
+	if (!existsSync(filePath)) {
+		throw new Error(`Archetype not found: ${slug}`);
+	}
+	await writeFile(filePath, source, 'utf-8');
+	return readArchetype(slug);
+}
+
+export async function deleteArchetype(slug: string): Promise<void> {
+	const filePath = archetypeSlugToPath(slug);
+	if (!existsSync(filePath)) {
+		throw new Error(`Archetype not found: ${slug}`);
+	}
+	await unlink(filePath);
 }
 
 export function renderArchetype(template: string, title: string, slug: string): string {

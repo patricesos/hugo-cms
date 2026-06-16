@@ -13,6 +13,7 @@
 	import SearchDialog from '$lib/components/SearchDialog.svelte';
 	import ShortcutsHelp from '$lib/components/ShortcutsHelp.svelte';
 	import HugoPreview from '$lib/components/HugoPreview.svelte';
+	import ArchetypeView from '$lib/components/ArchetypeView.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -33,6 +34,7 @@
 
 	let tree = $state<TreeNode[]>([]);
 	let assetTree = $state<TreeNode[]>([]);
+	let archetypeTree = $state<TreeNode[]>([]);
 	let tabs = $state<Tab[]>([]);
 	let currentSlug = $state<string | null>(null);
 	let currentFrontmatter = $state<Record<string, unknown>>({});
@@ -52,7 +54,8 @@
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
-	let sidebarView = $state<'content' | 'static'>('content');
+	let sidebarView = $state<'content' | 'static' | 'archetypes'>('content');
+	let currentArchetype = $state<string | null>(null);
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
@@ -230,10 +233,15 @@
 
 	async function loadArchetypes() {
 		try {
-			const res = await fetch('/api/archetypes');
-			archetypes = await res.json();
+			const [flatRes, treeRes] = await Promise.all([
+				fetch('/api/archetypes'),
+				fetch('/api/archetypes?tree=true'),
+			]);
+			archetypes = await flatRes.json();
+			archetypeTree = await treeRes.json();
 		} catch {
 			archetypes = [];
+			archetypeTree = [];
 		}
 	}
 
@@ -492,6 +500,7 @@
 			<Sidebar
 				tree={tree}
 				{assetTree}
+				{archetypeTree}
 				{currentSlug}
 				{sidebarView}
 				onLoadFile={loadFile}
@@ -502,7 +511,8 @@
 				onRenameFile={handleRename}
 				onDuplicateFile={handleDuplicate}
 				onSelectAsset={(path) => window.open(`/api/assets/${path}`, '_blank')}
-				onViewChange={(v) => sidebarView = v}
+				onSelectArchetype={(slug) => { currentArchetype = slug; }}
+				onViewChange={(v) => { sidebarView = v; if (v !== 'archetypes') currentArchetype = null; }}
 			/>
 		</div>
 		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
@@ -517,10 +527,15 @@
 		{#if currentSlug || tabs.length > 0}
 			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={loadFile} onClose={handleCloseTab} />
 		{/if}
-		{#if showSitemap && !currentSlug}
+		{#if sidebarView === 'archetypes'}
+			<ArchetypeView
+				slug={currentArchetype}
+				onClose={() => currentArchetype = null}
+				onDelete={(s) => { loadArchetypes(); currentArchetype = null; }}
+			/>
+		{:else if showSitemap && !currentSlug}
 			<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
-		{/if}
-		{#if !currentSlug}
+		{:else if !currentSlug}
 			{#if !showSitemap}
 				<div class="empty-state" transition:fade={{ duration: 200 }}>
 					<img class="hugo-logo" src="/hugo-logo.svg" alt="Hugo logo" />

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Image, FileText } from '@lucide/svelte';
+	import { Image, FileText, FileCode } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -14,6 +14,7 @@
 	let {
 		tree = [] as TreeNodeData[],
 		assetTree = [] as TreeNodeData[],
+		archetypeTree = [] as TreeNodeData[],
 		currentSlug = '',
 		sidebarView = 'content',
 		onLoadFile,
@@ -24,12 +25,14 @@
 		onRenameFile,
 		onDuplicateFile,
 		onSelectAsset,
+		onSelectArchetype,
 		onViewChange,
 	}: {
 		tree: TreeNodeData[];
 		assetTree: TreeNodeData[];
+		archetypeTree: TreeNodeData[];
 		currentSlug: string | null;
-		sidebarView?: 'content' | 'static';
+		sidebarView?: 'content' | 'static' | 'archetypes';
 		onLoadFile: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
 		onCreateFolderInFolder?: (slug: string) => void;
@@ -38,10 +41,11 @@
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
 		onSelectAsset?: (path: string) => void;
-		onViewChange?: (view: 'content' | 'static') => void;
+		onSelectArchetype?: (slug: string) => void;
+		onViewChange?: (view: 'content' | 'static' | 'archetypes') => void;
 	} = $props();
 
-	function setView(view: 'content' | 'static') {
+	function setView(view: 'content' | 'static' | 'archetypes') {
 		onViewChange?.(view);
 	}
 </script>
@@ -56,6 +60,10 @@
 			<Image size={14} />
 			<span>Static</span>
 		</button>
+		<button class="view-tab" class:active={sidebarView === 'archetypes'} onclick={() => setView('archetypes')}>
+			<FileCode size={14} />
+			<span>Archétypes</span>
+		</button>
 	</div>
 
 	<nav class="file-tree">
@@ -63,9 +71,13 @@
 			{#each tree as node}
 				<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 			{/each}
-		{:else}
+		{:else if sidebarView === 'static'}
 			{#each assetTree as node}
 				<TreeNode {node} depth={0} currentSlug="" onLoadFile={(slug) => onSelectAsset?.(slug)} />
+			{/each}
+		{:else}
+			{#each archetypeTree as node}
+				<TreeNode {node} depth={0} currentSlug="" onLoadFile={(slug) => onSelectArchetype?.(slug)} />
 			{/each}
 		{/if}
 	</nav>
