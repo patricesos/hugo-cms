@@ -136,10 +136,15 @@
 	.sitemap-scroll {
 		height: 100%;
 		overflow-y: auto;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
 		padding: 32px 48px;
 		max-width: 900px;
 		margin: 0 auto;
 		width: 100%;
+	}
+	.sitemap-scroll::-webkit-scrollbar {
+		display: none;
 	}
 
 	.sitemap-header {
