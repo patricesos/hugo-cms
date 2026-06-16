@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
@@ -16,6 +16,7 @@
 	import ArchetypeView from '$lib/components/ArchetypeView.svelte';
 	import ImageView from '$lib/components/ImageView.svelte';
 	import ConfigView from '$lib/components/ConfigView.svelte';
+	import HugoConsole from '$lib/components/HugoConsole.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -68,6 +69,7 @@
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
+	let showConsole = $state(false);
 	let fmWidth = $state(280);
 	let previewWidth = $state(480);
 	let archetypes = $state<{ name: string; label: string }[]>([]);
@@ -93,6 +95,7 @@
 			sidebarWidth,
 			fmOpen,
 			showPreview,
+			showConsole,
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
@@ -110,6 +113,7 @@
 			sidebarWidth = state.sidebarWidth ?? 260;
 			fmOpen = state.fmOpen ?? true;
 			showPreview = state.showPreview ?? false;
+			showConsole = state.showConsole ?? false;
 			fmWidth = state.fmWidth ?? 280;
 			previewWidth = state.previewWidth ?? 480;
 			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
@@ -157,6 +161,7 @@
 		fmWidth;
 		expandedSlugs;
 		showPreview;
+		showConsole;
 		previewWidth;
 		saveAppState();
 	});
@@ -340,6 +345,10 @@
 			if (mod && e.shiftKey && e.code === 'KeyP') {
 				e.preventDefault();
 				showPreview = !showPreview;
+			}
+			if (mod && e.code === 'Backquote') {
+				e.preventDefault();
+				showConsole = !showConsole;
 			}
 		}
 		document.addEventListener('keydown', handleKeydown);
@@ -674,6 +683,9 @@
 			<button class="icon-btn" class:active={showPreview} onclick={() => showPreview = !showPreview} title="Aperçu Hugo (Cmd+Shift+P)">
 				<Eye size={16} />
 			</button>
+			<button class="icon-btn" class:active={showConsole} onclick={() => showConsole = !showConsole} title="Console Hugo">
+				<Terminal size={16} />
+			</button>
 		</div>
 		<div class="action-bar-right">
 			<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
@@ -873,6 +885,8 @@
 	</main>
 	</div>
 </div>
+
+<HugoConsole show={showConsole} onClose={() => showConsole = false} />
 
 <CreateFileDialog
 	show={showCreateDialog}

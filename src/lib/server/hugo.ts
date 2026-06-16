@@ -10,6 +10,30 @@ interface HugoStatus {
 	error: string | null;
 }
 
+export interface LogEntry {
+	stream: 'stdout' | 'stderr';
+	text: string;
+	timestamp: number;
+}
+
+const MAX_LOG_ENTRIES = 2000;
+let logBuffer: LogEntry[] = [];
+
+export function getLogs(): LogEntry[] {
+	return logBuffer;
+}
+
+export function clearLogs(): void {
+	logBuffer = [];
+}
+
+function pushLog(stream: 'stdout' | 'stderr', text: string): void {
+	logBuffer.push({ stream, text, timestamp: Date.now() });
+	if (logBuffer.length > MAX_LOG_ENTRIES) {
+		logBuffer = logBuffer.slice(-MAX_LOG_ENTRIES);
+	}
+}
+
 let hugoProcess: ChildProcess | null = null;
 let hugoUrl: string | null = null;
 let hugoError: string | null = null;
@@ -72,7 +96,9 @@ export async function startHugoServer(): Promise<HugoStatus> {
 
 		proc.stdout?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
-			console.log(`[hugo] ${text.trimEnd()}`);
+			const trimmed = text.trimEnd();
+			console.log(`[hugo] ${trimmed}`);
+			pushLog('stdout', trimmed);
 			const portMatch = text.match(/Web Server is available at (\S+)/);
 			if (portMatch) hugoUrl = portMatch[1];
 			const envMatch = text.match(/listening on (\S+)/i);
@@ -87,7 +113,9 @@ export async function startHugoServer(): Promise<HugoStatus> {
 
 		proc.stderr?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
-			console.error(`[hugo:err] ${text.trimEnd()}`);
+			const trimmed = text.trimEnd();
+			console.error(`[hugo:err] ${trimmed}`);
+			pushLog('stderr', trimmed);
 			if (text.toLowerCase().includes('error') || text.toLowerCase().includes('failed')) {
 				hugoError = text.trim();
 			}
