@@ -2,13 +2,17 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw } from '@lucide/svelte';
 
-	let { show, onClose }: { show: boolean; onClose: () => void } = $props();
+	let { show, onClose, onStatusChange }: { show: boolean; onClose: () => void; onStatusChange?: (status: 'loading' | 'running' | 'stopped' | 'error') => void } = $props();
 
 	let status = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let url = $state<string | null>(null);
 	let errorMessage = $state<string | null>(null);
 	let checking = $state(false);
 	let iframeKey = $state(0);
+
+	$effect(() => {
+		onStatusChange?.(status);
+	});
 
 	onMount(() => {
 		if (show) checkStatus();

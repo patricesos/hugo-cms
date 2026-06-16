@@ -71,6 +71,7 @@
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
 	let expandedSlugs = $state<Set<string>>(new Set());
+	let hugoStatus = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let hydrated = $state(false);
 
 	const STORAGE_KEY = 'hugo-cms-state';
@@ -576,6 +577,9 @@
 		<div class="header-brand">
 			<FileText size={20} color="var(--c-primary)" />
 			<h2>Hugo CMS</h2>
+			<div class="server-indicator" class:running={hugoStatus === 'running'} class:stopped={hugoStatus === 'stopped'} class:loading={hugoStatus === 'loading'} class:error={hugoStatus === 'error'} title={hugoStatus === 'running' ? 'Serveur actif' : hugoStatus === 'loading' ? 'Démarrage…' : hugoStatus === 'error' ? 'Erreur serveur' : 'Serveur arrêté'}>
+				<span class="server-dot"></span>
+			</div>
 		</div>
 	</header>
 	<div class="action-bar">
@@ -781,7 +785,7 @@
 				{/if}
 			</div>
 			{#if showPreview}
-				<HugoPreview show={showPreview} onClose={() => showPreview = false} />
+				<HugoPreview show={showPreview} onClose={() => showPreview = false} onStatusChange={(s) => hugoStatus = s} />
 			{/if}
 		</div>
 	</main>
@@ -872,6 +876,46 @@
 		font-size: 15px;
 		font-weight: 600;
 		color: var(--c-text);
+	}
+
+	.server-indicator {
+		display: flex;
+		align-items: center;
+		margin-left: 4px;
+	}
+
+	.server-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		transition: all 0.3s;
+	}
+
+	.server-indicator.running .server-dot {
+		background: #22c55e;
+		box-shadow: 0 0 6px #22c55e;
+	}
+
+	.server-indicator.stopped .server-dot {
+		background: #ef4444;
+		box-shadow: 0 0 6px #ef4444;
+	}
+
+	.server-indicator.loading .server-dot {
+		background: #f59e0b;
+		box-shadow: 0 0 6px #f59e0b;
+		animation: pulse 0.8s ease-in-out infinite;
+	}
+
+	.server-indicator.error .server-dot {
+		background: #ef4444;
+		box-shadow: 0 0 6px #ef4444;
+		animation: pulse 0.4s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.4; }
 	}
 
 	.app-body {
