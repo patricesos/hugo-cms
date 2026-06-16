@@ -44,6 +44,7 @@
 	let loading = $state(false);
 	let fmOpen = $state(true);
 	let showCreateDialog = $state(false);
+	let createFileSection = $state('');
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
@@ -427,7 +428,8 @@
 				{currentSlug}
 				onRefresh={loadTree}
 				onLoadFile={loadFile}
-				onCreateFile={() => showCreateDialog = true}
+				onCreateFile={() => { createFileSection = ''; showCreateDialog = true; }}
+	onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
 				onDeleteFile={handleDelete}
 				onRenameFile={handleRename}
 				onDuplicateFile={handleDuplicate}
@@ -550,6 +552,7 @@
 	show={showCreateDialog}
 	{directories}
 	{archetypes}
+	presetSection={createFileSection}
 	onClose={() => showCreateDialog = false}
 	onCreate={handleCreate}
 />

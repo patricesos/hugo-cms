@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
-	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Copy, Check, X } from '@lucide/svelte';
+	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Copy, Check, X, Plus } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -20,6 +20,7 @@
 		onDeleteFile,
 		onRenameFile,
 		onDuplicateFile,
+		onCreateFileInFolder,
 	}: {
 		node: TreeNodeData;
 		depth: number;
@@ -28,6 +29,7 @@
 		onDeleteFile?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
+		onCreateFileInFolder?: (slug: string) => void;
 	} = $props();
 
 	let open = $state(false);
@@ -40,7 +42,7 @@
 		open = !open;
 	}
 
-	const indent = $derived(depth * 16);
+	const indent = $derived(depth * 24);
 	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
 	const fileName = $derived(node.name.replace(/\.md$/, ''));
 
@@ -109,6 +111,7 @@
 
 <div class="tree-node" style="padding-left: {indent}px">
 	{#if node.type === 'directory'}
+	<div class="dir-row">
 		<button
 			class="tree-item dir"
 			class:drag-over={dragOver}
@@ -128,10 +131,16 @@
 			<span class="icon"><Folder size={15} /></span>
 			<span class="name">{node.name}</span>
 		</button>
+		{#if onCreateFileInFolder}
+			<button class="create-in-folder" onclick={() => onCreateFileInFolder(node.slug)} title="Nouveau fichier dans {node.name}">
+				<Plus size={13} />
+			</button>
+		{/if}
+	</div>
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} />
 				{/each}
 			</div>
 		{/if}
@@ -184,6 +193,12 @@
 	.tree-node {
 		display: flex;
 		flex-direction: column;
+	}
+
+	.dir-row {
+		display: flex;
+		align-items: center;
+		gap: 2px;
 	}
 
 	.tree-item {
@@ -254,6 +269,33 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.create-in-folder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		color: var(--c-text-muted);
+		opacity: 0;
+		transition: all 0.12s;
+		flex-shrink: 0;
+		padding: 0;
+		margin-left: auto;
+	}
+
+	.tree-node:hover .create-in-folder {
+		opacity: 1;
+	}
+
+	.create-in-folder:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-primary);
 	}
 
 	.badge-draft {

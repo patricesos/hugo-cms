@@ -19,12 +19,14 @@
 		show = false,
 		directories = [] as { slug: string; name: string }[],
 		archetypes = [] as Archetype[],
+		presetSection = '',
 		onClose,
 		onCreate,
 	}: {
 		show: boolean;
 		directories: { slug: string; name: string }[];
 		archetypes?: Archetype[];
+		presetSection?: string;
 		onClose: () => void;
 		onCreate: (title: string, section: string, archetype?: string) => void;
 	} = $props();
@@ -35,8 +37,12 @@
 	let inputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
-		if (directories.length > 0 && !directories.find(d => d.slug === section)) {
-			section = directories[0].slug;
+		if (show) {
+			if (presetSection && directories.find(d => d.slug === presetSection)) {
+				section = presetSection;
+			} else if (directories.length > 0 && !directories.find(d => d.slug === section)) {
+				section = directories[0].slug;
+			}
 		}
 	});
 

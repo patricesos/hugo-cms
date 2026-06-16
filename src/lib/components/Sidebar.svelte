@@ -17,6 +17,7 @@
 		onLoadFile,
 		onRefresh,
 		onCreateFile,
+		onCreateFileInFolder,
 		onDeleteFile,
 		onSearch,
 		onToggle,
@@ -29,6 +30,7 @@
 		onLoadFile: (slug: string) => void;
 		onRefresh: () => void;
 		onCreateFile?: () => void;
+		onCreateFileInFolder?: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
 		onSearch?: () => void;
 		onToggle?: () => void;
@@ -73,7 +75,7 @@
 
 	<nav class="file-tree">
 		{#each tree as node}
-			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} />
+			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} />
 		{/each}
 	</nav>
 </aside>
