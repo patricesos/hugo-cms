@@ -23,7 +23,7 @@ export async function listContent(dir: string = ''): Promise<ContentMeta[]> {
 	const results: ContentMeta[] = [];
 
 	for (const entry of entries) {
-		if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
+		if (entry.name.startsWith('.')) continue;
 
 		const fullPath = join(target, entry.name);
 		const slug = relative(BASE, fullPath).replace(/\\/g, '/');
@@ -83,7 +83,7 @@ export async function listContentTree(dir: string = ''): Promise<TreeNode[]> {
 	const results: TreeNode[] = [];
 
 	for (const entry of entries) {
-		if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
+		if (entry.name.startsWith('.')) continue;
 		const fullPath = join(target, entry.name);
 		const slug = relative(BASE, fullPath).replace(/\\/g, '/');
 

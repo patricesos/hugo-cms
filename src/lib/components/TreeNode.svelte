@@ -71,7 +71,7 @@
 	function commitEdit() {
 		if (!onRenameFile || !editValue.trim()) return;
 		const parentDir = node.slug.includes('/') ? node.slug.substring(0, node.slug.lastIndexOf('/') + 1) : '';
-		const newName = editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+|[-_]+$/g, '') || editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '');
+		const newName = editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '');
 		const newSlug = parentDir + newName;
 		if (newSlug !== node.slug && newName) {
 			onRenameFile(node.slug, newSlug);
