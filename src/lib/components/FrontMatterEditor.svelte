@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { X, Plus, AlertTriangle, Send, FileEdit } from '@lucide/svelte';
+	import { X, Plus, AlertTriangle, Send, FileEdit, Settings2 } from '@lucide/svelte';
+	import { slide } from 'svelte/transition';
 
 	interface FrontMatter {
 		title?: string;
@@ -17,11 +18,18 @@
 		onChange?: (fm: FrontMatter) => void;
 	} = $props();
 
+	const BUILT_IN_KEYS = new Set(['title', 'date', 'draft', 'description', 'tags', 'categories', 'slug']);
+
 	let local = $state<FrontMatter>({});
+	let showCustomFields = $state(false);
 
 	$effect(() => {
 		local = { ...frontmatter };
 	});
+
+	let customEntries = $derived(
+		Object.entries(local).filter(([k]) => !BUILT_IN_KEYS.has(k))
+	);
 
 	function update(key: string, value: unknown) {
 		local = { ...local, [key]: value };
@@ -43,6 +51,70 @@
 		const tags = [...(local.tags || [])];
 		tags.splice(i, 1);
 		update('tags', tags);
+	}
+
+	function addCustomField() {
+		const base = 'custom';
+		let key = base;
+		let n = 1;
+		while (key in local) { key = `${base}_${n++}`; }
+		local = { ...local, [key]: '' };
+		onChange?.(local);
+		showCustomFields = true;
+	}
+
+	function updateCustomKey(oldKey: string, newKey: string) {
+		if (!newKey || oldKey === newKey) return;
+		const val = local[oldKey];
+		const { [oldKey]: _, ...rest } = local;
+		local = { ...rest, [newKey]: val };
+		onChange?.(local);
+	}
+
+	function removeCustomField(key: string) {
+		const { [key]: _, ...rest } = local;
+		local = rest;
+		onChange?.(local);
+	}
+
+	type FieldType = 'string' | 'bool' | 'list' | 'color';
+
+	function getFieldType(val: unknown): FieldType {
+		if (typeof val === 'boolean') return 'bool';
+		if (Array.isArray(val)) return 'list';
+		if (typeof val === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(val)) return 'color';
+		return 'string';
+	}
+
+	function setFieldType(key: string, from: FieldType, to: FieldType) {
+		const val = local[key];
+		if (to === 'bool') {
+			if (from === 'string') update(key, val === 'true' || val === '1');
+			else if (from === 'list') update(key, Array.isArray(val) && val.length > 0);
+		} else if (to === 'list') {
+			if (from === 'string') update(key, typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : []);
+			else if (from === 'bool') update(key, val ? ['true'] : []);
+		} else if (to === 'color') {
+			if (from === 'string') update(key, typeof val === 'string' && /^#?[0-9a-fA-F]{3,8}$/.test(val) ? (val.startsWith('#') ? val : `#${val}`) : '#000000');
+			else update(key, '#000000');
+		} else {
+			if (from === 'bool') update(key, val ? 'true' : 'false');
+			else if (from === 'list') update(key, Array.isArray(val) ? val.join(', ') : '');
+			else if (from === 'color') update(key, typeof val === 'string' ? val : '#000000');
+		}
+	}
+
+	function updateCustomValue(key: string, val: string, type: FieldType) {
+		if (type === 'bool') return;
+		if (type === 'list') {
+			update(key, val.split(',').map(s => s.trim()).filter(Boolean));
+		} else {
+			update(key, val);
+		}
+	}
+
+	function formatListForDisplay(val: unknown): string {
+		return Array.isArray(val) ? val.join(', ') : '';
 	}
 </script>
 
@@ -109,6 +181,91 @@
 	<div class="field">
 		<label for="fm-cats">Catégories</label>
 		<input id="fm-cats" type="text" value={(local.categories || []).join(', ')} oninput={(e) => update('categories', (e.target as HTMLInputElement).value.split(',').map(s => s.trim()).filter(Boolean))} placeholder="cat1, cat2, cat3" />
+	</div>
+
+	<div class="custom-section">
+		<button class="section-toggle" onclick={() => showCustomFields = !showCustomFields}>
+			<Settings2 size={13} />
+			<span>Champs personnalisés</span>
+			<span class="badge">{customEntries.length}</span>
+		</button>
+
+		{#if showCustomFields}
+			<div class="custom-fields" transition:slide>
+				{#each customEntries as [key, val]}
+					{@const type = getFieldType(val)}
+					<div class="custom-row">
+						<input
+							type="text"
+							value={key}
+							oninput={(e) => updateCustomKey(key, (e.target as HTMLInputElement).value)}
+							class="key-input"
+							placeholder="clé"
+						/>
+						<select
+							value={type}
+							onchange={(e) => setFieldType(key, type, (e.target as HTMLSelectElement).value as FieldType)}
+							class="type-select"
+						>
+							<option value="string">txt</option>
+							<option value="bool">bool</option>
+							<option value="list">liste</option>
+							<option value="color">coul</option>
+						</select>
+						{#if type === 'bool'}
+							<button
+								class="bool-toggle"
+								class:active={val === true}
+								onclick={() => update(key, !val)}
+							>
+								{val === true ? 'true' : 'false'}
+							</button>
+						{:else if type === 'list'}
+							<input
+								type="text"
+								value={formatListForDisplay(val)}
+								oninput={(e) => updateCustomValue(key, (e.target as HTMLInputElement).value, type)}
+								class="val-input"
+								placeholder="val1, val2, val3"
+							/>
+						{:else if type === 'color'}
+							<div class="color-row">
+								<input
+									type="color"
+									value={typeof val === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(val) ? val : '#000000'}
+									oninput={(e) => update(key, (e.target as HTMLInputElement).value)}
+									class="color-picker"
+								/>
+								<input
+									type="text"
+									value={typeof val === 'string' ? val : '#000000'}
+									oninput={(e) => {
+										const v = (e.target as HTMLInputElement).value;
+										if (/^#[0-9a-fA-F]{0,8}$/.test(v)) update(key, v);
+									}}
+									class="color-input"
+									placeholder="#000000"
+								/>
+							</div>
+						{:else}
+							<input
+								type="text"
+								value={typeof val === 'string' ? val : JSON.stringify(val)}
+								oninput={(e) => updateCustomValue(key, (e.target as HTMLInputElement).value, type)}
+								class="val-input"
+								placeholder="valeur"
+							/>
+						{/if}
+						<button class="custom-remove" onclick={() => removeCustomField(key)}>
+							<X size={14} />
+						</button>
+					</div>
+				{/each}
+				<button class="add-btn" onclick={addCustomField}>
+					<Plus size={13} /> Ajouter un champ
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -290,5 +447,182 @@
 	.add-btn:hover {
 		background: var(--c-primary-bg);
 		border-color: var(--c-primary);
+	}
+
+	.section-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		cursor: pointer;
+		font-size: 12px;
+		font-family: inherit;
+		color: var(--c-text-secondary);
+		transition: all 0.12s;
+		width: 100%;
+	}
+
+	.section-toggle:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+	}
+
+	.badge {
+		font-size: 10px;
+		font-weight: 600;
+		padding: 1px 5px;
+		border-radius: 3px;
+		background: var(--c-primary-light);
+		color: var(--c-primary);
+		margin-left: auto;
+	}
+
+	.custom-section {
+		margin-top: 4px;
+	}
+
+	.custom-fields {
+		margin-top: 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.custom-row {
+		display: flex;
+		gap: 4px;
+	}
+
+	.custom-row input {
+		font-family: var(--font-mono);
+		font-size: 12px;
+		padding: 5px 6px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text);
+		outline: none;
+		transition: border-color 0.15s;
+	}
+
+	.custom-row input:focus {
+		border-color: var(--c-primary);
+	}
+
+	.key-input {
+		width: 100px;
+		flex-shrink: 0;
+	}
+
+	.type-select {
+		width: 60px;
+		flex-shrink: 0;
+		font-size: 11px;
+		padding: 5px 2px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text-secondary);
+		font-family: var(--font-mono);
+		cursor: pointer;
+		outline: none;
+	}
+
+	.type-select:focus {
+		border-color: var(--c-primary);
+	}
+
+	.bool-toggle {
+		flex: 1;
+		min-width: 0;
+		padding: 5px 6px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text-muted);
+		font-family: var(--font-mono);
+		font-size: 12px;
+		cursor: pointer;
+		text-align: center;
+		transition: all 0.12s;
+	}
+
+	.bool-toggle.active {
+		background: var(--c-primary-bg);
+		color: var(--c-primary);
+		border-color: var(--c-primary-light);
+	}
+
+	.color-row {
+		flex: 1;
+		display: flex;
+		gap: 4px;
+		min-width: 0;
+	}
+
+	.color-picker {
+		width: 30px;
+		height: 26px;
+		padding: 1px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+
+	.color-picker::-webkit-color-swatch-wrapper {
+		padding: 0;
+	}
+
+	.color-picker::-webkit-color-swatch {
+		border: none;
+		border-radius: 2px;
+	}
+
+	.color-input {
+		flex: 1;
+		font-family: var(--font-mono);
+		font-size: 12px;
+		padding: 5px 6px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text);
+		outline: none;
+		min-width: 0;
+		transition: border-color 0.15s;
+	}
+
+	.color-input:focus {
+		border-color: var(--c-primary);
+	}
+
+	.val-input {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.custom-remove {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		padding: 0;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		color: var(--c-danger);
+		transition: all 0.12s;
+		flex-shrink: 0;
+	}
+
+	.custom-remove:hover {
+		background: #fef2f2;
 	}
 </style>

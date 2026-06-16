@@ -15,9 +15,11 @@
 ## Sprint 6
 - [ ] Git intégré (commit/push depuis le CMS)
 - [x] Aperçu Hugo (ouvrir le site dans un onglet)
+- [ ] Création d'articles via archétypes (sélection d'archetype dans le dialogue Nouveau fichier)
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
 - [x] Détection modification externe (mtime + polling + bannière conflit)
 - [ ] Sélecteur de thèmes (Gruvbox, Catppuccin, Monokai…)
 - [x] Sitemap visuel
+- [ ] Champs personnalisés dans le frontmatter (clé/valeur)
