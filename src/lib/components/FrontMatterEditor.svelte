@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { X, Plus, AlertTriangle, Send, FileEdit, Settings2 } from '@lucide/svelte';
+	import { X, Plus, AlertTriangle, Send, FileEdit, Settings2, Code, Save } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
+	import yaml from 'js-yaml';
 
 	interface FrontMatter {
 		title?: string;
@@ -22,6 +23,8 @@
 
 	let local = $state<FrontMatter>({});
 	let showCustomFields = $state(false);
+	let rawMode = $state(false);
+	let rawYaml = $state('');
 
 	$effect(() => {
 		local = { ...frontmatter };
@@ -116,12 +119,42 @@
 	function formatListForDisplay(val: unknown): string {
 		return Array.isArray(val) ? val.join(', ') : '';
 	}
+
+	function enterRawMode() {
+		rawYaml = yaml.dump(local, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim();
+		rawMode = true;
+	}
+
+	function applyRawMode() {
+		try {
+			const parsed = yaml.load(rawYaml);
+			if (parsed && typeof parsed === 'object') {
+				local = parsed as FrontMatter;
+				onChange?.(local);
+				rawMode = false;
+			}
+		} catch {
+			//
+		}
+	}
+
+	function cancelRawMode() {
+		rawMode = false;
+	}
 </script>
 
 <div class="fm-panel">
 	<div class="fm-header">
 		<h3 class="fm-title">Front Matter</h3>
 		<div class="fm-header-right">
+			<button
+				class="raw-toggle"
+				class:active={rawMode}
+				onclick={rawMode ? cancelRawMode : enterRawMode}
+				title={rawMode ? 'Annuler le mode brut' : 'Mode brut YAML'}
+			>
+				<Code size={13} />
+			</button>
 			<button
 				class="draft-toggle"
 				class:draft={local.draft}
@@ -142,9 +175,22 @@
 		</div>
 	</div>
 
-	<div class="field">
-		<label for="fm-title">Titre</label>
-		<input id="fm-title" type="text" value={local.title || ''} oninput={(e) => update('title', (e.target as HTMLInputElement).value)} placeholder="Titre de la page" />
+	{#if rawMode}
+		<div class="raw-editor">
+			<textarea
+				class="raw-textarea"
+				bind:value={rawYaml}
+				spellcheck="false"
+			></textarea>
+			<div class="raw-actions">
+				<button class="raw-btn" onclick={cancelRawMode}>Annuler</button>
+				<button class="raw-btn primary" onclick={applyRawMode}><Save size={13} /> Appliquer</button>
+			</div>
+		</div>
+	{:else}
+		<div class="field">
+			<label for="fm-title">Titre</label>
+			<input id="fm-title" type="text" value={local.title || ''} oninput={(e) => update('title', (e.target as HTMLInputElement).value)} placeholder="Titre de la page" />
 	</div>
 
 	<div class="field">
@@ -267,6 +313,7 @@
 			</div>
 		{/if}
 	</div>
+	{/if}
 </div>
 
 <style>
@@ -624,5 +671,94 @@
 
 	.custom-remove:hover {
 		background: #fef2f2;
+	}
+
+	.raw-toggle {
+		width: 28px;
+		height: 28px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.12s;
+		flex-shrink: 0;
+	}
+
+	.raw-toggle:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+	}
+
+	.raw-toggle.active {
+		background: var(--c-primary-bg);
+		color: var(--c-primary);
+		border-color: var(--c-primary-light);
+	}
+
+	.raw-editor {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.raw-textarea {
+		width: 100%;
+		height: 300px;
+		padding: 10px 12px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+		font-family: var(--font-mono);
+		font-size: 12px;
+		line-height: 1.5;
+		resize: vertical;
+		outline: none;
+		tab-size: 2;
+		box-sizing: border-box;
+	}
+
+	.raw-textarea:focus {
+		border-color: var(--c-primary);
+	}
+
+	.raw-actions {
+		display: flex;
+		gap: 6px;
+		justify-content: flex-end;
+	}
+
+	.raw-btn {
+		padding: 6px 12px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		cursor: pointer;
+		font-size: 12px;
+		font-family: inherit;
+		color: var(--c-text-secondary);
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		transition: all 0.12s;
+	}
+
+	.raw-btn:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+	}
+
+	.raw-btn.primary {
+		background: var(--c-primary);
+		color: #fff;
+		border-color: var(--c-primary);
+	}
+
+	.raw-btn.primary:hover {
+		background: var(--c-primary-hover);
 	}
 </style>

@@ -22,6 +22,7 @@
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/svelte": "^5.3.1",
 		"@testing-library/user-event": "^14.6.1",
+		"@types/js-yaml": "^4.0.9",
 		"@types/node": "^25.9.3",
 		"happy-dom": "^20.10.3",
 		"jsdom": "^29.1.1",
@@ -43,6 +44,7 @@
 		"@tiptap/starter-kit": "^3.26.1",
 		"@tiptap/suggestion": "^3.26.1",
 		"gray-matter": "^4.0.3",
+		"js-yaml": "^4.2.0",
 		"svelte-dnd-action": "^0.9.70",
 		"tippy.js": "^6.3.7",
 		"tiptap-markdown": "^0.9.0"
