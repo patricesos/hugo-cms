@@ -22,7 +22,7 @@
 - [ ] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
 - [x] Réorganiser le dialogue Nouveau fichier : Titre / Archétype / Section
 - [ ] Déplacer « Hugo CMS » du sidebar vers le header (barre du haut)
-- [ ] Logo Hugo SVG en fond quand aucun fichier n'est ouvert
+- [x] Logo Hugo SVG en fond quand aucun fichier n'est ouvert
 - [x] Résoudre conflit Ctrl+K (lien Tiptap vs recherche) — utiliser Ctrl+Shift+F pour la recherche
 - [x] Panneau Front Matter redimensionnable (poignée de glissement)
 - [ ] Boutons Image et Shortcode dans la barre d'outils de l'éditeur

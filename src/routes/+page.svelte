@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
@@ -454,7 +454,7 @@
 		{#if !currentSlug}
 			{#if !showSitemap}
 				<div class="empty-state" transition:fade={{ duration: 200 }}>
-					<FileText size={48} color="var(--c-text-muted)" strokeWidth={1} />
+					<img class="hugo-logo" src="/hugo-logo.svg" alt="Hugo logo" />
 					<h2>Hugo CMS</h2>
 					<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 				</div>
@@ -852,6 +852,12 @@
 		justify-content: center;
 		gap: 12px;
 		color: var(--c-text-muted);
+	}
+
+	.empty-state .hugo-logo {
+		width: 360px;
+		max-width: 80%;
+		opacity: 0.3;
 	}
 
 	.empty-state h2 {
