@@ -145,7 +145,7 @@
 	.file-tree {
 		display: flex;
 		flex-direction: column;
-		padding: 6px 0;
+		padding: 6px 0 6px 16px;
 		flex: 1;
 	}
 </style>
