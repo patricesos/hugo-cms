@@ -26,6 +26,7 @@
 			class="tab"
 			class:active={tab.slug === activeSlug}
 			onclick={() => onSelect(tab.slug)}
+			onmousedown={(e) => { if (e.button === 1) { e.preventDefault(); onClose(tab.slug); } }}
 			title={`${tab.slug}.md`}
 		>
 			<FileText size={12} />

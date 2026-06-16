@@ -46,7 +46,7 @@
 		</div>
 		<div class="header-actions">
 			{#if onSearch}
-				<button class="icon-btn" onclick={onSearch} title="Rechercher (Cmd+K)">
+				<button class="icon-btn" onclick={onSearch} title="Rechercher (Ctrl+P)">
 					<Search size={16} />
 				</button>
 			{/if}

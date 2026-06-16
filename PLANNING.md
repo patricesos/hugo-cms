@@ -23,10 +23,10 @@
 - [ ] Réorganiser le dialogue Nouveau fichier : Titre / Archétype / Section
 - [ ] Déplacer « Hugo CMS » du sidebar vers le header (barre du haut)
 - [ ] Logo Hugo SVG en fond quand aucun fichier n'est ouvert
-- [ ] Résoudre conflit Ctrl+K (lien Tiptap vs recherche) — utiliser Ctrl+P pour la recherche
+- [x] Résoudre conflit Ctrl+K (lien Tiptap vs recherche) — utiliser Ctrl+Shift+F pour la recherche
 - [ ] Panneau Front Matter redimensionnable (poignée de glissement)
 - [ ] Boutons Image et Shortcode dans la barre d'outils de l'éditeur
-- [ ] Clic molette (middle click) pour fermer un onglet
+- [x] Clic molette (middle click) pour fermer un onglet
 - [ ] Icône [+] sur chaque dossier dans la sidebar pour créer un fichier directement
 - [x] Ajouter du padding à gauche dans la sidebar
 

@@ -160,14 +160,15 @@
 		loadArchetypes();
 		startConflictPoll();
 		function handleKeydown(e: KeyboardEvent) {
-			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+			const mod = e.metaKey || e.ctrlKey;
+			if (mod && !e.shiftKey && e.code === 'KeyP') {
 				e.preventDefault();
 				showSearch = true;
 			}
 			if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
 				showShortcuts = true;
 			}
-			if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
+			if (mod && e.shiftKey && e.code === 'KeyP') {
 				e.preventDefault();
 				showPreview = !showPreview;
 			}

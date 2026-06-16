@@ -11,7 +11,7 @@
 	} = $props();
 
 	const shortcuts = [
-		{ keys: ['⌘K', 'Ctrl+K'], label: 'Recherche globale' },
+		{ keys: ['⌘P', 'Ctrl+P'], label: 'Recherche globale' },
 		{ keys: ['/'], label: 'Menu de commandes (dans l\'éditeur)' },
 		{ keys: ['⌘S', 'Ctrl+S'], label: 'Sauvegarder' },
 		{ keys: ['⌘Z', 'Ctrl+Z'], label: 'Annuler' },
@@ -19,6 +19,7 @@
 		{ keys: ['⌘B', 'Ctrl+B'], label: 'Gras' },
 		{ keys: ['⌘I', 'Ctrl+I'], label: 'Italique' },
 		{ keys: ['⌘K', 'Ctrl+K'], label: 'Insérer un lien' },
+		{ keys: ['⌘⇧P', 'Ctrl+Shift+P'], label: 'Aperçu Hugo' },
 		{ keys: ['⌘R', 'Ctrl+R'], label: 'Basculer éditeur WYSIWYG / Markdown' },
 		{ keys: ['?'], label: 'Aide (ce panneau)' },
 		{ keys: ['Échap'], label: 'Fermer les dialogues / popups' },
