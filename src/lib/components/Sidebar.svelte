@@ -17,6 +17,7 @@
 		archetypeTree = [] as TreeNodeData[],
 		currentSlug = '',
 		sidebarView = 'content',
+		expandedSlugs = new Set<string>(),
 		onLoadFile,
 		onCreateFileInFolder,
 		onCreateFolderInFolder,
@@ -27,12 +28,14 @@
 		onSelectAsset,
 		onSelectArchetype,
 		onViewChange,
+		onToggleFolder,
 	}: {
 		tree: TreeNodeData[];
 		assetTree: TreeNodeData[];
 		archetypeTree: TreeNodeData[];
 		currentSlug: string | null;
 		sidebarView?: 'content' | 'static' | 'archetypes';
+		expandedSlugs?: Set<string>;
 		onLoadFile: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
 		onCreateFolderInFolder?: (slug: string) => void;
@@ -43,6 +46,7 @@
 		onSelectAsset?: (path: string) => void;
 		onSelectArchetype?: (slug: string) => void;
 		onViewChange?: (view: 'content' | 'static' | 'archetypes') => void;
+		onToggleFolder?: (slug: string) => void;
 	} = $props();
 
 	function setView(view: 'content' | 'static' | 'archetypes') {
@@ -54,15 +58,15 @@
 	<nav class="file-tree">
 		{#if sidebarView === 'content'}
 			{#each tree as node}
-				<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
+				<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 			{/each}
 		{:else if sidebarView === 'static'}
 			{#each assetTree as node}
-				<TreeNode {node} depth={0} {currentSlug} onLoadFile={(slug) => onSelectAsset?.(slug)} />
+				<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectAsset?.(slug)} />
 			{/each}
 		{:else}
 			{#each archetypeTree as node}
-				<TreeNode {node} depth={0} currentSlug="" onLoadFile={(slug) => onSelectArchetype?.(slug)} />
+				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectArchetype?.(slug)} />
 			{/each}
 		{/if}
 	</nav>

@@ -16,6 +16,7 @@
 		node,
 		depth = 0,
 		currentSlug = '',
+		expandedSlugs = new Set<string>(),
 		onLoadFile,
 		onDeleteFile,
 		onDeleteFolder,
@@ -23,10 +24,12 @@
 		onDuplicateFile,
 		onCreateFileInFolder,
 		onCreateFolderInFolder,
+		onToggleFolder,
 	}: {
 		node: TreeNodeData;
 		depth: number;
 		currentSlug: string | null;
+		expandedSlugs?: Set<string>;
 		onLoadFile: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
 		onDeleteFolder?: (slug: string) => void;
@@ -34,16 +37,18 @@
 		onDuplicateFile?: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
 		onCreateFolderInFolder?: (slug: string) => void;
+		onToggleFolder?: (slug: string) => void;
 	} = $props();
 
-	let open = $state(false);
 	let editing = $state(false);
 	let editValue = $state('');
 	let inputEl = $state<HTMLInputElement | null>(null);
 	let dragOver = $state(false);
 
+	let open = $derived(node.type === 'directory' ? expandedSlugs.has(node.slug) : false);
+
 	function toggle() {
-		open = !open;
+		onToggleFolder?.(node.slug);
 	}
 
 	const indent = $derived(depth * 24);
@@ -154,7 +159,7 @@
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 				{/each}
 			</div>
 		{/if}

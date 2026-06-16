@@ -3,7 +3,7 @@
 ## Sprint 6
 
 - [ ] Git intégré (commit/push depuis le CMS)
-- [ ] Persistance de l'état éditeur après refresh (onglets, dossiers ouverts…)
+- [x] Persistance de l'état éditeur après refresh (onglets, dossiers ouverts…)
 - [ ] Nouvelle vue Config : éditer tous les fichiers du dossier config/ (hugo.toml, params, menus…)
 - [ ] Sidebar : position des icônes de vue (en bas) alignée avec le nombre total d'icônes à gauche (taille totale)
 - [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)

@@ -67,6 +67,84 @@
 	let archetypes = $state<{ name: string; label: string }[]>([]);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
+	let expandedSlugs = $state<Set<string>>(new Set());
+	let hydrated = $state(false);
+
+	const STORAGE_KEY = 'hugo-cms-state';
+
+	function saveAppState() {
+		if (!hydrated) return;
+		const state = {
+			tabs: tabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, isImage: t.isImage })),
+			currentSlug,
+			sidebarOpen,
+			sidebarView,
+			sidebarWidth,
+			fmOpen,
+			fmWidth,
+			expandedSlugs: [...expandedSlugs],
+		};
+		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+	}
+
+	function restoreAppState() {
+		try {
+			const raw = localStorage.getItem(STORAGE_KEY);
+			if (!raw) { hydrated = true; return; }
+			const state = JSON.parse(raw);
+			sidebarOpen = state.sidebarOpen ?? true;
+			sidebarView = state.sidebarView ?? 'content';
+			sidebarWidth = state.sidebarWidth ?? 260;
+			fmOpen = state.fmOpen ?? true;
+			fmWidth = state.fmWidth ?? 280;
+			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
+			if (state.tabs && state.currentSlug) {
+				const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; isImage?: boolean }) => ({
+					slug: t.slug,
+					title: t.title,
+					content: '',
+					frontmatter: {},
+					mtimeMs: 0,
+					frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml',
+					isImage: t.isImage ?? false,
+				}));
+				tabs = restored;
+				currentSlug = state.currentSlug;
+				for (const t of restored) {
+					if (t.isImage) continue;
+					fetch(`/api/content/${t.slug}`).then(r => r.json()).then(data => {
+						t.content = data.body || '';
+						t.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
+						t.mtimeMs = data.mtimeMs ?? 0;
+						if (t.slug === currentSlug) {
+							editorContent = t.content;
+							currentFrontmatter = { ...t.frontmatter };
+							currentFmFormat = t.frontmatterLanguage ?? 'yaml';
+							editorSetContent?.(t.content);
+						}
+					}).catch(() => {});
+				}
+				const active = restored.find(t => t.slug === state.currentSlug);
+				if (active && !active.isImage) {
+					switchToTab(state.currentSlug);
+				}
+			}
+			hydrated = true;
+		} catch {
+			hydrated = true;
+		}
+	}
+	$effect(() => {
+		tabs;
+		currentSlug;
+		sidebarOpen;
+		sidebarView;
+		sidebarWidth;
+		fmOpen;
+		fmWidth;
+		expandedSlugs;
+		saveAppState();
+	});
 
 	let currentTab = $derived(tabs.find(t => t.slug === currentSlug));
 
@@ -87,7 +165,7 @@
 	async function checkExternalChanges() {
 		if (!currentSlug || saveState === 'unsaved') return;
 		const tab = tabs.find(t => t.slug === currentSlug);
-		if (!tab) return;
+		if (!tab || tab.isImage) return;
 		try {
 			const res = await fetch(`/api/content/${currentSlug}`);
 			if (!res.ok) return;
@@ -124,7 +202,7 @@
 			if (currentSlug === tab.slug) {
 				editorContent = tab.content;
 				currentFrontmatter = { ...tab.frontmatter };
-				currentFmFormat = tab.frontmatterLanguage;
+				currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
 				editorSetContent?.(tab.content);
 			}
 		} catch {
@@ -194,9 +272,9 @@
 	}
 
 	onMount(() => {
-		loadTree();
-		loadAssetTree();
-		loadArchetypes();
+		Promise.all([loadTree(), loadAssetTree(), loadArchetypes()]).then(() => {
+			restoreAppState();
+		});
 		startConflictPoll();
 		function handleKeydown(e: KeyboardEvent) {
 			const mod = e.metaKey || e.ctrlKey;
@@ -535,6 +613,7 @@
 				{archetypeTree}
 				{currentSlug}
 				{sidebarView}
+				{expandedSlugs}
 				onLoadFile={loadFile}
 				onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
 				onCreateFolderInFolder={(slug) => { createFolderParent = slug; showCreateFolderDialog = true; }}
@@ -542,6 +621,11 @@
 				onDeleteFolder={handleDeleteFolder}
 				onRenameFile={handleRename}
 				onDuplicateFile={handleDuplicate}
+				onToggleFolder={(slug) => {
+					const next = new Set(expandedSlugs);
+					if (next.has(slug)) next.delete(slug); else next.add(slug);
+					expandedSlugs = next;
+				}}
 				onSelectAsset={(path) => {
 					const ext = path.split('.').pop()?.toLowerCase();
 					if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
@@ -597,7 +681,9 @@
 						<span class="filename">{currentSlug}</span>
 					</div>
 				</div>
-				<ImageView slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
+				{#key currentSlug}
+					<ImageView slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
+				{/key}
 			</div>
 		{:else}
 			<div class="editor-fixed-wrap">
@@ -961,12 +1047,6 @@
 		background: var(--c-primary-bg);
 		color: var(--c-primary);
 		border-color: var(--c-primary-light);
-	}
-
-	.icon-btn.delete-btn:hover {
-		background: #fef2f2;
-		color: var(--c-danger);
-		border-color: #fecaca;
 	}
 
 	.editor-body {
