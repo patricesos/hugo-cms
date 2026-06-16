@@ -651,7 +651,7 @@
 <div class="app-shell">
 	<header class="app-header">
 		<div class="header-brand">
-			<FileText size={20} color="var(--c-primary)" />
+			<img src="/favicon.svg" alt="Hugo" class="header-logo" />
 			<h2>Hugo CMS</h2>
 			<div class="server-indicator" class:running={hugoStatus === 'running'} class:stopped={hugoStatus === 'stopped'} class:loading={hugoStatus === 'loading'} class:error={hugoStatus === 'error'} title={hugoStatus === 'running' ? 'Serveur actif' : hugoStatus === 'loading' ? 'Démarrage…' : hugoStatus === 'error' ? 'Erreur serveur' : 'Serveur arrêté'}>
 				<span class="server-dot"></span>
@@ -793,8 +793,7 @@
 				{:else if !currentSlug}
 					{#if !showSitemap}
 						<div class="empty-state" transition:fade={{ duration: 200 }}>
-							<img class="hugo-logo" src="/hugo-logo.svg" alt="Hugo logo" />
-			<h2>{clientCfg?.appTitle ?? 'Hugo CMS'}</h2>
+							<img class="hugo-logo" src="/hugo-cms.svg" alt="Hugo CMS" />
 							<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 						</div>
 					{/if}
@@ -970,6 +969,11 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
+	}
+
+	.header-logo {
+		height: 24px;
+		width: auto;
 	}
 
 	.header-brand h2 {
@@ -1307,8 +1311,8 @@
 	}
 
 	.empty-state .hugo-logo {
-		width: 360px;
-		max-width: 80%;
+		width: 520px;
+		max-width: 85%;
 		opacity: 0.3;
 	}
 

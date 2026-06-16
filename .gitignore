@@ -26,3 +26,6 @@ my-hugo/
 
 # Distribution
 /dist/
+
+# Graphics / design files
+/graphics/
