@@ -32,6 +32,7 @@
 	}
 
 	let tree = $state<TreeNode[]>([]);
+	let assetTree = $state<TreeNode[]>([]);
 	let tabs = $state<Tab[]>([]);
 	let currentSlug = $state<string | null>(null);
 	let currentFrontmatter = $state<Record<string, unknown>>({});
@@ -51,6 +52,7 @@
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
+	let sidebarView = $state<'content' | 'static'>('content');
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
@@ -182,6 +184,7 @@
 
 	onMount(() => {
 		loadTree();
+		loadAssetTree();
 		loadArchetypes();
 		startConflictPoll();
 		function handleKeydown(e: KeyboardEvent) {
@@ -216,6 +219,13 @@
 	async function loadTree() {
 		const res = await fetch('/api/content?tree=true');
 		tree = await res.json();
+	}
+
+	async function loadAssetTree() {
+		try {
+			const res = await fetch('/api/assets?tree=true');
+			assetTree = await res.json();
+		} catch {}
 	}
 
 	async function loadArchetypes() {
@@ -450,8 +460,10 @@
 		<div class="sidebar-wrap" style="width: {sidebarWidth}px">
 			<Sidebar
 				tree={tree}
+				{assetTree}
 				{currentSlug}
-				onRefresh={loadTree}
+				{sidebarView}
+				onRefresh={() => { loadTree(); loadAssetTree(); }}
 				onLoadFile={loadFile}
 				onCreateFile={() => { createFileSection = ''; showCreateDialog = true; }}
 				onCreateFolder={() => { createFolderParent = ''; showCreateFolderDialog = true; }}
@@ -464,6 +476,8 @@
 				onSearch={() => showSearch = true}
 				onToggle={() => sidebarOpen = !sidebarOpen}
 				onToggleSitemap={() => showSitemap = !showSitemap}
+				onSelectAsset={(path) => window.open(`/api/assets/${path}`, '_blank')}
+				onViewChange={(v) => sidebarView = v}
 			/>
 		</div>
 		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>

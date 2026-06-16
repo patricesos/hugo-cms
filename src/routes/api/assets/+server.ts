@@ -3,10 +3,14 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { Buffer } from 'node:buffer';
-import { listAssets } from '$lib/server/content';
+import { listAssets, listAssetTree } from '$lib/server/content';
 import { cmsConfig } from '$lib/server/config';
 
-export async function GET() {
+export async function GET({ url }) {
+	if (url.searchParams.has('tree')) {
+		const tree = await listAssetTree();
+		return json(tree);
+	}
 	const assets = await listAssets();
 	return json(assets);
 }

@@ -181,3 +181,36 @@ export async function listAssets(): Promise<string[]> {
 	await walk(staticDir);
 	return images.sort();
 }
+
+export async function listAssetTree(dir: string = ''): Promise<TreeNode[]> {
+	const staticDir = cmsConfig.hugoStaticPath;
+	const target = dir ? join(staticDir, dir) : staticDir;
+	if (!existsSync(target)) return [];
+	const entries = await readdir(target, { withFileTypes: true });
+	const results: TreeNode[] = [];
+
+	for (const entry of entries) {
+		if (entry.name.startsWith('.')) continue;
+		const fullPath = join(target, entry.name);
+		const slug = dir ? `${dir}/${entry.name}` : entry.name;
+
+		if (entry.isDirectory()) {
+			const children = await listAssetTree(slug);
+			results.push({ type: 'directory', name: entry.name, slug, path: slug, children, frontmatter: undefined });
+		} else {
+			results.push({
+				type: 'file',
+				name: entry.name,
+				slug,
+				path: slug,
+				children: [],
+				frontmatter: { ext: entry.name.split('.').pop()?.toLowerCase() || '' },
+			});
+		}
+	}
+
+	return results.sort((a, b) => {
+		if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+		return a.name.localeCompare(b.name);
+	});
+}

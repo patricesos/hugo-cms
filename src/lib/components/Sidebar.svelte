@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose, Map, FolderPlus } from '@lucide/svelte';
+	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose, Map, FolderPlus, Image } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -13,7 +13,9 @@
 
 	let {
 		tree = [] as TreeNodeData[],
+		assetTree = [] as TreeNodeData[],
 		currentSlug = '',
+		sidebarView = 'content',
 		onLoadFile,
 		onRefresh,
 		onCreateFile,
@@ -27,9 +29,13 @@
 		onRenameFile,
 		onDuplicateFile,
 		onToggleSitemap,
+		onSelectAsset,
+		onViewChange,
 	}: {
 		tree: TreeNodeData[];
+		assetTree: TreeNodeData[];
 		currentSlug: string | null;
+		sidebarView?: 'content' | 'static';
 		onLoadFile: (slug: string) => void;
 		onRefresh: () => void;
 		onCreateFile?: () => void;
@@ -43,7 +49,13 @@
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
 		onToggleSitemap?: () => void;
+		onSelectAsset?: (path: string) => void;
+		onViewChange?: (view: 'content' | 'static') => void;
 	} = $props();
+
+	function setView(view: 'content' | 'static') {
+		onViewChange?.(view);
+	}
 </script>
 
 <aside class="sidebar">
@@ -58,12 +70,12 @@
 					<Search size={16} />
 				</button>
 			{/if}
-			{#if onCreateFile}
+			{#if sidebarView === 'content' && onCreateFile}
 				<button class="icon-btn" onclick={onCreateFile} title="Nouveau fichier">
 					<FilePlus size={16} />
 				</button>
 			{/if}
-			{#if onCreateFolder}
+			{#if sidebarView === 'content' && onCreateFolder}
 				<button class="icon-btn" onclick={onCreateFolder} title="Nouveau dossier">
 					<FolderPlus size={16} />
 				</button>
@@ -84,10 +96,27 @@
 		</div>
 	</div>
 
+	<div class="view-tabs">
+		<button class="view-tab" class:active={sidebarView === 'content'} onclick={() => setView('content')}>
+			<FileText size={14} />
+			<span>Content</span>
+		</button>
+		<button class="view-tab" class:active={sidebarView === 'static'} onclick={() => setView('static')}>
+			<Image size={14} />
+			<span>Static</span>
+		</button>
+	</div>
+
 	<nav class="file-tree">
-		{#each tree as node}
-			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
-		{/each}
+		{#if sidebarView === 'content'}
+			{#each tree as node}
+				<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
+			{/each}
+		{:else}
+			{#each assetTree as node}
+				<TreeNode {node} depth={0} currentSlug="" onLoadFile={(slug) => onSelectAsset?.(slug)} />
+			{/each}
+		{/if}
 	</nav>
 </aside>
 
@@ -115,6 +144,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+		flex-shrink: 0;
 	}
 
 	.sidebar-brand {
@@ -142,12 +172,12 @@
 		justify-content: center;
 		width: 30px;
 		height: 30px;
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius-md);
-		background: var(--c-bg);
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
 		cursor: pointer;
-		color: var(--c-text-secondary);
-		transition: all 0.15s;
+		color: var(--c-text-muted);
+		transition: all 0.12s;
 	}
 
 	.icon-btn:hover {
@@ -155,10 +185,48 @@
 		color: var(--c-text);
 	}
 
+	.view-tabs {
+		display: flex;
+		gap: 2px;
+		padding: 6px 12px;
+		border-bottom: 1px solid var(--c-border);
+		flex-shrink: 0;
+	}
+
+	.view-tab {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 5px 10px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		font-size: 12px;
+		font-weight: 500;
+		color: var(--c-text-muted);
+		font-family: inherit;
+		transition: all 0.12s;
+		flex: 1;
+		justify-content: center;
+	}
+
+	.view-tab:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
+	}
+
+	.view-tab.active {
+		background: var(--c-primary-light);
+		color: var(--c-primary);
+	}
+
 	.file-tree {
 		display: flex;
 		flex-direction: column;
 		padding: 6px 0 6px 16px;
 		flex: 1;
+		overflow-y: auto;
+		min-height: 0;
 	}
 </style>

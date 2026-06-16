@@ -18,7 +18,7 @@
 - [x] Création d'articles via archétypes (sélection d'archetype dans le dialogue Nouveau fichier)
 - [ ] Afficher / gérer les archétypes dans l'app (visualisation + édition)
 - [x] Création de dossier [+] depuis la sidebar
-- [ ] Afficher le dossier static (images, fichiers) dans la sidebar
+- [x] Afficher le dossier static (images, fichiers) dans la sidebar
 - [ ] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
 - [x] Réorganiser le dialogue Nouveau fichier : Titre / Archétype / Section
 - [ ] Déplacer « Hugo CMS » du sidebar vers le header (barre du haut)
@@ -29,6 +29,8 @@
 - [x] Clic molette (middle click) pour fermer un onglet
 - [x] Icône [+] sur chaque dossier dans la sidebar pour créer un fichier directement
 - [x] Ajouter du padding à gauche dans la sidebar
+- [x] Sélecteur de vue sidebar : Content / Static (onglets)
+- [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
 - [ ] Bubble menu de l'éditeur visible en bas de page — ne s'afficher que quand du texte est sélectionné
 
 ## Backlog
