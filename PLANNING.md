@@ -28,7 +28,7 @@
 - [ ] Boutons Image et Shortcode dans la barre d'outils de l'éditeur
 - [ ] Clic molette (middle click) pour fermer un onglet
 - [ ] Icône [+] sur chaque dossier dans la sidebar pour créer un fichier directement
-- [ ] Ajouter du padding à gauche dans la sidebar
+- [x] Ajouter du padding à gauche dans la sidebar
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
