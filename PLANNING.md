@@ -9,12 +9,12 @@
 - [x] Bascule éditeur WYSIWYG / Markdown brut
 
 ## Sprint 5
-- [ ] Git intégré (commit/push depuis le CMS)
-- [ ] Aperçu Hugo (ouvrir le site dans un onglet)
+- [x] Onglets multiples (plusieurs fichiers ouverts)
+- [ ] Dupliquer un fichier
 
 ## Sprint 6
-- [ ] Onglets multiples (plusieurs fichiers ouverts)
-- [ ] Dupliquer un fichier
+- [ ] Git intégré (commit/push depuis le CMS)
+- [ ] Aperçu Hugo (ouvrir le site dans un onglet)
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)

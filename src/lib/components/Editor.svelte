@@ -14,14 +14,16 @@
 		content?: string;
 		rawMode?: boolean;
 		saveRequest?: number;
+		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
 		onStats?: (stats: { words: number; chars: number }) => void;
 		onSaveState?: (state: 'saved' | 'unsaved' | 'saving') => void;
+		onSetContent?: (fn: (content: string) => void) => void;
 	}
 
-	let { content = '', rawMode = $bindable(false), saveRequest = 0, onSave, onStats, onSaveState }: EditorProps = $props();
+	let { content = '', rawMode = $bindable(false), saveRequest = 0, getContent, onSave, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
-	let editor = $state<TiptapEditor | null>(null);
+	let editor: TiptapEditor | null = null;
 	let editorEl = $state<HTMLDivElement | null>(null);
 	let bubbleEl: HTMLDivElement;
 	let textareaEl = $state<HTMLTextAreaElement | null>(null);
@@ -97,28 +99,40 @@
 		}
 		window.addEventListener('slash:image', onSlashImage);
 
-		editor = new TiptapEditor({
-			element: editorEl,
-			extensions: [
-				StarterKit.configure({
-					heading: { levels: [1, 2, 3] },
-				}),
-				Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
-				BubbleMenuExtension.configure({ element: bubbleEl }),
-				Markdown.configure({
-					html: true,
-					linkify: true,
-					breaks: true,
-				}),
-				Image,
-				SlashCommands,
-			],
-			content,
-			onUpdate: markUnsaved,
-		});
+		function createEditor(initContent: string) {
+			if (editor) editor.destroy();
+			editor = new TiptapEditor({
+				element: editorEl,
+				extensions: [
+					StarterKit.configure({
+						heading: { levels: [1, 2, 3] },
+					}),
+					Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
+					BubbleMenuExtension.configure({ element: bubbleEl }),
+					Markdown.configure({
+						html: true,
+						linkify: true,
+						breaks: true,
+					}),
+					Image,
+					SlashCommands,
+				],
+				content: initContent,
+				onUpdate: markUnsaved,
+			});
+			updateStats();
+		}
 
-		updateStats();
+		createEditor(content);
 		onSaveState?.('saved');
+		getContent?.(() => rawMode ? rawContent : getMarkdown());
+		onSetContent?.((c: string) => {
+			if (rawMode) {
+				rawContent = c;
+			} else {
+				createEditor(c);
+			}
+		});
 
 		return () => {
 			window.removeEventListener('slash:image', onSlashImage);
@@ -126,17 +140,6 @@
 			if (saveTimeout) clearTimeout(saveTimeout);
 			if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		};
-	});
-
-	$effect(() => {
-		if (!editor || !content) return;
-		if (getMarkdown() === content) return;
-		if (rawMode) {
-			rawContent = content;
-		} else {
-			editor.commands.setContent(content);
-			updateStats();
-		}
 	});
 
 	let prevRawMode = $state(rawMode);

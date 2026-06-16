@@ -3,6 +3,7 @@
 	import { fade, slide } from 'svelte/transition';
 	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2 } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
+	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
@@ -19,10 +20,20 @@
 		frontmatter?: Record<string, unknown>;
 	}
 
+	interface Tab {
+		slug: string;
+		title: string;
+		content: string;
+		frontmatter: Record<string, unknown>;
+	}
+
 	let tree = $state<TreeNode[]>([]);
+	let tabs = $state<Tab[]>([]);
 	let currentSlug = $state<string | null>(null);
 	let currentFrontmatter = $state<Record<string, unknown>>({});
 	let editorContent = $state('');
+	let editorGetContent = $state<(() => string) | null>(null);
+	let editorSetContent = $state<((content: string) => void) | null>(null);
 	let wordCount = $state(0);
 	let charCount = $state(0);
 	let saveState = $state<'saved' | 'unsaved' | 'saving'>('saved');
@@ -97,17 +108,48 @@
 	}
 
 	async function loadFile(slug: string) {
+		const existing = tabs.find(t => t.slug === slug);
+		if (existing) {
+			await switchToTab(slug);
+			return;
+		}
 		loading = true;
-		currentSlug = slug;
 		const res = await fetch(`/api/content/${slug}`);
 		const data = await res.json();
-		editorContent = data.body || '';
-		currentFrontmatter = (data.frontmatter as Record<string, unknown>) || {};
+		const tab: Tab = {
+			slug,
+			title: (data.frontmatter?.title as string) || slug.split('/').pop() || '',
+			content: data.body || '',
+			frontmatter: (data.frontmatter as Record<string, unknown>) || {},
+		};
+		tabs = [...tabs, tab];
+		await switchToTab(slug);
 		loading = false;
+	}
+
+	async function switchToTab(slug: string) {
+		if (editorGetContent && currentSlug) {
+			const currentTab = tabs.find(t => t.slug === currentSlug);
+			if (currentTab) {
+				currentTab.content = editorGetContent();
+				currentTab.frontmatter = { ...currentFrontmatter };
+			}
+		}
+		const tab = tabs.find(t => t.slug === slug);
+		if (!tab) return;
+		currentSlug = tab.slug;
+		editorContent = tab.content;
+		currentFrontmatter = { ...tab.frontmatter };
+		editorSetContent?.(tab.content);
 	}
 
 	async function handleSave(markdown: string) {
 		if (!currentSlug) return;
+		const tab = tabs.find(t => t.slug === currentSlug);
+		if (tab) {
+			tab.content = markdown;
+			tab.frontmatter = { ...currentFrontmatter };
+		}
 		await fetch(`/api/content/${currentSlug}`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
@@ -118,7 +160,11 @@
 	function handleFrontmatterChange(fm: Record<string, unknown>) {
 		currentFrontmatter = fm;
 		saveState = 'unsaved';
-		if (currentSlug) updateTreeFrontmatter(currentSlug, fm);
+		if (currentSlug) {
+			const tab = tabs.find(t => t.slug === currentSlug);
+			if (tab) tab.frontmatter = fm;
+			updateTreeFrontmatter(currentSlug, fm);
+		}
 	}
 
 	function updateTreeFrontmatter(slug: string, fm: Record<string, unknown>) {
@@ -155,10 +201,17 @@
 		if (!target) return;
 		if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans _trash/.`)) return;
 		await fetch(`/api/content/${target}`, { method: 'DELETE' });
+		tabs = tabs.filter(t => t.slug !== target);
 		if (slug || currentSlug === target) {
-			currentSlug = null;
-			editorContent = '';
-			currentFrontmatter = {};
+			currentSlug = tabs.length > 0 ? tabs[tabs.length - 1].slug : null;
+			if (currentSlug) {
+				const tab = tabs.find(t => t.slug === currentSlug)!;
+				editorContent = tab.content;
+				currentFrontmatter = { ...tab.frontmatter };
+			} else {
+				editorContent = '';
+				currentFrontmatter = {};
+			}
 		}
 		await loadTree();
 	}
@@ -170,10 +223,30 @@
 			body: JSON.stringify({ newSlug }),
 		});
 		if (!res.ok) return;
+		tabs = tabs.map(t => t.slug === oldSlug ? { ...t, slug: newSlug, title: newSlug.split('/').pop() || newSlug } : t);
 		if (currentSlug === oldSlug) {
 			currentSlug = newSlug;
 		}
 		await loadTree();
+	}
+
+	function handleCloseTab(slug: string) {
+		const idx = tabs.findIndex(t => t.slug === slug);
+		if (idx === -1) return;
+		tabs = tabs.filter(t => t.slug !== slug);
+		if (currentSlug === slug) {
+			const nextTab = tabs[Math.min(idx, tabs.length - 1)];
+			if (nextTab) {
+				currentSlug = nextTab.slug;
+				editorContent = nextTab.content;
+				currentFrontmatter = { ...nextTab.frontmatter };
+				editorSetContent?.(nextTab.content);
+			} else {
+				currentSlug = null;
+				editorContent = '';
+				currentFrontmatter = {};
+			}
+		}
 	}
 </script>
 
@@ -201,73 +274,81 @@
 				<PanelLeftOpen size={18} />
 			</button>
 		{/if}
+		{#if currentSlug || tabs.length > 0}
+			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={loadFile} onClose={handleCloseTab} />
+		{/if}
 		{#if !currentSlug}
 			<div class="empty-state" transition:fade={{ duration: 200 }}>
 				<FileText size={48} color="var(--c-text-muted)" strokeWidth={1} />
 				<h2>Hugo CMS</h2>
 				<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 			</div>
-		{:else if loading}
-			<div class="loading-state" transition:fade={{ duration: 150 }}>
-				<div class="skeleton-block"></div>
-				<div class="skeleton-block short"></div>
-				<div class="skeleton-block"></div>
-			</div>
 		{:else}
-			<div class="editor-header" transition:fade={{ duration: 150 }}>
-				<div class="header-left">
-					<PenLine size={14} color="var(--c-text-muted)" />
-					<span class="filename">{currentSlug}.md</span>
-					<button
-						class="save-btn"
-						class:saved={saveState === 'saved'}
-						class:unsaved={saveState === 'unsaved'}
-						class:saving={saveState === 'saving'}
-						onclick={() => saveRequest++}
-						title={saveState === 'saving' ? 'Sauvegarde…' : saveState === 'unsaved' ? 'Enregistrer' : 'Enregistré'}
-					>
-						{#if saveState === 'saving'}
-							<Loader2 size={13} class="spin" />
-						{:else if saveState === 'unsaved'}
-							<Save size={13} />
-						{:else}
-							<CheckCircle2 size={13} />
-						{/if}
-					</button>
-				</div>
-				<div class="header-actions">
-					<button class="icon-btn delete-btn" onclick={() => handleDelete()} title="Supprimer">
-						<Trash2 size={15} />
-					</button>
-					<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
-						{#if fmOpen}
-							<PanelRightClose size={15} />
-						{:else}
-							<PanelRightOpen size={15} />
-						{/if}
-					</button>
-				</div>
-			</div>
-			<div class="editor-body" class:with-fm={fmOpen}>
-				<div class="editor-area">
-					<Editor
-						content={editorContent}
-						{saveRequest}
-						onSave={handleSave}
-						onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
-						onSaveState={(s) => { saveState = s; }}
-					/>
-				</div>
-				{#if fmOpen}
-					<aside class="fm-sidebar" transition:slide={{ duration: 200, axis: 'x' }}>
-						<FrontMatterEditor
-							frontmatter={currentFrontmatter}
-							onChange={handleFrontmatterChange}
-						/>
-					</aside>
+			<div class="editor-fixed-wrap">
+				{#if loading}
+					<div class="loading-overlay">
+						<div class="skeleton-block"></div>
+						<div class="skeleton-block short"></div>
+						<div class="skeleton-block"></div>
+					</div>
 				{/if}
+				<div class="editor-header">
+					<div class="header-left">
+						<PenLine size={14} color="var(--c-text-muted)" />
+						<span class="filename">{currentSlug}.md</span>
+						<button
+							class="save-btn"
+							class:saved={saveState === 'saved'}
+							class:unsaved={saveState === 'unsaved'}
+							class:saving={saveState === 'saving'}
+							onclick={() => saveRequest++}
+							title={saveState === 'saving' ? 'Sauvegarde…' : saveState === 'unsaved' ? 'Enregistrer' : 'Enregistré'}
+						>
+							{#if saveState === 'saving'}
+								<Loader2 size={13} class="spin" />
+							{:else if saveState === 'unsaved'}
+								<Save size={13} />
+							{:else}
+								<CheckCircle2 size={13} />
+							{/if}
+						</button>
+					</div>
+					<div class="header-actions">
+						<button class="icon-btn delete-btn" onclick={() => handleDelete()} title="Supprimer">
+							<Trash2 size={15} />
+						</button>
+						<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
+							{#if fmOpen}
+								<PanelRightClose size={15} />
+							{:else}
+								<PanelRightOpen size={15} />
+							{/if}
+						</button>
+					</div>
+				</div>
+				<div class="editor-body" class:with-fm={fmOpen}>
+					<div class="editor-area">
+						<Editor
+							content={editorContent}
+							{saveRequest}
+							getContent={(fn) => { editorGetContent = fn; }}
+							onSetContent={(fn) => { editorSetContent = fn; }}
+							onSave={handleSave}
+							onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
+							onSaveState={(s) => { saveState = s; }}
+						/>
+					</div>
+					{#if fmOpen}
+						<aside class="fm-sidebar" transition:slide={{ duration: 200, axis: 'x' }}>
+							<FrontMatterEditor
+								frontmatter={currentFrontmatter}
+								onChange={handleFrontmatterChange}
+							/>
+						</aside>
+					{/if}
+				</div>
+				<StatusBar {wordCount} {charCount} {saveState} onHelp={() => showShortcuts = true} />
 			</div>
-			<StatusBar {wordCount} {charCount} {saveState} onHelp={() => showShortcuts = true} />
 		{/if}
 	</main>
 </div>
@@ -304,6 +385,25 @@
 		flex-direction: column;
 		overflow: hidden;
 		position: relative;
+	}
+
+	.editor-fixed-wrap {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.loading-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 20;
+		background: var(--c-bg);
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 48px;
 	}
 
 	.sidebar-reopen {
@@ -481,14 +581,6 @@
 
 	.empty-state p {
 		font-size: 14px;
-	}
-
-	.loading-state {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding: 48px;
 	}
 
 	.skeleton-block {
