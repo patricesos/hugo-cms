@@ -164,7 +164,7 @@
 
 <div class="fm-panel">
 	<div class="fm-header">
-		<h3 class="fm-title">Front Matter</h3>
+		<h3 class="fm-title"><FileEdit size={14} /> Front Matter</h3>
 		<div class="fm-header-actions">
 			<button
 				class="raw-toggle"
@@ -348,14 +348,21 @@
 	.fm-header-actions {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 6px;
 		margin-top: 6px;
 	}
 
 	.fm-title {
-		font-size: 14px;
-		font-weight: 600;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		font-size: 12px;
+		font-weight: 700;
 		color: var(--c-text);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
 	}
 
 	.draft-toggle {
