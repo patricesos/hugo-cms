@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { X, FileText } from '@lucide/svelte';
+	import { X, FileText, FileImage } from '@lucide/svelte';
 
 	interface Tab {
 		slug: string;
 		title: string;
 		frontmatter: Record<string, unknown>;
+		isImage?: boolean;
 	}
 
 	let {
@@ -27,9 +28,13 @@
 			class:active={tab.slug === activeSlug}
 			onclick={() => onSelect(tab.slug)}
 			onmousedown={(e) => { if (e.button === 1) { e.preventDefault(); onClose(tab.slug); } }}
-			title={`${tab.slug}.md`}
+			title={tab.isImage ? tab.slug : `${tab.slug}.md`}
 		>
-			<FileText size={12} />
+			{#if tab.isImage}
+				<FileImage size={12} />
+			{:else}
+				<FileText size={12} />
+			{/if}
 			<span class="tab-title">{tab.title || tab.slug.split('/').pop()}</span>
 			<span
 				class="tab-close"

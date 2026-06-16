@@ -58,7 +58,7 @@
 			{/each}
 		{:else if sidebarView === 'static'}
 			{#each assetTree as node}
-				<TreeNode {node} depth={0} currentSlug="" onLoadFile={(slug) => onSelectAsset?.(slug)} />
+				<TreeNode {node} depth={0} {currentSlug} onLoadFile={(slug) => onSelectAsset?.(slug)} />
 			{/each}
 		{:else}
 			{#each archetypeTree as node}

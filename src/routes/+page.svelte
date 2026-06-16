@@ -14,6 +14,7 @@
 	import ShortcutsHelp from '$lib/components/ShortcutsHelp.svelte';
 	import HugoPreview from '$lib/components/HugoPreview.svelte';
 	import ArchetypeView from '$lib/components/ArchetypeView.svelte';
+	import ImageView from '$lib/components/ImageView.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -31,6 +32,7 @@
 		frontmatter: Record<string, unknown>;
 		mtimeMs: number;
 		frontmatterLanguage?: 'yaml' | 'toml';
+		isImage?: boolean;
 	}
 
 	let tree = $state<TreeNode[]>([]);
@@ -65,6 +67,8 @@
 	let archetypes = $state<{ name: string; label: string }[]>([]);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
+
+	let currentTab = $derived(tabs.find(t => t.slug === currentSlug));
 
 	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -272,20 +276,24 @@
 	}
 
 	async function switchToTab(slug: string) {
-		if (editorGetContent && currentSlug) {
-			const currentTab = tabs.find(t => t.slug === currentSlug);
-			if (currentTab) {
-				currentTab.content = editorGetContent();
-				currentTab.frontmatter = { ...currentFrontmatter };
-			}
-		}
 		const tab = tabs.find(t => t.slug === slug);
 		if (!tab) return;
-		currentSlug = tab.slug;
-		editorContent = tab.content;
-		currentFrontmatter = { ...tab.frontmatter };
-		currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
-		editorSetContent?.(tab.content);
+		if (!tab.isImage) {
+			if (editorGetContent && currentSlug) {
+				const currentTab = tabs.find(t => t.slug === currentSlug);
+				if (currentTab && !currentTab.isImage) {
+					currentTab.content = editorGetContent();
+					currentTab.frontmatter = { ...currentFrontmatter };
+				}
+			}
+			currentSlug = tab.slug;
+			editorContent = tab.content;
+			currentFrontmatter = { ...tab.frontmatter };
+			currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
+			editorSetContent?.(tab.content);
+		} else {
+			currentSlug = tab.slug;
+		}
 	}
 
 	async function handleSave(markdown: string) {
@@ -457,9 +465,11 @@
 			const nextTab = tabs[Math.min(idx, tabs.length - 1)];
 			if (nextTab) {
 				currentSlug = nextTab.slug;
-				editorContent = nextTab.content;
-				currentFrontmatter = { ...nextTab.frontmatter };
-				editorSetContent?.(nextTab.content);
+				if (!nextTab.isImage) {
+					editorContent = nextTab.content;
+					currentFrontmatter = { ...nextTab.frontmatter };
+					editorSetContent?.(nextTab.content);
+				}
 			} else {
 				currentSlug = null;
 				editorContent = '';
@@ -532,7 +542,26 @@
 				onDeleteFolder={handleDeleteFolder}
 				onRenameFile={handleRename}
 				onDuplicateFile={handleDuplicate}
-				onSelectAsset={(path) => window.open(`/api/assets/${path}`, '_blank')}
+				onSelectAsset={(path) => {
+					const ext = path.split('.').pop()?.toLowerCase();
+					if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
+						const slug = path;
+						const existing = tabs.find(t => t.slug === slug);
+						if (existing) { switchToTab(slug); return; }
+						const tab: Tab = {
+							slug,
+							title: slug.split('/').pop() || slug,
+							content: '',
+							frontmatter: {},
+							mtimeMs: 0,
+							isImage: true,
+						};
+						tabs = [...tabs, tab];
+						switchToTab(slug);
+					} else {
+						window.open(`/api/assets/${path}`, '_blank');
+					}
+				}}
 				onSelectArchetype={(slug) => { currentArchetype = slug; }}
 				onViewChange={(v) => { sidebarView = v; if (v !== 'archetypes') currentArchetype = null; }}
 			/>
@@ -542,7 +571,7 @@
 
 	<main class="editor-panel">
 		{#if currentSlug || tabs.length > 0}
-			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={loadFile} onClose={handleCloseTab} />
+			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={(slug) => { const t = tabs.find(tab => tab.slug === slug); if (t?.isImage) switchToTab(slug); else loadFile(slug); }} onClose={handleCloseTab} />
 		{/if}
 		{#if sidebarView === 'archetypes'}
 			<ArchetypeView
@@ -560,6 +589,16 @@
 					<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 				</div>
 			{/if}
+		{:else if currentTab?.isImage}
+			<div class="editor-fixed-wrap">
+				<div class="editor-header">
+					<div class="header-left">
+						<PenLine size={14} color="var(--c-text-muted)" />
+						<span class="filename">{currentSlug}</span>
+					</div>
+				</div>
+				<ImageView slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
+			</div>
 		{:else}
 			<div class="editor-fixed-wrap">
 				{#if loading}
