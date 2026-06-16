@@ -207,7 +207,7 @@
 				{#if selected}
 					<div class="sc-detail-header">
 						<code class="sc-detail-name">{selected.name}</code>
-						<span class="sc-detail-source">{selected.source === 'custom' ? 'Personnalisé' : 'Natiiif'}</span>
+						<span class="sc-detail-source">{selected.source === 'custom' ? 'Personnalisé' : 'Natif'}</span>
 					</div>
 
 					{#if selected.params.length > 0}

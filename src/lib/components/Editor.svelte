@@ -99,7 +99,8 @@
 	async function doRawAutoSave() {
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		const body = getRawBody(rawContent);
+		const { frontmatter: fm, body } = splitRawContent(rawContent);
+		if (fm) onFrontmatterChange?.(fm);
 		await onSave?.(body);
 		if (version !== saveVersion) return;
 		onSaveState?.('saved');
