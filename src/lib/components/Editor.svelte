@@ -8,19 +8,24 @@
 	import { SlashCommands } from '$lib/editor/slash-commands';
 	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2 } from '@lucide/svelte';
 	import ImagePicker from './ImagePicker.svelte';
+	import yaml from 'js-yaml';
+	import { parse, stringify } from '@iarna/toml';
 
 	interface EditorProps {
 		content?: string;
+		frontmatter?: Record<string, unknown>;
+		frontmatterFormat?: 'yaml' | 'toml';
 		rawMode?: boolean;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
+		onFrontmatterChange?: (fm: Record<string, unknown>) => void;
 		onStats?: (stats: { words: number; chars: number }) => void;
 		onSaveState?: (state: 'saved' | 'unsaved' | 'saving') => void;
 		onSetContent?: (fn: (content: string) => void) => void;
 	}
 
-	let { content = '', rawMode = $bindable(false), saveRequest = 0, getContent, onSave, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = $bindable('yaml'), rawMode = $bindable(false), saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor: TiptapEditor | null = null;
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -87,7 +92,9 @@
 	async function doRawAutoSave() {
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		await onSave?.(rawContent);
+		const { frontmatter: fm, body, format } = splitRawContent(rawContent);
+		if (fm) onFrontmatterChange?.(fm);
+		await onSave?.(body);
 		if (version !== saveVersion) return;
 		onSaveState?.('saved');
 		rawSaveTimeout = null;
@@ -105,7 +112,9 @@
 		++saveVersion;
 		onSaveState?.('saving');
 		if (rawMode) {
-			await onSave?.(rawContent);
+			const { frontmatter: fm, body } = splitRawContent(rawContent);
+			if (fm) onFrontmatterChange?.(fm);
+			await onSave?.(body);
 		} else if (editor) {
 			await onSave?.(getMarkdown());
 		}
@@ -200,17 +209,67 @@
 	$effect(() => {
 		if (rawMode === prevRawMode) return;
 		if (rawMode) {
-			// switching to raw: Tiptap → textarea
-			rawContent = getMarkdown();
+			// switching to raw: Tiptap → textarea, include frontmatter
+			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
+				? serializeFm(frontmatter, frontmatterFormat)
+				: '';
+			const body = getMarkdown();
+			rawContent = fmString ? `${fmString}\n\n${body}` : body;
 		} else {
-			// switching to WYSIWYG: textarea → Tiptap
+			// switching to WYSIWYG: textarea → Tiptap, strip frontmatter
+			const { body } = splitRawContent(rawContent);
 			if (editor) {
-				editor.commands.setContent(rawContent);
+				editor.commands.setContent(body);
 				updateStats();
 			}
 		}
 		prevRawMode = rawMode;
 	});
+
+	function serializeFm(fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
+		if (format === 'toml') {
+			return `+++\n${stringify(fm as Record<string, unknown>)}+++`;
+		}
+		return `---\n${yaml.dump(fm, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim()}\n---`;
+	}
+
+	function splitRawContent(text: string): { frontmatter: Record<string, unknown> | null; body: string; format: 'yaml' | 'toml' } {
+		const trimmed = text.trimStart();
+		if (trimmed.startsWith('+++')) {
+			const endIdx = trimmed.indexOf('+++', 3);
+			if (endIdx === -1) return { frontmatter: null, body: text, format: 'toml' };
+			const block = trimmed.slice(3, endIdx).trim();
+			const rest = trimmed.slice(endIdx + 3).trimStart();
+			if (!block) return { frontmatter: null, body: rest, format: 'toml' };
+			try {
+				const parsed = parse(block) as Record<string, unknown>;
+				if (parsed && typeof parsed === 'object') {
+					return { frontmatter: parsed, body: rest, format: 'toml' };
+				}
+			} catch { /* ignore */ }
+			return { frontmatter: null, body: text, format: 'toml' };
+		}
+		if (trimmed.startsWith('---')) {
+			const endIdx = trimmed.indexOf('---', 3);
+			if (endIdx === -1) return { frontmatter: null, body: text, format: 'yaml' };
+			const yamlBlock = trimmed.slice(3, endIdx).trim();
+			const rest = trimmed.slice(endIdx + 3).trimStart();
+			if (!yamlBlock) return { frontmatter: null, body: rest, format: 'yaml' };
+			try {
+				const parsed = yaml.load(yamlBlock);
+				if (parsed && typeof parsed === 'object') {
+					return { frontmatter: parsed as Record<string, unknown>, body: rest, format: 'yaml' };
+				}
+			} catch { /* ignore */ }
+			return { frontmatter: null, body: text, format: 'yaml' };
+		}
+		return { frontmatter: null, body: text, format: 'yaml' };
+	}
+
+	function getRawBody(text: string): string {
+		const { frontmatter: _, body } = splitRawContent(text);
+		return body;
+	}
 
 	let prevSaveRequest = $state(0);
 

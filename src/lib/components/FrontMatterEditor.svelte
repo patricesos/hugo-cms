@@ -2,6 +2,7 @@
 	import { X, Plus, AlertTriangle, Send, FileEdit, Settings2, Code, Save } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import yaml from 'js-yaml';
+	import { parse, stringify } from '@iarna/toml';
 
 	interface FrontMatter {
 		title?: string;
@@ -14,8 +15,9 @@
 		[key: string]: unknown;
 	}
 
-	let { frontmatter = {}, onChange }: {
+	let { frontmatter = {}, format = 'yaml', onChange }: {
 		frontmatter?: FrontMatter;
+		format?: 'yaml' | 'toml';
 		onChange?: (fm: FrontMatter) => void;
 	} = $props();
 
@@ -120,21 +122,38 @@
 		return Array.isArray(val) ? val.join(', ') : '';
 	}
 
+	function serializeFmForEdit(fm: FrontMatter, fmt: 'yaml' | 'toml'): string {
+		if (fmt === 'toml') {
+			const result = stringify(fm as Record<string, unknown>);
+			return result;
+		}
+		return yaml.dump(fm, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim();
+	}
+
+	function parseFmFromEdit(text: string, fmt: 'yaml' | 'toml'): FrontMatter | null {
+		try {
+			if (fmt === 'toml') {
+				const parsed = parse(text) as Record<string, unknown>;
+				if (parsed && typeof parsed === 'object') return parsed as FrontMatter;
+			} else {
+				const parsed = yaml.load(text);
+				if (parsed && typeof parsed === 'object') return parsed as FrontMatter;
+			}
+		} catch { /* ignore */ }
+		return null;
+	}
+
 	function enterRawMode() {
-		rawYaml = yaml.dump(local, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim();
+		rawYaml = serializeFmForEdit(local, format);
 		rawMode = true;
 	}
 
 	function applyRawMode() {
-		try {
-			const parsed = yaml.load(rawYaml);
-			if (parsed && typeof parsed === 'object') {
-				local = parsed as FrontMatter;
-				onChange?.(local);
-				rawMode = false;
-			}
-		} catch {
-			//
+		const parsed = parseFmFromEdit(rawYaml, format);
+		if (parsed) {
+			local = parsed;
+			onChange?.(local);
+			rawMode = false;
 		}
 	}
 

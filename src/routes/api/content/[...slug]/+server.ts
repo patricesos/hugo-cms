@@ -30,7 +30,7 @@ export async function GET({ params }) {
 export async function POST({ params, request }) {
 	const slug = params.slug;
 	if (!slug) error(400, 'Slug is required');
-	const { body, frontmatter, archetype } = await request.json();
+	const { body, frontmatter, archetype, frontmatterLanguage } = await request.json();
 
 	try {
 		if (archetype) {
@@ -51,11 +51,12 @@ export async function POST({ params, request }) {
 					body: parsed.body,
 					slug,
 					mtimeMs: stats.mtimeMs,
+					frontmatterLanguage: parsed.language,
 				}, { status: 201 });
 			}
 		}
 
-		const item = await createContent(slug, body || '', frontmatter);
+		const item = await createContent(slug, body || '', frontmatter, frontmatterLanguage || 'yaml');
 		return json(item, { status: 201 });
 	} catch (e) {
 		error(409, (e as Error).message);
@@ -65,9 +66,9 @@ export async function POST({ params, request }) {
 export async function PUT({ params, request }) {
 	const slug = params.slug;
 	if (!slug) error(400, 'Slug is required');
-	const { body, frontmatter, expectedMtimeMs } = await request.json();
+	const { body, frontmatter, expectedMtimeMs, frontmatterLanguage } = await request.json();
 	try {
-		const item = await updateContent(slug, body, frontmatter, expectedMtimeMs);
+		const item = await updateContent(slug, body, frontmatter, expectedMtimeMs, frontmatterLanguage);
 		return json(item);
 	} catch (e) {
 		const err = e as Error & { statusCode?: number; serverMtimeMs?: number };

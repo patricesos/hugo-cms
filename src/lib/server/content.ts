@@ -2,8 +2,9 @@ import { readFile, writeFile, readdir, mkdir, rename, stat, rm } from 'node:fs/p
 import { join, relative, resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
-import { parseFrontmatter, serializeFrontmatter } from './markdown';
+import { parseFrontmatter, serializeFrontmatter, detectFrontmatterLanguage } from './markdown';
 import type { ContentMeta, ContentItem, TreeNode } from './types';
+import type { FrontmatterLanguage } from './markdown';
 
 const BASE = cmsConfig.hugoContentPath;
 const TRASH_DIR = join(BASE, '_trash');
@@ -31,7 +32,10 @@ export async function listContent(dir: string = ''): Promise<ContentMeta[]> {
 			results.push({ type: 'directory', name: entry.name, slug, path: slug });
 		} else if (entry.name.endsWith('.md')) {
 			const content = await readFile(fullPath, 'utf-8');
-			const fm = content.startsWith('---') ? parseFrontmatter(content).frontmatter : {};
+			const lang = detectFrontmatterLanguage(content);
+			const fm = (content.startsWith('---') || content.startsWith('+++'))
+				? parseFrontmatter(content).frontmatter
+				: {};
 			results.push({
 				type: 'file',
 				name: entry.name,
@@ -51,25 +55,26 @@ export async function listContent(dir: string = ''): Promise<ContentMeta[]> {
 export async function readContent(slug: string): Promise<ContentItem> {
 	const filePath = safeResolve(slug + '.md');
 	const raw = await readFile(filePath, 'utf-8');
-	const { frontmatter, body } = parseFrontmatter(raw);
+	const { frontmatter, body, language } = parseFrontmatter(raw);
 	const stats = await stat(filePath);
-	return { frontmatter, body, slug, mtimeMs: stats.mtimeMs };
+	return { frontmatter, body, slug, mtimeMs: stats.mtimeMs, frontmatterLanguage: language };
 }
 
 export async function createContent(
 	slug: string,
 	body: string,
-	frontmatter?: Record<string, unknown>
+	frontmatter?: Record<string, unknown>,
+	language: FrontmatterLanguage = 'yaml'
 ): Promise<ContentItem> {
 	const filePath = safeResolve(slug + '.md');
 	const dir = filePath.substring(0, filePath.lastIndexOf('\\'));
 	if (!existsSync(dir)) {
 		await mkdir(dir, { recursive: true });
 	}
-	const full = serializeFrontmatter(body, frontmatter || { title: 'Untitled', date: new Date().toISOString().split('T')[0], draft: true });
+	const full = serializeFrontmatter(body, frontmatter || { title: 'Untitled', date: new Date().toISOString().split('T')[0], draft: true }, language);
 	await writeFile(filePath, full, 'utf-8');
 	const stats = await stat(filePath);
-	return { frontmatter: frontmatter || {}, body, slug, mtimeMs: stats.mtimeMs };
+	return { frontmatter: frontmatter || {}, body, slug, mtimeMs: stats.mtimeMs, frontmatterLanguage: language };
 }
 
 export async function listContentTree(dir: string = ''): Promise<TreeNode[]> {
@@ -86,8 +91,11 @@ export async function listContentTree(dir: string = ''): Promise<TreeNode[]> {
 			const children = await listContentTree(dir ? `${dir}/${entry.name}` : entry.name);
 			results.push({ type: 'directory', name: entry.name, slug, path: slug, children, frontmatter: undefined });
 		} else if (entry.name.endsWith('.md')) {
-			const content = await readFile(fullPath, 'utf-8');
-			const fm = content.startsWith('---') ? parseFrontmatter(content).frontmatter : {};
+			const raw = await readFile(fullPath, 'utf-8');
+			const lang = detectFrontmatterLanguage(raw);
+			const fm = (raw.startsWith('---') || raw.startsWith('+++'))
+				? parseFrontmatter(raw).frontmatter
+				: {};
 			results.push({
 				type: 'file',
 				name: entry.name,
@@ -109,19 +117,21 @@ export async function updateContent(
 	slug: string,
 	body: string,
 	frontmatter?: Record<string, unknown>,
-	expectedMtimeMs?: number
+	expectedMtimeMs?: number,
+	language?: FrontmatterLanguage
 ): Promise<ContentItem> {
 	const filePath = safeResolve(slug + '.md');
 	const stats = await stat(filePath);
 	if (expectedMtimeMs !== undefined && Math.abs(stats.mtimeMs - expectedMtimeMs) > 1) {
 		throw Object.assign(new Error('File modified externally'), { statusCode: 409, serverMtimeMs: stats.mtimeMs });
 	}
+	const lang = language || 'yaml';
 	const full = frontmatter
-		? serializeFrontmatter(body, frontmatter)
+		? serializeFrontmatter(body, frontmatter, lang)
 		: body;
 	await writeFile(filePath, full, 'utf-8');
 	const newStats = await stat(filePath);
-	return { frontmatter: frontmatter || {}, body, slug, mtimeMs: newStats.mtimeMs };
+	return { frontmatter: frontmatter || {}, body, slug, mtimeMs: newStats.mtimeMs, frontmatterLanguage: lang };
 }
 
 export async function deleteContent(slug: string): Promise<void> {

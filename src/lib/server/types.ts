@@ -16,4 +16,5 @@ export interface ContentItem {
 	body: string;
 	slug: string;
 	mtimeMs: number;
+	frontmatterLanguage?: 'yaml' | 'toml';
 }

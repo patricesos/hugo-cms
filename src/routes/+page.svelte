@@ -30,6 +30,7 @@
 		content: string;
 		frontmatter: Record<string, unknown>;
 		mtimeMs: number;
+		frontmatterLanguage?: 'yaml' | 'toml';
 	}
 
 	let tree = $state<TreeNode[]>([]);
@@ -38,6 +39,7 @@
 	let tabs = $state<Tab[]>([]);
 	let currentSlug = $state<string | null>(null);
 	let currentFrontmatter = $state<Record<string, unknown>>({});
+	let currentFmFormat = $state<'yaml' | 'toml'>('yaml');
 	let editorContent = $state('');
 	let editorGetContent = $state<(() => string) | null>(null);
 	let editorSetContent = $state<((content: string) => void) | null>(null);
@@ -113,10 +115,12 @@
 			tab.content = data.body || '';
 			tab.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
 			tab.mtimeMs = data.mtimeMs;
+			tab.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
 			tab.title = (data.frontmatter?.title as string) || tab.slug.split('/').pop() || '';
 			if (currentSlug === tab.slug) {
 				editorContent = tab.content;
 				currentFrontmatter = { ...tab.frontmatter };
+				currentFmFormat = tab.frontmatterLanguage;
 				editorSetContent?.(tab.content);
 			}
 		} catch {
@@ -260,6 +264,7 @@
 			content: data.body || '',
 			frontmatter: (data.frontmatter as Record<string, unknown>) || {},
 			mtimeMs: data.mtimeMs ?? 0,
+			frontmatterLanguage: data.frontmatterLanguage ?? 'yaml',
 		};
 		tabs = [...tabs, tab];
 		await switchToTab(slug);
@@ -279,6 +284,7 @@
 		currentSlug = tab.slug;
 		editorContent = tab.content;
 		currentFrontmatter = { ...tab.frontmatter };
+		currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
 		editorSetContent?.(tab.content);
 	}
 
@@ -292,7 +298,7 @@
 		const res = await fetch(`/api/content/${currentSlug}`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ body: markdown, frontmatter: currentFrontmatter, expectedMtimeMs }),
+			body: JSON.stringify({ body: markdown, frontmatter: currentFrontmatter, expectedMtimeMs, frontmatterLanguage: tab.frontmatterLanguage ?? 'yaml' }),
 		});
 		if (res.status === 409) {
 			const { serverMtimeMs } = await res.json();
@@ -602,10 +608,13 @@
 						<div class="editor-area">
 							<Editor
 								content={editorContent}
+								frontmatter={currentFrontmatter}
+								frontmatterFormat={currentFmFormat}
 								{saveRequest}
 								getContent={(fn) => { editorGetContent = fn; }}
 								onSetContent={(fn) => { editorSetContent = fn; }}
 								onSave={handleSave}
+								onFrontmatterChange={(fm) => { currentFrontmatter = fm; }}
 								onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
 								onSaveState={(s) => { saveState = s; }}
 							/>
@@ -615,6 +624,7 @@
 							<aside class="fm-sidebar" style="width: {fmWidth}px; min-width: {fmWidth}px;" transition:slide={{ duration: 200, axis: 'x' }}>
 								<FrontMatterEditor
 									frontmatter={currentFrontmatter}
+									format={currentFmFormat}
 									onChange={handleFrontmatterChange}
 								/>
 							</aside>
