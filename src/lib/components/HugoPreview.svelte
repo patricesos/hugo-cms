@@ -70,7 +70,6 @@
 
 	function handleStopClick() {
 		stopHugo();
-		onClose();
 	}
 
 	function reloadPreview() {

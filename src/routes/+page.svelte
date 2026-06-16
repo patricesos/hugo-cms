@@ -671,113 +671,117 @@
 		{#if currentSlug || tabs.length > 0}
 			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={(slug) => { const t = tabs.find(tab => tab.slug === slug); if (t?.isImage) switchToTab(slug); else loadFile(slug); }} onClose={handleCloseTab} />
 		{/if}
-		{#if sidebarView === 'archetypes'}
-			<ArchetypeView
-				slug={currentArchetype}
-				onClose={() => currentArchetype = null}
-				onDelete={(s) => { loadArchetypes(); currentArchetype = null; }}
-			/>
-		{:else if sidebarView === 'config'}
-			<ConfigView
-				slug={currentConfigSlug}
-				onClose={() => currentConfigSlug = null}
-				onDelete={(s) => { loadConfigTree(); currentConfigSlug = null; }}
-			/>
-		{:else if showSitemap && !currentSlug}
-			<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
-		{:else if !currentSlug}
-			{#if !showSitemap}
-				<div class="empty-state" transition:fade={{ duration: 200 }}>
-					<img class="hugo-logo" src="/hugo-logo.svg" alt="Hugo logo" />
-					<h2>Hugo CMS</h2>
-					<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
-				</div>
-			{/if}
-		{:else if currentTab?.isImage}
-			<div class="editor-fixed-wrap">
-				<div class="editor-header">
-					<div class="header-left">
-						<PenLine size={14} color="var(--c-text-muted)" />
-						<span class="filename">{currentSlug}</span>
-					</div>
-				</div>
-				{#key currentSlug}
-					<ImageView slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
-				{/key}
-			</div>
-		{:else}
-			<div class="editor-fixed-wrap">
-				{#if loading}
-					<div class="loading-overlay">
-						<div class="skeleton-block"></div>
-						<div class="skeleton-block short"></div>
-						<div class="skeleton-block"></div>
-					</div>
-				{/if}
-				{#if conflictSlug === currentSlug}
-					<div class="conflict-banner" transition:slide={{ duration: 200, axis: 'y' }}>
-						<span class="conflict-icon"><AlertTriangle size={14} /></span>
-						<span class="conflict-text">Fichier modifié en externe</span>
-						<button class="conflict-btn" onclick={() => resolveConflict('reload')}>Recharger</button>
-						<button class="conflict-btn primary" onclick={() => resolveConflict('overwrite')}>Écraser</button>
-					</div>
-				{/if}
-				<div class="editor-header">
-					<div class="header-left">
-						<PenLine size={14} color="var(--c-text-muted)" />
-						<span class="filename">{currentSlug}.md</span>
-						<button
-							class="save-btn"
-							class:saved={saveState === 'saved'}
-							class:unsaved={saveState === 'unsaved'}
-							class:saving={saveState === 'saving'}
-							onclick={() => saveRequest++}
-							title={saveState === 'saving' ? 'Sauvegarde…' : saveState === 'unsaved' ? 'Enregistrer' : 'Enregistré'}
-						>
-							{#if saveState === 'saving'}
-								<Loader2 size={13} class="spin" />
-							{:else if saveState === 'unsaved'}
-								<Save size={13} />
-							{:else}
-								<CheckCircle2 size={13} />
-							{/if}
-						</button>
-					</div>
-				</div>
-				<div class="editor-body" class:with-fm={fmOpen} class:with-preview={showPreview}>
-					<div class="editor-main">
-						<div class="editor-area">
-							<Editor
-								content={editorContent}
-								frontmatter={currentFrontmatter}
-								frontmatterFormat={currentFmFormat}
-								{saveRequest}
-								getContent={(fn) => { editorGetContent = fn; }}
-								onSetContent={(fn) => { editorSetContent = fn; }}
-								onSave={handleSave}
-								onFrontmatterChange={(fm) => { currentFrontmatter = fm; }}
-								onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
-								onSaveState={(s) => { saveState = s; }}
-							/>
+		<div class="editor-panel-body">
+			<div class="editor-panel-content">
+				{#if sidebarView === 'archetypes'}
+					<ArchetypeView
+						slug={currentArchetype}
+						onClose={() => currentArchetype = null}
+						onDelete={(s) => { loadArchetypes(); currentArchetype = null; }}
+					/>
+				{:else if sidebarView === 'config'}
+					<ConfigView
+						slug={currentConfigSlug}
+						onClose={() => currentConfigSlug = null}
+						onDelete={(s) => { loadConfigTree(); currentConfigSlug = null; }}
+					/>
+				{:else if showSitemap && !currentSlug}
+					<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
+				{:else if !currentSlug}
+					{#if !showSitemap}
+						<div class="empty-state" transition:fade={{ duration: 200 }}>
+							<img class="hugo-logo" src="/hugo-logo.svg" alt="Hugo logo" />
+							<h2>Hugo CMS</h2>
+							<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 						</div>
-						{#if fmOpen}
-							<div class="fm-resize-handle" role="presentation" onmousedown={startFmResize}></div>
-							<aside class="fm-sidebar" style="width: {fmWidth}px; min-width: {fmWidth}px;" transition:slide={{ duration: 200, axis: 'x' }}>
-								<FrontMatterEditor
-									frontmatter={currentFrontmatter}
-									format={currentFmFormat}
-									onChange={handleFrontmatterChange}
-								/>
-							</aside>
-						{/if}
-					</div>
-					{#if showPreview}
-						<HugoPreview show={showPreview} onClose={() => showPreview = false} />
 					{/if}
-				</div>
-				<StatusBar {wordCount} {charCount} {saveState} onHelp={() => showShortcuts = true} />
+				{:else if currentTab?.isImage}
+					<div class="editor-fixed-wrap">
+						<div class="editor-header">
+							<div class="header-left">
+								<PenLine size={14} color="var(--c-text-muted)" />
+								<span class="filename">{currentSlug}</span>
+							</div>
+						</div>
+						{#key currentSlug}
+							<ImageView slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
+						{/key}
+					</div>
+				{:else}
+					<div class="editor-fixed-wrap">
+						{#if loading}
+							<div class="loading-overlay">
+								<div class="skeleton-block"></div>
+								<div class="skeleton-block short"></div>
+								<div class="skeleton-block"></div>
+							</div>
+						{/if}
+						{#if conflictSlug === currentSlug}
+							<div class="conflict-banner" transition:slide={{ duration: 200, axis: 'y' }}>
+								<span class="conflict-icon"><AlertTriangle size={14} /></span>
+								<span class="conflict-text">Fichier modifié en externe</span>
+								<button class="conflict-btn" onclick={() => resolveConflict('reload')}>Recharger</button>
+								<button class="conflict-btn primary" onclick={() => resolveConflict('overwrite')}>Écraser</button>
+							</div>
+						{/if}
+						<div class="editor-header">
+							<div class="header-left">
+								<PenLine size={14} color="var(--c-text-muted)" />
+								<span class="filename">{currentSlug}.md</span>
+								<button
+									class="save-btn"
+									class:saved={saveState === 'saved'}
+									class:unsaved={saveState === 'unsaved'}
+									class:saving={saveState === 'saving'}
+									onclick={() => saveRequest++}
+									title={saveState === 'saving' ? 'Sauvegarde…' : saveState === 'unsaved' ? 'Enregistrer' : 'Enregistré'}
+								>
+									{#if saveState === 'saving'}
+										<Loader2 size={13} class="spin" />
+									{:else if saveState === 'unsaved'}
+										<Save size={13} />
+									{:else}
+										<CheckCircle2 size={13} />
+									{/if}
+								</button>
+							</div>
+						</div>
+						<div class="editor-body" class:with-fm={fmOpen}>
+							<div class="editor-main">
+								<div class="editor-area">
+									<Editor
+										content={editorContent}
+										frontmatter={currentFrontmatter}
+										frontmatterFormat={currentFmFormat}
+										{saveRequest}
+										getContent={(fn) => { editorGetContent = fn; }}
+										onSetContent={(fn) => { editorSetContent = fn; }}
+										onSave={handleSave}
+										onFrontmatterChange={(fm) => { currentFrontmatter = fm; }}
+										onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
+										onSaveState={(s) => { saveState = s; }}
+									/>
+								</div>
+								{#if fmOpen}
+									<div class="fm-resize-handle" role="presentation" onmousedown={startFmResize}></div>
+									<aside class="fm-sidebar" style="width: {fmWidth}px; min-width: {fmWidth}px;" transition:slide={{ duration: 200, axis: 'x' }}>
+										<FrontMatterEditor
+											frontmatter={currentFrontmatter}
+											format={currentFmFormat}
+											onChange={handleFrontmatterChange}
+										/>
+									</aside>
+								{/if}
+							</div>
+						</div>
+						<StatusBar {wordCount} {charCount} {saveState} onHelp={() => showShortcuts = true} />
+					</div>
+				{/if}
 			</div>
-		{/if}
+			{#if showPreview}
+				<HugoPreview show={showPreview} onClose={() => showPreview = false} />
+			{/if}
+		</div>
 	</main>
 	</div>
 </div>
@@ -895,6 +899,22 @@
 		flex-direction: column;
 		overflow: hidden;
 		position: relative;
+	}
+
+	.editor-panel-body {
+		flex: 1;
+		display: flex;
+		flex-direction: row;
+		overflow: hidden;
+		min-height: 0;
+	}
+
+	.editor-panel-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		min-width: 0;
 	}
 
 	.editor-fixed-wrap {
@@ -1080,12 +1100,6 @@
 		display: flex;
 		overflow: hidden;
 		min-width: 0;
-	}
-
-	.editor-body.with-preview .editor-main {
-		width: 50%;
-		min-width: 320px;
-		flex-shrink: 0;
 	}
 
 	.editor-area {
