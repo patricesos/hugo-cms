@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose, Map } from '@lucide/svelte';
+	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose, Map, FolderPlus } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -17,8 +17,11 @@
 		onLoadFile,
 		onRefresh,
 		onCreateFile,
+		onCreateFolder,
 		onCreateFileInFolder,
+		onCreateFolderInFolder,
 		onDeleteFile,
+		onDeleteFolder,
 		onSearch,
 		onToggle,
 		onRenameFile,
@@ -30,8 +33,11 @@
 		onLoadFile: (slug: string) => void;
 		onRefresh: () => void;
 		onCreateFile?: () => void;
+		onCreateFolder?: () => void;
 		onCreateFileInFolder?: (slug: string) => void;
+		onCreateFolderInFolder?: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
+		onDeleteFolder?: (slug: string) => void;
 		onSearch?: () => void;
 		onToggle?: () => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
@@ -57,6 +63,11 @@
 					<FilePlus size={16} />
 				</button>
 			{/if}
+			{#if onCreateFolder}
+				<button class="icon-btn" onclick={onCreateFolder} title="Nouveau dossier">
+					<FolderPlus size={16} />
+				</button>
+			{/if}
 			<button class="icon-btn" onclick={onRefresh} title="Rafraîchir">
 				<RefreshCw size={16} />
 			</button>
@@ -75,7 +86,7 @@
 
 	<nav class="file-tree">
 		{#each tree as node}
-			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} />
+			<TreeNode {node} depth={0} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 		{/each}
 	</nav>
 </aside>

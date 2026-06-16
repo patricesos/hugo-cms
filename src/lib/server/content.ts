@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, mkdir, rename, stat } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, rename, stat, rm } from 'node:fs/promises';
 import { join, relative, resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
@@ -139,6 +139,26 @@ export async function renameContent(slug: string, newSlug: string): Promise<Cont
 	await mkdir(dirname(newFilePath), { recursive: true });
 	await rename(filePath, newFilePath);
 	return readContent(newSlug);
+}
+
+export async function createDirectory(slug: string): Promise<void> {
+	const dirPath = safeResolve(slug);
+	if (existsSync(dirPath)) {
+		throw new Error(`Directory "${slug}" already exists`);
+	}
+	await mkdir(dirPath, { recursive: true });
+}
+
+export async function deleteDirectory(slug: string): Promise<void> {
+	const dirPath = safeResolve(slug);
+	if (!existsSync(dirPath)) {
+		throw new Error(`Directory "${slug}" not found`);
+	}
+	if (!existsSync(TRASH_DIR)) {
+		await mkdir(TRASH_DIR, { recursive: true });
+	}
+	const trashPath = join(TRASH_DIR, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}`);
+	await rename(dirPath, trashPath);
 }
 
 export async function listAssets(): Promise<string[]> {

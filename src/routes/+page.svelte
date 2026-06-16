@@ -9,6 +9,7 @@
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import CreateFileDialog from '$lib/components/CreateFileDialog.svelte';
+	import CreateFolderDialog from '$lib/components/CreateFolderDialog.svelte';
 	import SearchDialog from '$lib/components/SearchDialog.svelte';
 	import ShortcutsHelp from '$lib/components/ShortcutsHelp.svelte';
 	import HugoPreview from '$lib/components/HugoPreview.svelte';
@@ -45,6 +46,8 @@
 	let fmOpen = $state(true);
 	let showCreateDialog = $state(false);
 	let createFileSection = $state('');
+	let showCreateFolderDialog = $state(false);
+	let createFolderParent = $state('');
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
@@ -324,6 +327,28 @@
 		await loadFile(fullSlug);
 	}
 
+	async function handleDeleteFolder(slug: string) {
+		if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans _trash/.`)) return;
+		await fetch(`/api/directory/${slug}`, { method: 'DELETE' });
+		tabs = tabs.filter(t => t.slug !== slug && !t.slug.startsWith(slug + '/'));
+		if (tabs.length === 0) {
+			currentSlug = null;
+			editorContent = '';
+		} else if (!tabs.find(t => t.slug === currentSlug)) {
+			currentSlug = tabs[tabs.length - 1].slug;
+			const tab = tabs.find(t => t.slug === currentSlug)!;
+			editorContent = tab.content;
+		}
+		await loadTree();
+	}
+
+	async function handleCreateFolder(folderName: string, parent: string) {
+		const fullSlug = parent ? `${parent}/${folderName}` : folderName;
+		await fetch(`/api/directory/${fullSlug}`, { method: 'POST' });
+		showCreateFolderDialog = false;
+		await loadTree();
+	}
+
 	async function handleDelete(slug?: string) {
 		const target = slug || currentSlug;
 		if (!target) return;
@@ -429,8 +454,11 @@
 				onRefresh={loadTree}
 				onLoadFile={loadFile}
 				onCreateFile={() => { createFileSection = ''; showCreateDialog = true; }}
-	onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
+				onCreateFolder={() => { createFolderParent = ''; showCreateFolderDialog = true; }}
+				onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
+				onCreateFolderInFolder={(slug) => { createFolderParent = slug; showCreateFolderDialog = true; }}
 				onDeleteFile={handleDelete}
+				onDeleteFolder={handleDeleteFolder}
 				onRenameFile={handleRename}
 				onDuplicateFile={handleDuplicate}
 				onSearch={() => showSearch = true}
@@ -555,6 +583,13 @@
 	presetSection={createFileSection}
 	onClose={() => showCreateDialog = false}
 	onCreate={handleCreate}
+/>
+
+<CreateFolderDialog
+	show={showCreateFolderDialog}
+	parentSlug={createFolderParent}
+	onClose={() => showCreateFolderDialog = false}
+	onCreate={handleCreateFolder}
 />
 
 <SearchDialog

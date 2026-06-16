@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
-	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Copy, Check, X, Plus } from '@lucide/svelte';
+	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Copy, Check, X, Plus, FolderPlus } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -18,18 +18,22 @@
 		currentSlug = '',
 		onLoadFile,
 		onDeleteFile,
+		onDeleteFolder,
 		onRenameFile,
 		onDuplicateFile,
 		onCreateFileInFolder,
+		onCreateFolderInFolder,
 	}: {
 		node: TreeNodeData;
 		depth: number;
 		currentSlug: string | null;
 		onLoadFile: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
+		onDeleteFolder?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
+		onCreateFolderInFolder?: (slug: string) => void;
 	} = $props();
 
 	let open = $state(false);
@@ -136,11 +140,21 @@
 				<Plus size={13} />
 			</button>
 		{/if}
+		{#if onCreateFolderInFolder}
+			<button class="create-in-folder" onclick={() => onCreateFolderInFolder(node.slug)} title="Nouveau dossier dans {node.name}">
+				<FolderPlus size={13} />
+			</button>
+		{/if}
+		{#if onDeleteFolder}
+			<button class="delete-dir-btn" onclick={() => onDeleteFolder(node.slug)} title="Supprimer le dossier">
+				<Trash2 size={13} />
+			</button>
+		{/if}
 	</div>
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
-					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} />
+					<TreeNode node={child} depth={depth + 1} {currentSlug} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 				{/each}
 			</div>
 		{/if}
@@ -344,6 +358,30 @@
 	}
 
 	.delete-node-btn:hover {
+		color: var(--c-danger);
+		background: #fef2f2;
+	}
+
+	.delete-dir-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border: none;
+		background: transparent;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		color: var(--c-text-muted);
+		opacity: 0;
+		transition: all 0.12s;
+		flex-shrink: 0;
+	}
+
+	.dir-row:hover .delete-dir-btn {
+		opacity: 1;
+	}
+
+	.delete-dir-btn:hover {
 		color: var(--c-danger);
 		background: #fef2f2;
 	}
