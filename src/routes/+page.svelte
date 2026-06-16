@@ -3,6 +3,7 @@
 	import { fade, slide } from 'svelte/transition';
 	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
+	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
@@ -46,6 +47,7 @@
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
 	let sidebarWidth = $state(260);
+	let showSitemap = $state(false);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
 
@@ -392,6 +394,7 @@
 				onDuplicateFile={handleDuplicate}
 				onSearch={() => showSearch = true}
 				onToggle={() => sidebarOpen = !sidebarOpen}
+				onToggleSitemap={() => showSitemap = !showSitemap}
 			/>
 		</div>
 		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
@@ -406,12 +409,17 @@
 		{#if currentSlug || tabs.length > 0}
 			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={loadFile} onClose={handleCloseTab} />
 		{/if}
+		{#if showSitemap && !currentSlug}
+			<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
+		{/if}
 		{#if !currentSlug}
-			<div class="empty-state" transition:fade={{ duration: 200 }}>
-				<FileText size={48} color="var(--c-text-muted)" strokeWidth={1} />
-				<h2>Hugo CMS</h2>
-				<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
-			</div>
+			{#if !showSitemap}
+				<div class="empty-state" transition:fade={{ duration: 200 }}>
+					<FileText size={48} color="var(--c-text-muted)" strokeWidth={1} />
+					<h2>Hugo CMS</h2>
+					<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
+				</div>
+			{/if}
 		{:else}
 			<div class="editor-fixed-wrap">
 				{#if loading}

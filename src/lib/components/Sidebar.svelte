@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose } from '@lucide/svelte';
+	import { FileText, RefreshCw, FilePlus, Search, PanelLeftClose, Map } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -22,6 +22,7 @@
 		onToggle,
 		onRenameFile,
 		onDuplicateFile,
+		onToggleSitemap,
 	}: {
 		tree: TreeNodeData[];
 		currentSlug: string | null;
@@ -33,6 +34,7 @@
 		onToggle?: () => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
+		onToggleSitemap?: () => void;
 	} = $props();
 </script>
 
@@ -56,6 +58,11 @@
 			<button class="icon-btn" onclick={onRefresh} title="Rafraîchir">
 				<RefreshCw size={16} />
 			</button>
+			{#if onToggleSitemap}
+				<button class="icon-btn" onclick={onToggleSitemap} title="Sitemap visuel">
+					<Map size={16} />
+				</button>
+			{/if}
 			{#if onToggle}
 				<button class="icon-btn" onclick={onToggle} title="Réduire la sidebar">
 					<PanelLeftClose size={16} />
@@ -93,8 +100,8 @@
 		padding: 14px 16px;
 		border-bottom: 1px solid var(--c-border);
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
+		flex-direction: column;
+		gap: 10px;
 	}
 
 	.sidebar-brand {
@@ -112,6 +119,7 @@
 	.header-actions {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 4px;
 	}
 

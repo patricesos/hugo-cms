@@ -20,4 +20,4 @@
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
 - [x] Détection modification externe (mtime + polling + bannière conflit)
 - [ ] Thème clair/sombre
-- [ ] Sitemap visuel
+- [x] Sitemap visuel
