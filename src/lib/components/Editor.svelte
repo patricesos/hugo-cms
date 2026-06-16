@@ -244,16 +244,27 @@
 			rawHistoryLock = 0;
 		} else {
 			// switching to WYSIWYG: textarea → Tiptap, strip frontmatter
-			const { frontmatter: fm, body, format } = splitRawContent(rawContent);
-			if (fm) {
-				onFrontmatterChange?.(fm);
-			}
+			const { body } = splitRawContent(rawContent);
 			if (editor) {
 				editor.commands.setContent(protectShortcodes(body));
 				updateStats();
 			}
 		}
 		prevRawMode = rawMode;
+	});
+
+	$effect(() => {
+		if (!editor) return;
+		const ed = editor;
+		function handleClick(e: MouseEvent) {
+			const target = e.target as HTMLElement;
+			if ((e.metaKey || e.ctrlKey) && target.tagName === 'A') {
+				const href = (target as HTMLAnchorElement).getAttribute('href');
+				if (href) window.open(href, '_blank');
+			}
+		}
+		ed.view.dom.addEventListener('click', handleClick);
+		return () => ed.view.dom.removeEventListener('click', handleClick);
 	});
 
 	// when frontmatter changes in raw mode, refresh the raw textarea

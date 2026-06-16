@@ -15,22 +15,20 @@ let hugoUrl: string | null = null;
 let hugoError: string | null = null;
 
 function findHugoRoot(): string | null {
-	const candidates = [
-		resolve(cmsConfig.hugoContentPath, '..'),
-		resolve(cmsConfig.hugoContentPath, '../..'),
-	];
-
-	for (const dir of candidates) {
+	let dir = resolve(cmsConfig.hugoContentPath);
+	for (let i = 0; i < 10; i++) {
+		dir = resolve(dir, '..');
 		if (
 			existsSync(resolve(dir, 'hugo.toml')) ||
 			existsSync(resolve(dir, 'hugo.yaml')) ||
 			existsSync(resolve(dir, 'hugo.json')) ||
-			existsSync(resolve(dir, 'config.toml'))
+			existsSync(resolve(dir, 'config.toml')) ||
+			existsSync(resolve(dir, 'config.yaml')) ||
+			existsSync(resolve(dir, 'config.json'))
 		) {
 			return dir;
 		}
 	}
-
 	return resolve(cmsConfig.hugoContentPath, '..');
 }
 

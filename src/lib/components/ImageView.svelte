@@ -37,7 +37,8 @@
 
 	$effect(() => {
 		if (!assetUrl) return;
-		fetch(assetUrl, { method: 'HEAD' })
+		const controller = new AbortController();
+		fetch(assetUrl, { method: 'HEAD', signal: controller.signal })
 			.then(r => {
 				const size = r.headers.get('Content-Length');
 				if (size) {
@@ -46,6 +47,7 @@
 				}
 			})
 			.catch(() => {});
+		return () => controller.abort();
 	});
 
 	const zoomPercent = $derived(Math.round(scale * 100));
@@ -55,13 +57,7 @@
 	}
 
 	function setScale(v: number) {
-		if (v >= 1) {
-			scale = clampScale(v);
-		} else {
-			scale = 1;
-			panX = 0;
-			panY = 0;
-		}
+		scale = clampScale(Math.max(v, 1));
 	}
 
 	function handleWheel(e: WheelEvent) {
@@ -71,7 +67,9 @@
 	}
 
 	function handleDoubleClick() {
-		setScale(1);
+		scale = 1;
+		panX = 0;
+		panY = 0;
 	}
 
 	function handleMouseDown(e: MouseEvent) {
@@ -102,7 +100,9 @@
 	}
 
 	function zoomFit() {
-		setScale(1);
+		scale = 1;
+		panX = 0;
+		panY = 0;
 	}
 
 	function copyPath() {

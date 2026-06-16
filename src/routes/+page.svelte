@@ -493,7 +493,7 @@
 	async function handleCreate(title: string, section: string, archetype?: string) {
 		const slug = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 		const fullSlug = section ? `${section}/${slug}` : slug;
-		const frontmatter = { title, date: new Date().toISOString().split('T')[0], draft: true };
+		const frontmatter = { title, date: new Date().toISOString().split('T')[0] };
 		const body: string = await fetch(`/api/content/${fullSlug}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },

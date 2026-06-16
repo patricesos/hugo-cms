@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { X } from '@lucide/svelte';
 
@@ -9,6 +10,8 @@
 		show: boolean;
 		onClose: () => void;
 	} = $props();
+
+	let dialogEl = $state<HTMLDivElement | null>(null);
 
 	const shortcuts = [
 		{ keys: ['⌘P', 'Ctrl+P'], label: 'Recherche globale' },
@@ -25,6 +28,25 @@
 		{ keys: ['Échap'], label: 'Fermer les dialogues / popups' },
 	];
 
+	onMount(() => {
+		function trapFocus(e: KeyboardEvent) {
+			if (e.key !== 'Tab' || !dialogEl) return;
+			const focusable = dialogEl.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+			if (focusable.length === 0) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (e.shiftKey && document.activeElement === first) {
+				e.preventDefault();
+				last.focus();
+			} else if (!e.shiftKey && document.activeElement === last) {
+				e.preventDefault();
+				first.focus();
+			}
+		}
+		document.addEventListener('keydown', trapFocus);
+		return () => document.removeEventListener('keydown', trapFocus);
+	});
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onClose();
 	}
@@ -32,7 +54,7 @@
 
 {#if show}
 	<div class="sh-backdrop" role="presentation" transition:fade={{ duration: 100 }} onclick={onClose}></div>
-	<div class="sh-dialog" role="dialog" tabindex="-1" transition:fade={{ duration: 120 }} onkeydown={handleKeydown}>
+	<div class="sh-dialog" bind:this={dialogEl} role="dialog" tabindex="-1" transition:fade={{ duration: 120 }} onkeydown={handleKeydown}>
 		<div class="sh-header">
 			<span>Raccourcis clavier</span>
 			<button class="sh-close" onclick={onClose} title="Fermer"><X size={16} /></button>
