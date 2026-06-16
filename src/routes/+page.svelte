@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
@@ -11,6 +11,7 @@
 	import CreateFileDialog from '$lib/components/CreateFileDialog.svelte';
 	import SearchDialog from '$lib/components/SearchDialog.svelte';
 	import ShortcutsHelp from '$lib/components/ShortcutsHelp.svelte';
+	import HugoPreview from '$lib/components/HugoPreview.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -48,6 +49,7 @@
 	let sidebarOpen = $state(true);
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
+	let showPreview = $state(false);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
 
@@ -162,6 +164,10 @@
 			}
 			if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
 				showShortcuts = true;
+			}
+			if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
+				e.preventDefault();
+				showPreview = !showPreview;
 			}
 		}
 		document.addEventListener('keydown', handleKeydown);
@@ -469,27 +475,35 @@
 								<PanelRightOpen size={15} />
 							{/if}
 						</button>
+						<button class="icon-btn" class:active={showPreview} onclick={() => showPreview = !showPreview} title="Aperçu Hugo (Cmd+Shift+P)">
+							<Eye size={15} />
+						</button>
 					</div>
 				</div>
-				<div class="editor-body" class:with-fm={fmOpen}>
-					<div class="editor-area">
-						<Editor
-							content={editorContent}
-							{saveRequest}
-							getContent={(fn) => { editorGetContent = fn; }}
-							onSetContent={(fn) => { editorSetContent = fn; }}
-							onSave={handleSave}
-							onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
-							onSaveState={(s) => { saveState = s; }}
-						/>
-					</div>
-					{#if fmOpen}
-						<aside class="fm-sidebar" transition:slide={{ duration: 200, axis: 'x' }}>
-							<FrontMatterEditor
-								frontmatter={currentFrontmatter}
-								onChange={handleFrontmatterChange}
+				<div class="editor-body" class:with-fm={fmOpen} class:with-preview={showPreview}>
+					<div class="editor-main">
+						<div class="editor-area">
+							<Editor
+								content={editorContent}
+								{saveRequest}
+								getContent={(fn) => { editorGetContent = fn; }}
+								onSetContent={(fn) => { editorSetContent = fn; }}
+								onSave={handleSave}
+								onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
+								onSaveState={(s) => { saveState = s; }}
 							/>
-						</aside>
+						</div>
+						{#if fmOpen}
+							<aside class="fm-sidebar" transition:slide={{ duration: 200, axis: 'x' }}>
+								<FrontMatterEditor
+									frontmatter={currentFrontmatter}
+									onChange={handleFrontmatterChange}
+								/>
+							</aside>
+						{/if}
+					</div>
+					{#if showPreview}
+						<HugoPreview show={showPreview} onClose={() => showPreview = false} />
 					{/if}
 				</div>
 				<StatusBar {wordCount} {charCount} {saveState} onHelp={() => showShortcuts = true} />
@@ -729,6 +743,12 @@
 		color: var(--c-text);
 	}
 
+	.icon-btn.active {
+		background: var(--c-primary-bg);
+		color: var(--c-primary);
+		border-color: var(--c-primary-light);
+	}
+
 	.icon-btn.delete-btn:hover {
 		background: #fef2f2;
 		color: var(--c-danger);
@@ -739,6 +759,19 @@
 		flex: 1;
 		display: flex;
 		overflow: hidden;
+	}
+
+	.editor-main {
+		flex: 1;
+		display: flex;
+		overflow: hidden;
+		min-width: 0;
+	}
+
+	.editor-body.with-preview .editor-main {
+		width: 50%;
+		min-width: 320px;
+		flex-shrink: 0;
 	}
 
 	.editor-area {

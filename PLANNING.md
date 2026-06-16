@@ -14,10 +14,10 @@
 
 ## Sprint 6
 - [ ] Git intégré (commit/push depuis le CMS)
-- [ ] Aperçu Hugo (ouvrir le site dans un onglet)
+- [x] Aperçu Hugo (ouvrir le site dans un onglet)
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
 - [x] Détection modification externe (mtime + polling + bannière conflit)
-- [ ] Thème clair/sombre
+- [ ] Sélecteur de thèmes (Gruvbox, Catppuccin, Monokai…)
 - [x] Sitemap visuel
