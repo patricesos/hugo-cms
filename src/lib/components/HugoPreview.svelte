@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw } from '@lucide/svelte';
 
-	let { show, onClose, onStatusChange }: { show: boolean; onClose: () => void; onStatusChange?: (status: 'loading' | 'running' | 'stopped' | 'error') => void } = $props();
+	let { show, onClose, onStatusChange, style = '' }: { show: boolean; onClose: () => void; onStatusChange?: (status: 'loading' | 'running' | 'stopped' | 'error') => void; style?: string } = $props();
 
 	let status = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let url = $state<string | null>(null);
@@ -82,7 +82,7 @@
 </script>
 
 {#if show}
-	<aside class="hugo-preview">
+	<aside class="hugo-preview" {style}>
 		<div class="preview-header">
 			<span class="preview-title">
 				<ExternalLink size={14} />
@@ -142,8 +142,7 @@
 
 <style>
 	.hugo-preview {
-		width: 50%;
-		min-width: 320px;
+		flex-shrink: 0;
 		border-left: 1px solid var(--c-border);
 		background: var(--c-bg);
 		display: flex;

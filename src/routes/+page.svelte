@@ -65,6 +65,7 @@
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
 	let fmWidth = $state(280);
+	let previewWidth = $state(480);
 	let archetypes = $state<{ name: string; label: string }[]>([]);
 	let configTree = $state<TreeNode[]>([]);
 	let currentConfigSlug = $state<string | null>(null);
@@ -86,6 +87,7 @@
 			sidebarWidth,
 			fmOpen,
 			fmWidth,
+			previewWidth,
 			expandedSlugs: [...expandedSlugs],
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
@@ -101,6 +103,7 @@
 			sidebarWidth = state.sidebarWidth ?? 260;
 			fmOpen = state.fmOpen ?? true;
 			fmWidth = state.fmWidth ?? 280;
+			previewWidth = state.previewWidth ?? 480;
 			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 			if (state.tabs && state.currentSlug) {
 				const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; isImage?: boolean }) => ({
@@ -252,6 +255,27 @@
 		document.addEventListener('mouseup', onUp);
 		document.body.style.cursor = 'col-resize';
 		document.body.style.userSelect = 'none';
+	}
+
+	function startPreviewResize(e: PointerEvent) {
+		e.preventDefault();
+		const handle = e.currentTarget as HTMLElement;
+		const startX = e.clientX;
+		const startWidth = previewWidth;
+		handle.setPointerCapture(e.pointerId);
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+		function onMove(ev: PointerEvent) {
+			previewWidth = Math.max(320, Math.min(1024, startWidth - (ev.clientX - startX)));
+		}
+		function onUp() {
+			handle.removeEventListener('pointermove', onMove);
+			handle.removeEventListener('pointerup', onUp);
+			document.body.style.cursor = '';
+			document.body.style.userSelect = '';
+		}
+		handle.addEventListener('pointermove', onMove);
+		handle.addEventListener('pointerup', onUp);
 	}
 
 	let directories = $derived(
@@ -785,7 +809,8 @@
 				{/if}
 			</div>
 			{#if showPreview}
-				<HugoPreview show={showPreview} onClose={() => showPreview = false} onStatusChange={(s) => hugoStatus = s} />
+				<div class="preview-resize-handle" role="presentation" onpointerdown={startPreviewResize}></div>
+				<HugoPreview show={showPreview} onClose={() => showPreview = false} onStatusChange={(s) => hugoStatus = s} style="width:{previewWidth}px;min-width:{previewWidth}px" />
 			{/if}
 		</div>
 	</main>
@@ -1180,6 +1205,19 @@
 
 	.fm-resize-handle:hover,
 	.fm-resize-handle:active {
+		background: var(--c-primary);
+	}
+
+	.preview-resize-handle {
+		width: 7px;
+		flex-shrink: 0;
+		cursor: col-resize;
+		background: transparent;
+		transition: background 0.12s;
+	}
+
+	.preview-resize-handle:hover,
+	.preview-resize-handle:active {
 		background: var(--c-primary);
 	}
 
