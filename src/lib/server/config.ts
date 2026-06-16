@@ -67,15 +67,24 @@ export interface CmsConfig {
 	defaultArchetype: string;
 }
 
+function looksLikeHugoRoot(dir: string): boolean {
+	if (!existsSync(dir)) return false;
+	const rootConfigs = ['config.toml', 'config.yaml', 'config.yml', 'hugo.toml', 'hugo.yaml', 'hugo.yml'];
+	for (const name of rootConfigs) {
+		if (existsSync(resolve(dir, name))) return true;
+	}
+	if (existsSync(resolve(dir, 'config'))) return true;
+	return false;
+}
+
 function loadConfig(): CmsConfig {
 	loadDotenv();
 	const sitePath = env('HUGO_SITE_PATH', '');
 	console.log(`[config] HUGO_SITE_PATH = "${sitePath}"`);
-	console.log(`[config] existsSync = ${existsSync(sitePath)}`);
-	if (!sitePath || !existsSync(sitePath)) {
+	if (!sitePath || !looksLikeHugoRoot(sitePath)) {
 		throw new Error(
-			`HUGO_SITE_PATH "${sitePath}" is not set or does not exist.\n`
-			+ 'Set HUGO_SITE_PATH in .env to point to your Hugo site root.'
+			`HUGO_SITE_PATH "${sitePath}" is not a Hugo site root.\n`
+			+ 'Set HUGO_SITE_PATH in .env to your Hugo site (must contain a config file or config/ folder).'
 		);
 	}
 	const contentDir = resolve(sitePath, 'content');

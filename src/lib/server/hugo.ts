@@ -72,6 +72,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 
 		proc.stdout?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
+			console.log(`[hugo] ${text.trimEnd()}`);
 			const portMatch = text.match(/Web Server is available at (\S+)/);
 			if (portMatch) hugoUrl = portMatch[1];
 			const envMatch = text.match(/listening on (\S+)/i);
@@ -86,6 +87,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 
 		proc.stderr?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
+			console.error(`[hugo:err] ${text.trimEnd()}`);
 			if (text.toLowerCase().includes('error') || text.toLowerCase().includes('failed')) {
 				hugoError = text.trim();
 			}
