@@ -67,16 +67,6 @@
 
 			<div class="dialog-body">
 				<label class="field">
-					<span class="label">Section</span>
-					<select bind:value={section}>
-						{#each directories as d}
-							<option value={d.slug}>{d.name}</option>
-						{/each}
-						<option value="">(racine)</option>
-					</select>
-				</label>
-
-				<label class="field">
 					<span class="label">Titre</span>
 					<input
 						type="text"
@@ -96,6 +86,16 @@
 						</select>
 					</label>
 				{/if}
+
+				<label class="field">
+					<span class="label">Section</span>
+					<select bind:value={section}>
+						{#each directories as d}
+							<option value={d.slug}>{d.name}</option>
+						{/each}
+						<option value="">(racine)</option>
+					</select>
+				</label>
 
 				{#if slugPreview}
 					<div class="slug-preview">

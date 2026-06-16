@@ -20,7 +20,7 @@
 - [ ] Création de dossier [+] depuis la sidebar
 - [ ] Afficher le dossier static (images, fichiers) dans la sidebar
 - [ ] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
-- [ ] Réorganiser le dialogue Nouveau fichier : Titre / Archétype / Section
+- [x] Réorganiser le dialogue Nouveau fichier : Titre / Archétype / Section
 - [ ] Déplacer « Hugo CMS » du sidebar vers le header (barre du haut)
 - [ ] Logo Hugo SVG en fond quand aucun fichier n'est ouvert
 - [x] Résoudre conflit Ctrl+K (lien Tiptap vs recherche) — utiliser Ctrl+Shift+F pour la recherche
@@ -29,6 +29,7 @@
 - [x] Clic molette (middle click) pour fermer un onglet
 - [ ] Icône [+] sur chaque dossier dans la sidebar pour créer un fichier directement
 - [x] Ajouter du padding à gauche dans la sidebar
+- [ ] Bubble menu de l'éditeur visible en bas de page — ne s'afficher que quand du texte est sélectionné
 
 ## Backlog
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
