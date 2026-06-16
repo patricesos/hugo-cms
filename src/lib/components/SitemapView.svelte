@@ -34,7 +34,13 @@
 			}
 		}
 		collect(tree);
-		openDirs = slugs;
+		if (openDirs.size === 0) {
+			// Initial load: open all directories
+			openDirs = slugs;
+		} else {
+			// Refresh: preserve manual open/close state, only remove deleted dirs
+			openDirs = new Set([...openDirs].filter(s => slugs.has(s)));
+		}
 	});
 
 	function toggleDir(slug: string) {

@@ -29,7 +29,7 @@
 	const SH_OPEN_SH = 'SH_OPEN_SH';
 	const SH_CLOSE_SH = 'SH_CLOSE_SH';
 
-	let { content = '', frontmatter = {}, frontmatterFormat = $bindable('yaml'), rawMode = $bindable(false), saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor: TiptapEditor | null = null;
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -52,7 +52,7 @@
 	}
 
 	function protectShortcodes(text: string): string {
-		return text.replace(/\{\{</g, SH_OPEN_SH).replace(/>\}\}/g, SH_CLOSE_SH);
+		return text.replace(/\{\{</g, SH_OPEN_SH).replace(/\{\{%/g, SH_OPEN_SH).replace(/>\}\}/g, SH_CLOSE_SH).replace(/%\}\}/g, SH_CLOSE_SH);
 	}
 
 	function restoreShortcodes(text: string): string {
@@ -94,6 +94,7 @@
 
 	function markUnsaved() {
 		clearAutoSave();
+		++saveVersion;
 		onSaveState?.('unsaved');
 		autoSaveTimeout = setTimeout(doAutoSave, 2000);
 	}
@@ -122,6 +123,7 @@
 	function markRawUnsaved() {
 		pushRawHistory();
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
+		++saveVersion;
 		onSaveState?.('unsaved');
 		rawSaveTimeout = setTimeout(doRawAutoSave, 2000);
 	}
@@ -330,10 +332,12 @@
 	function exec(fn: string, ...args: unknown[]) {
 		const chain = editor?.chain().focus() as Record<string, (...a: unknown[]) => unknown>;
 		const cmd = chain?.[fn];
-		if (cmd) {
-			const result = cmd(...args) as Record<string, () => boolean>;
-			result?.run();
+		if (!cmd) {
+			console.error(`Editor command not found: ${fn}`);
+			return;
 		}
+		const result = cmd(...args) as Record<string, () => boolean>;
+		result?.run();
 	}
 
 	function setLink() {
@@ -498,7 +502,7 @@
 	}
 
 	function pushRawHistory() {
-		if (rawHistoryLock > 0) { rawHistoryLock--; return; }
+		if (rawHistoryLock > 0) { rawHistoryLock = Math.max(0, rawHistoryLock - 1); return; }
 		// trim future
 		rawHistory = rawHistory.slice(0, rawHistoryIdx + 1);
 		rawHistory.push(rawContent);

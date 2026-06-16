@@ -18,10 +18,6 @@
 		if (show) checkStatus();
 	});
 
-	onDestroy(() => {
-		stopHugo();
-	});
-
 	async function checkStatus() {
 		checking = true;
 		try {

@@ -44,6 +44,7 @@
 				class="tab-close"
 				role="button"
 				tabindex="0"
+				onmousedown={(e) => e.stopPropagation()}
 				onclick={(e) => { e.stopPropagation(); onClose(tab.slug); }}
 				onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onClose(tab.slug); } }}
 				title="Fermer"

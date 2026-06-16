@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { Image, FileText, FileCode, Settings, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import TreeNode from './TreeNode.svelte';
@@ -62,6 +63,11 @@
 	} = $props();
 
 	let dropdownOpen = $state(false);
+	let blurTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	onDestroy(() => {
+		if (blurTimeout) clearTimeout(blurTimeout);
+	});
 
 	const currentView = $derived(views.find((v) => v.key === sidebarView) ?? views[2]);
 
@@ -69,11 +75,15 @@
 		onViewChange?.(view);
 		dropdownOpen = false;
 	}
+
+	function handleBlur() {
+		blurTimeout = setTimeout(() => dropdownOpen = false, 150);
+	}
 </script>
 
 <aside class="sidebar">
 	<div class="view-select" role="combobox" aria-haspopup="listbox" aria-expanded={dropdownOpen}>
-		<button class="view-dropdown-trigger" onclick={() => dropdownOpen = !dropdownOpen} onblur={() => setTimeout(() => dropdownOpen = false, 150)}>
+		<button class="view-dropdown-trigger" onclick={() => dropdownOpen = !dropdownOpen} onblur={handleBlur}>
 			<ChevronLeft size={12} class="chev-left" />
 			<svelte:component this={currentView.icon} size={14} />
 			<span>{currentView.label}</span>
@@ -114,8 +124,8 @@
 
 <style>
 	.sidebar {
-		width: 280px;
-		min-width: 280px;
+		width: 100%;
+		min-width: 0;
 		height: 100%;
 		border-right: 1px solid var(--c-border);
 		background: var(--c-bg-sidebar);

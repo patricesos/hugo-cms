@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { cmsConfig } from '$lib/server/config';
+import { safeResolveIn } from '$lib/server/content';
 
 const MIME_TYPES: Record<string, string> = {
 	png: 'image/png',
@@ -14,7 +14,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 export async function GET({ params }) {
-	const filePath = join(cmsConfig.hugoStaticPath, params.path);
+	const filePath = safeResolveIn(cmsConfig.hugoStaticPath, params.path);
 	const ext = filePath.split('.').pop()?.toLowerCase() || '';
 	const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 	try {

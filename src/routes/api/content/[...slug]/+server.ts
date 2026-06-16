@@ -95,6 +95,7 @@ export async function PATCH({ params, request }) {
 	if (!slug) error(400, 'Slug is required');
 	const { newSlug } = await request.json();
 	if (!newSlug) error(400, 'newSlug is required');
+	if (newSlug.includes('..')) error(400, 'Path traversal detected in newSlug');
 	try {
 		const item = await renameContent(slug, newSlug);
 		return json(item);

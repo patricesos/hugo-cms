@@ -43,17 +43,19 @@ export function getHugoStatus(): HugoStatus {
 	};
 }
 
+let startPromise: Promise<HugoStatus> | null = null;
+
 export async function startHugoServer(): Promise<HugoStatus> {
 	if (hugoProcess && hugoProcess.exitCode === null) {
 		return getHugoStatus();
 	}
+	if (startPromise) return startPromise;
 
 	hugoError = null;
 	const root = findHugoRoot() || resolve(cmsConfig.hugoContentPath, '..');
-
 	const port = cmsConfig.hugoServerPort;
 
-	hugoProcess = spawn('hugo', [
+	const proc = spawn('hugo', [
 		'server',
 		'-D',
 		'--port', String(port),
@@ -66,53 +68,53 @@ export async function startHugoServer(): Promise<HugoStatus> {
 		windowsHide: true,
 	});
 
-	return new Promise((resolve) => {
+	startPromise = new Promise<HugoStatus>((resolvePromise) => {
 		const timeout = setTimeout(() => {
 			hugoError = "Le serveur Hugo n'a pas démarré dans les temps.";
-			resolve(getHugoStatus());
+			startPromise = null;
+			resolvePromise(getHugoStatus());
 		}, 15000);
 
-		hugoProcess!.stdout?.on('data', (chunk: Buffer) => {
+		proc.stdout?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
-
 			const portMatch = text.match(/Web Server is available at (\S+)/);
-			if (portMatch) {
-				hugoUrl = portMatch[1];
-			}
-
+			if (portMatch) hugoUrl = portMatch[1];
 			const envMatch = text.match(/listening on (\S+)/i);
-			if (envMatch) {
-				hugoUrl = envMatch[1];
-			}
-
+			if (envMatch) hugoUrl = envMatch[1];
 			if (hugoUrl) {
 				clearTimeout(timeout);
-				resolve(getHugoStatus());
+				hugoProcess = proc;
+				startPromise = null;
+				resolvePromise(getHugoStatus());
 			}
 		});
 
-		hugoProcess!.stderr?.on('data', (chunk: Buffer) => {
+		proc.stderr?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
 			if (text.toLowerCase().includes('error') || text.toLowerCase().includes('failed')) {
 				hugoError = text.trim();
 			}
 		});
 
-		hugoProcess!.on('error', (err) => {
+		proc.on('error', (err) => {
 			clearTimeout(timeout);
 			hugoError = err.message;
 			hugoProcess = null;
-			resolve(getHugoStatus());
+			startPromise = null;
+			resolvePromise(getHugoStatus());
 		});
 
-		hugoProcess!.on('exit', (code) => {
+		proc.on('exit', (code) => {
 			clearTimeout(timeout);
 			if (code !== 0 && !hugoUrl) {
 				hugoError = hugoError || `Hugo s'est arrêté (code ${code}).`;
 			}
 			hugoProcess = null;
+			startPromise = null;
 		});
 	});
+
+	return startPromise;
 }
 
 export async function stopHugoServer(): Promise<HugoStatus> {

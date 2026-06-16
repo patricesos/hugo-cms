@@ -60,6 +60,7 @@
 	let createFolderParent = $state('');
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
+	let resizeCleanupFns: (() => void)[] = [];
 	let sidebarOpen = $state(true);
 	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
 	let currentArchetype = $state<string | null>(null);
@@ -96,7 +97,7 @@
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 	}
 
-	function restoreAppState() {
+	async function restoreAppState() {
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (!raw) { hydrated = true; return; }
@@ -116,22 +117,25 @@
 				});
 				tabs = restored;
 				currentSlug = state.currentSlug;
-				for (const t of restored) {
-					if (t.kind === 'static' || t.kind === 'archetype' || t.kind === 'config') continue;
-					fetch(`/api/content/${t.slug}`).then(r => r.json()).then(data => {
+				const contentTabs = restored.filter(t => t.kind === 'content');
+				await Promise.all(contentTabs.map(async (t) => {
+					try {
+						const res = await fetch(`/api/content/${t.slug}`);
+						const data = await res.json();
 						t.content = data.body || '';
 						t.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
 						t.mtimeMs = data.mtimeMs ?? 0;
-						if (t.slug === currentSlug) {
-							editorContent = t.content;
-							currentFrontmatter = { ...t.frontmatter };
-							currentFmFormat = t.frontmatterLanguage ?? 'yaml';
-							editorSetContent?.(t.content);
-						}
-					}).catch(() => {});
-				}
+						t.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
+					} catch { /* ignore */ }
+				}));
 				const active = restored.find(t => t.slug === state.currentSlug);
 				if (active) {
+					if (active.kind === 'content') {
+						editorContent = active.content;
+						currentFrontmatter = { ...active.frontmatter };
+						currentFmFormat = active.frontmatterLanguage ?? 'yaml';
+						editorSetContent?.(active.content);
+					}
 					switchToTab(state.currentSlug);
 				}
 			}
@@ -158,6 +162,7 @@
 
 	function startConflictPoll() {
 		stopConflictPoll();
+		if (!currentSlug) return;
 		conflictPollTimer = setInterval(checkExternalChanges, 5000);
 	}
 
@@ -167,6 +172,15 @@
 			conflictPollTimer = null;
 		}
 	}
+
+	$effect(() => {
+		currentSlug;
+		if (currentSlug) {
+			startConflictPoll();
+		} else {
+			stopConflictPoll();
+		}
+	});
 
 	async function checkExternalChanges() {
 		if (!currentSlug || saveState === 'unsaved') return;
@@ -230,6 +244,8 @@
 			document.body.style.cursor = '';
 			document.body.style.userSelect = '';
 		}
+		const cleanup = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+		resizeCleanupFns = [...resizeCleanupFns, cleanup];
 		document.addEventListener('mousemove', onMove);
 		document.addEventListener('mouseup', onUp);
 		document.body.style.cursor = 'col-resize';
@@ -250,6 +266,8 @@
 			document.body.style.cursor = '';
 			document.body.style.userSelect = '';
 		}
+		const cleanup = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+		resizeCleanupFns = [...resizeCleanupFns, cleanup];
 		document.addEventListener('mousemove', onMove);
 		document.addEventListener('mouseup', onUp);
 		document.body.style.cursor = 'col-resize';
@@ -299,10 +317,9 @@
 	}
 
 	onMount(() => {
-		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(() => {
-			restoreAppState();
+		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(async () => {
+			await restoreAppState();
 		});
-		startConflictPoll();
 		function handleKeydown(e: KeyboardEvent) {
 			const mod = e.metaKey || e.ctrlKey;
 			if (mod && !e.shiftKey && e.code === 'KeyP') {
@@ -323,11 +340,12 @@
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			stopConflictPoll();
+			for (const fn of resizeCleanupFns) fn();
 		};
 	});
 
 	function handleVisibilityChange() {
-		if (document.visibilityState === 'visible') {
+		if (document.visibilityState === 'visible' && currentSlug) {
 			checkExternalChanges();
 		}
 	}

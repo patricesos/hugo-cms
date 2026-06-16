@@ -67,6 +67,8 @@
 
 	const selected = $derived(shortcodes.find((s) => s.name === selectedName) || null);
 
+	const canInsert = $derived(!!selected && selected.params.every(p => !p.required || paramValues[p.name]?.trim()));
+
 	const customShortcodes = $derived(shortcodes.filter((s) => s.source === 'custom'));
 	const nativeShortcodes = $derived(shortcodes.filter((s) => s.source === 'native'));
 
@@ -259,7 +261,7 @@
 
 		<div class="sc-footer">
 			<button class="sc-btn secondary" onclick={onClose}>Annuler</button>
-			<button class="sc-btn primary" onclick={handleInsert} disabled={!selected}>Insérer</button>
+			<button class="sc-btn primary" onclick={handleInsert} disabled={!canInsert}>Insérer</button>
 		</div>
 	</div>
 {/if}

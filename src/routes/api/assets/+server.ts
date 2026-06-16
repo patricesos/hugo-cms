@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { Buffer } from 'node:buffer';
-import { listAssets, listAssetTree } from '$lib/server/content';
+import { listAssets, listAssetTree, safeResolveIn } from '$lib/server/content';
 import { cmsConfig } from '$lib/server/config';
 
 export async function GET({ url }) {
@@ -23,19 +23,19 @@ export async function POST({ request }) {
 	}
 
 	const buffer = Buffer.from(await file.arrayBuffer());
-	let filename = file.name;
-	const filepathBase = join(cmsConfig.hugoStaticPath, 'images', filename);
-	if (existsSync(filepathBase)) {
+	let filename = basename(file.name).replace(/\0/g, '');
+	const imagesDir = safeResolveIn(cmsConfig.hugoStaticPath, 'images');
+	if (existsSync(join(imagesDir, filename))) {
 		const parts = filename.split('.');
 		const ext = parts.pop();
-		const base = parts.join('.');
+		const baseName = parts.join('.');
 		let counter = 1;
 		do {
-			filename = `${base}_${counter}.${ext}`;
+			filename = `${baseName}_${counter}.${ext}`;
 			counter++;
-		} while (existsSync(join(cmsConfig.hugoStaticPath, 'images', filename)));
+		} while (existsSync(join(imagesDir, filename)));
 	}
-	const filepath = join(cmsConfig.hugoStaticPath, 'images', filename);
+	const filepath = safeResolveIn(cmsConfig.hugoStaticPath, 'images', filename);
 
 	await mkdir(dirname(filepath), { recursive: true });
 	await writeFile(filepath, buffer);
