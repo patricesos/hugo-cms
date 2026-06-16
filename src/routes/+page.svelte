@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
@@ -455,7 +455,38 @@
 	}
 </script>
 
-<div class="cms-layout" class:sidebar-collapsed={!sidebarOpen}>
+<div class="app-shell">
+	<header class="app-header">
+		<div class="header-brand">
+			<FileText size={20} color="var(--c-primary)" />
+			<h2>Hugo CMS</h2>
+		</div>
+		<div class="header-actions">
+			<button class="icon-btn" onclick={() => showSearch = true} title="Rechercher (Ctrl+P)">
+				<Search size={16} />
+			</button>
+			<button class="icon-btn" onclick={() => { createFileSection = ''; showCreateDialog = true; }} title="Nouveau fichier">
+				<FilePlus size={16} />
+			</button>
+			<button class="icon-btn" onclick={() => { createFolderParent = ''; showCreateFolderDialog = true; }} title="Nouveau dossier">
+				<FolderPlus size={16} />
+			</button>
+			<button class="icon-btn" onclick={() => { loadTree(); loadAssetTree(); }} title="Rafraîchir">
+				<RefreshCw size={16} />
+			</button>
+			<button class="icon-btn" onclick={() => showSitemap = !showSitemap} title="Sitemap visuel">
+				<Map size={16} />
+			</button>
+			<button class="icon-btn" onclick={() => sidebarOpen = !sidebarOpen} title={sidebarOpen ? 'Réduire la sidebar' : 'Afficher la sidebar'}>
+				{#if sidebarOpen}
+					<PanelLeftClose size={16} />
+				{:else}
+					<PanelLeftOpen size={16} />
+				{/if}
+			</button>
+		</div>
+	</header>
+	<div class="app-body" class:sidebar-collapsed={!sidebarOpen}>
 	{#if sidebarOpen}
 		<div class="sidebar-wrap" style="width: {sidebarWidth}px">
 			<Sidebar
@@ -463,19 +494,13 @@
 				{assetTree}
 				{currentSlug}
 				{sidebarView}
-				onRefresh={() => { loadTree(); loadAssetTree(); }}
 				onLoadFile={loadFile}
-				onCreateFile={() => { createFileSection = ''; showCreateDialog = true; }}
-				onCreateFolder={() => { createFolderParent = ''; showCreateFolderDialog = true; }}
 				onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
 				onCreateFolderInFolder={(slug) => { createFolderParent = slug; showCreateFolderDialog = true; }}
 				onDeleteFile={handleDelete}
 				onDeleteFolder={handleDeleteFolder}
 				onRenameFile={handleRename}
 				onDuplicateFile={handleDuplicate}
-				onSearch={() => showSearch = true}
-				onToggle={() => sidebarOpen = !sidebarOpen}
-				onToggleSitemap={() => showSitemap = !showSitemap}
 				onSelectAsset={(path) => window.open(`/api/assets/${path}`, '_blank')}
 				onViewChange={(v) => sidebarView = v}
 			/>
@@ -588,6 +613,7 @@
 			</div>
 		{/if}
 	</main>
+	</div>
 </div>
 
 <CreateFileDialog
@@ -619,10 +645,54 @@
 />
 
 <style>
-	.cms-layout {
+	.app-shell {
 		display: flex;
+		flex-direction: column;
 		height: 100vh;
 		overflow: hidden;
+	}
+
+	.app-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 16px;
+		border-bottom: 1px solid var(--c-border);
+		background: var(--c-bg);
+		flex-shrink: 0;
+		height: 48px;
+	}
+
+	.header-brand {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.header-brand h2 {
+		font-size: 15px;
+		font-weight: 600;
+		color: var(--c-text);
+	}
+
+	.app-body {
+		display: flex;
+		flex: 1;
+		overflow: hidden;
+		min-height: 0;
+	}
+
+	.app-header .icon-btn {
+		width: 32px;
+		height: 32px;
+		border: none;
+		background: transparent;
+		color: var(--c-text-muted);
+	}
+
+	.app-header .icon-btn:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
 	}
 
 	.editor-panel {
@@ -725,12 +795,12 @@
 		border-color: var(--c-border);
 	}
 
-	.cms-layout :global(.sidebar) {
+	.app-body :global(.sidebar) {
 		width: 100%;
 		min-width: 0;
 	}
 
-	.cms-layout.sidebar-collapsed :global(.sidebar) {
+	.app-body.sidebar-collapsed :global(.sidebar) {
 		display: none;
 	}
 
