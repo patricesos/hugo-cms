@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade, slide } from 'svelte/transition';
-	import { PenLine, Save, X, Trash2, RotateCcw, Loader2 } from '@lucide/svelte';
+	import { PenLine, Save, X, Trash2, Loader2 } from '@lucide/svelte';
 
 	let {
 		slug,
@@ -18,12 +18,19 @@
 	let editing = $state(false);
 	let saving = $state(false);
 	let error = $state('');
+	let dirty = $state(false);
 
 	$effect(() => {
 		if (slug) {
+			if (dirty && !window.confirm('Des modifications non sauvegardées vont être perdues. Continuer ?')) return;
 			loadArchetype(slug);
+			dirty = false;
 		}
 	});
+
+	function markDirty() {
+		dirty = true;
+	}
 
 	async function loadArchetype(name: string) {
 		loading = true;
@@ -128,7 +135,8 @@
 			{#if editing}
 				<textarea
 					class="source-editor"
-					bind:value={source}
+					value={source}
+					oninput={(e) => { source = e.currentTarget.value; markDirty(); }}
 					spellcheck="false"
 				></textarea>
 			{:else}

@@ -61,6 +61,7 @@
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let resizeCleanupFns: (() => void)[] = [];
+	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let sidebarOpen = $state(true);
 	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
 	let currentArchetype = $state<string | null>(null);
@@ -153,6 +154,8 @@
 		fmOpen;
 		fmWidth;
 		expandedSlugs;
+		showPreview;
+		previewWidth;
 		saveAppState();
 	});
 
@@ -341,6 +344,7 @@
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			stopConflictPoll();
 			for (const fn of resizeCleanupFns) fn();
+			if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		};
 	});
 
@@ -468,6 +472,8 @@
 			if (tab) tab.frontmatter = fm;
 			updateTreeFrontmatter(currentSlug, fm);
 		}
+		if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
+		fmSaveTimeout = setTimeout(() => saveRequest++, 2000);
 	}
 
 	function updateTreeFrontmatter(slug: string, fm: Record<string, unknown>) {
@@ -481,12 +487,11 @@
 			}
 			return false;
 		}
-		walk(tree);
-		tree = tree; // trigger reactivity
+		tree = tree.map(n => ({ ...n }));
 	}
 
 	async function handleCreate(title: string, section: string, archetype?: string) {
-		const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+		const slug = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 		const fullSlug = section ? `${section}/${slug}` : slug;
 		const frontmatter = { title, date: new Date().toISOString().split('T')[0], draft: true };
 		const body: string = await fetch(`/api/content/${fullSlug}`, {

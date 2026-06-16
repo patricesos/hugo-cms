@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getAllShortcodes } from '$lib/server/shortcodes';
 
-export function GET() {
-	const shortcodes = getAllShortcodes();
+export async function GET() {
+	const shortcodes = await getAllShortcodes();
 	return json(shortcodes);
 }

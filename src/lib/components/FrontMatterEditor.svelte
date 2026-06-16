@@ -70,6 +70,10 @@
 
 	function updateCustomKey(oldKey: string, newKey: string) {
 		if (!newKey || oldKey === newKey) return;
+		if (newKey in local) {
+			alert(`Une clé "${newKey}" existe déjà.`);
+			return;
+		}
 		const val = local[oldKey];
 		const { [oldKey]: _, ...rest } = local;
 		local = { ...rest, [newKey]: val };

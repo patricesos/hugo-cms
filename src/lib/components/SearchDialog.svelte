@@ -49,10 +49,9 @@
 
 	const results = $derived(
 		query.length < 2
-			? entries.slice(0, 10)
+			? entries
 			: entries
 				.filter((e) => fuzzyMatch(e.slug, query) || fuzzyMatch(e.title, query))
-				.slice(0, 20)
 	);
 
 	$effect(() => {

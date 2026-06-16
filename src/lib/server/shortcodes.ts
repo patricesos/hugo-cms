@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { cmsConfig } from './config';
 
@@ -94,20 +94,21 @@ const NATIVE_SHORTCODES: ShortcodeDef[] = [
 	},
 ];
 
-function scanCustomShortcodes(): ShortcodeDef[] {
+async function scanCustomShortcodes(): Promise<ShortcodeDef[]> {
 	const hugoRoot = resolve(cmsConfig.hugoContentPath, '..');
 	const shortcodesDir = join(hugoRoot, 'layouts', 'shortcodes');
 
 	let files: string[];
 	try {
-		files = readdirSync(shortcodesDir).filter((f) => f.endsWith('.html'));
+		files = (await readdir(shortcodesDir)).filter((f) => f.endsWith('.html'));
 	} catch {
 		return [];
 	}
 
-	return files.map((f) => {
+	const results: ShortcodeDef[] = [];
+	for (const f of files) {
 		const name = f.replace(/\.html$/, '');
-		const content = readFileSync(join(shortcodesDir, f), 'utf-8');
+		const content = await readFile(join(shortcodesDir, f), 'utf-8');
 
 		// Extract .Get calls for named params and positional params
 		const namedParamRe = /\$?\.Get\s*\(\s*"([^"]+)"\s*\)/g;
@@ -174,25 +175,27 @@ function scanCustomShortcodes(): ShortcodeDef[] {
 			? `{{< ${name} ${allParts.join(' ')} >}}\n...\n{{< /${name} >}}`
 			: `{{< ${name} ${allParts.join(' ')} >}}`;
 
-		return {
+		results.push({
 			name,
 			source: 'custom',
 			description,
 			params,
 			body: hasBody,
 			example,
-		};
-	});
+		});
+	}
+	return results;
 }
 
-export function getAllShortcodes(): ShortcodeDef[] {
-	const custom = scanCustomShortcodes();
+export async function getAllShortcodes(): Promise<ShortcodeDef[]> {
+	const custom = await scanCustomShortcodes();
 	const customNames = new Set(custom.map((s) => s.name));
 	// Native shortcodes that are NOT overridden by custom ones
 	const native = NATIVE_SHORTCODES.filter((s) => !customNames.has(s.name));
 	return [...custom, ...native];
 }
 
-export function getShortcode(name: string): ShortcodeDef | undefined {
-	return getAllShortcodes().find((s) => s.name === name);
+export async function getShortcode(name: string): Promise<ShortcodeDef | undefined> {
+	const all = await getAllShortcodes();
+	return all.find((s) => s.name === name);
 }
