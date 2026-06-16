@@ -264,7 +264,11 @@
 			}
 		}
 		ed.view.dom.addEventListener('click', handleClick);
-		return () => ed.view.dom.removeEventListener('click', handleClick);
+		return () => {
+			if (!ed.isDestroyed && ed.view.dom) {
+				ed.view.dom.removeEventListener('click', handleClick);
+			}
+		};
 	});
 
 	// when frontmatter changes in raw mode, refresh the raw textarea
