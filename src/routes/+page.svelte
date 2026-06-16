@@ -381,8 +381,10 @@
 			currentFrontmatter = { ...tab.frontmatter };
 			currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
 			editorSetContent?.(tab.content);
+			sidebarView = 'content';
 		} else {
 			currentSlug = tab.slug;
+			sidebarView = 'static';
 		}
 	}
 
@@ -659,8 +661,8 @@
 						window.open(`/api/assets/${path}`, '_blank');
 					}
 				}}
-				onSelectArchetype={(slug) => { currentArchetype = slug; }}
-				onSelectConfig={(slug) => { currentConfigSlug = slug; }}
+				onSelectArchetype={(slug) => { currentArchetype = slug; sidebarView = 'archetypes'; }}
+				onSelectConfig={(slug) => { currentConfigSlug = slug; sidebarView = 'config'; }}
 				onViewChange={(v) => { sidebarView = v; if (v !== 'archetypes') currentArchetype = null; if (v !== 'config') currentConfigSlug = null; if (v === 'config') loadConfigTree(); }}
 			/>
 		</div>
