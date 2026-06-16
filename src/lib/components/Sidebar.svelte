@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Image, FileText, FileCode } from '@lucide/svelte';
+	import { Image, FileText, FileCode, Settings } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
 
 	interface TreeNodeData {
@@ -15,6 +15,7 @@
 		tree = [] as TreeNodeData[],
 		assetTree = [] as TreeNodeData[],
 		archetypeTree = [] as TreeNodeData[],
+		configTree = [] as TreeNodeData[],
 		currentSlug = '',
 		sidebarView = 'content',
 		expandedSlugs = new Set<string>(),
@@ -27,14 +28,16 @@
 		onDuplicateFile,
 		onSelectAsset,
 		onSelectArchetype,
+		onSelectConfig,
 		onViewChange,
 		onToggleFolder,
 	}: {
 		tree: TreeNodeData[];
 		assetTree: TreeNodeData[];
 		archetypeTree: TreeNodeData[];
+		configTree: TreeNodeData[];
 		currentSlug: string | null;
-		sidebarView?: 'content' | 'static' | 'archetypes';
+		sidebarView?: 'content' | 'static' | 'archetypes' | 'config';
 		expandedSlugs?: Set<string>;
 		onLoadFile: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
@@ -45,11 +48,12 @@
 		onDuplicateFile?: (slug: string) => void;
 		onSelectAsset?: (path: string) => void;
 		onSelectArchetype?: (slug: string) => void;
-		onViewChange?: (view: 'content' | 'static' | 'archetypes') => void;
+		onSelectConfig?: (slug: string) => void;
+		onViewChange?: (view: 'content' | 'static' | 'archetypes' | 'config') => void;
 		onToggleFolder?: (slug: string) => void;
 	} = $props();
 
-	function setView(view: 'content' | 'static' | 'archetypes') {
+	function setView(view: 'content' | 'static' | 'archetypes' | 'config') {
 		onViewChange?.(view);
 	}
 </script>
@@ -63,6 +67,10 @@
 		{:else if sidebarView === 'static'}
 			{#each assetTree as node}
 				<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectAsset?.(slug)} />
+			{/each}
+		{:else if sidebarView === 'config'}
+			{#each configTree as node}
+				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectConfig?.(slug)} />
 			{/each}
 		{:else}
 			{#each archetypeTree as node}
@@ -83,6 +91,10 @@
 		<button class="view-tab" class:active={sidebarView === 'archetypes'} onclick={() => setView('archetypes')}>
 			<FileCode size={14} />
 			<span>Archétypes</span>
+		</button>
+		<button class="view-tab" class:active={sidebarView === 'config'} onclick={() => setView('config')}>
+			<Settings size={14} />
+			<span>Config</span>
 		</button>
 	</div>
 </aside>

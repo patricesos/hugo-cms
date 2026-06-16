@@ -15,6 +15,7 @@
 	import HugoPreview from '$lib/components/HugoPreview.svelte';
 	import ArchetypeView from '$lib/components/ArchetypeView.svelte';
 	import ImageView from '$lib/components/ImageView.svelte';
+	import ConfigView from '$lib/components/ConfigView.svelte';
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -58,13 +59,15 @@
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
-	let sidebarView = $state<'content' | 'static' | 'archetypes'>('content');
+	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
 	let currentArchetype = $state<string | null>(null);
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
 	let fmWidth = $state(280);
 	let archetypes = $state<{ name: string; label: string }[]>([]);
+	let configTree = $state<TreeNode[]>([]);
+	let currentConfigSlug = $state<string | null>(null);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
 	let expandedSlugs = $state<Set<string>>(new Set());
@@ -272,7 +275,7 @@
 	}
 
 	onMount(() => {
-		Promise.all([loadTree(), loadAssetTree(), loadArchetypes()]).then(() => {
+		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(() => {
 			restoreAppState();
 		});
 		startConflictPoll();
@@ -328,6 +331,15 @@
 		} catch {
 			archetypes = [];
 			archetypeTree = [];
+		}
+	}
+
+	async function loadConfigTree() {
+		try {
+			const res = await fetch('/api/config?tree=true');
+			configTree = await res.json();
+		} catch {
+			configTree = [];
 		}
 	}
 
@@ -584,7 +596,7 @@
 			<button class="icon-btn" onclick={() => { createFolderParent = ''; showCreateFolderDialog = true; }} title="Nouveau dossier">
 				<FolderPlus size={16} />
 			</button>
-			<button class="icon-btn" onclick={() => { loadTree(); loadAssetTree(); }} title="Rafraîchir">
+			<button class="icon-btn" onclick={() => { loadTree(); loadAssetTree(); loadConfigTree(); }} title="Rafraîchir">
 				<RefreshCw size={16} />
 			</button>
 			<button class="icon-btn" onclick={() => showSitemap = !showSitemap} title="Sitemap visuel">
@@ -611,6 +623,7 @@
 				tree={tree}
 				{assetTree}
 				{archetypeTree}
+				{configTree}
 				{currentSlug}
 				{sidebarView}
 				{expandedSlugs}
@@ -647,7 +660,8 @@
 					}
 				}}
 				onSelectArchetype={(slug) => { currentArchetype = slug; }}
-				onViewChange={(v) => { sidebarView = v; if (v !== 'archetypes') currentArchetype = null; }}
+				onSelectConfig={(slug) => { currentConfigSlug = slug; }}
+				onViewChange={(v) => { sidebarView = v; if (v !== 'archetypes') currentArchetype = null; if (v !== 'config') currentConfigSlug = null; if (v === 'config') loadConfigTree(); }}
 			/>
 		</div>
 		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
@@ -662,6 +676,12 @@
 				slug={currentArchetype}
 				onClose={() => currentArchetype = null}
 				onDelete={(s) => { loadArchetypes(); currentArchetype = null; }}
+			/>
+		{:else if sidebarView === 'config'}
+			<ConfigView
+				slug={currentConfigSlug}
+				onClose={() => currentConfigSlug = null}
+				onDelete={(s) => { loadConfigTree(); currentConfigSlug = null; }}
 			/>
 		{:else if showSitemap && !currentSlug}
 			<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
