@@ -1,5 +1,20 @@
 import { error, json } from '@sveltejs/kit';
 import { readContent, createContent, updateContent, deleteContent, renameContent } from '$lib/server/content';
+import { listArchetypes, renderArchetype } from '$lib/server/archetypes';
+import { writeFile, mkdir, stat } from 'node:fs/promises';
+import { resolve, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { cmsConfig } from '$lib/server/config';
+import { parseFrontmatter } from '$lib/server/markdown';
+
+function safeResolveBase(...segments: string[]): string {
+	const BASE = cmsConfig.hugoContentPath;
+	const resolved = resolve(BASE, ...segments);
+	if (!resolved.startsWith(resolve(BASE))) {
+		throw new Error('Path traversal detected');
+	}
+	return resolved;
+}
 
 export async function GET({ params }) {
 	const slug = params.slug;
@@ -15,9 +30,32 @@ export async function GET({ params }) {
 export async function POST({ params, request }) {
 	const slug = params.slug;
 	if (!slug) error(400, 'Slug is required');
-	const { body, frontmatter } = await request.json();
+	const { body, frontmatter, archetype } = await request.json();
+
 	try {
-		const item = await createContent(slug, body, frontmatter);
+		if (archetype) {
+			const archetypes = await listArchetypes();
+			const match = archetypes.find(a => a.name === archetype);
+			if (match) {
+				const rendered = renderArchetype(match.source, (frontmatter?.title as string) || slug, slug);
+				const filePath = safeResolveBase(slug + '.md');
+				const dir = dirname(filePath);
+				if (!existsSync(dir)) {
+					await mkdir(dir, { recursive: true });
+				}
+				await writeFile(filePath, rendered, 'utf-8');
+				const stats = await stat(filePath);
+				const parsed = parseFrontmatter(rendered);
+				return json({
+					frontmatter: parsed.frontmatter,
+					body: parsed.body,
+					slug,
+					mtimeMs: stats.mtimeMs,
+				}, { status: 201 });
+			}
+		}
+
+		const item = await createContent(slug, body || '', frontmatter);
 		return json(item, { status: 201 });
 	} catch (e) {
 		error(409, (e as Error).message);

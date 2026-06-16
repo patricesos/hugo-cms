@@ -3,6 +3,11 @@
 	import { fade, fly } from 'svelte/transition';
 	import { X } from '@lucide/svelte';
 
+	interface Archetype {
+		name: string;
+		label: string;
+	}
+
 	interface TreeNode {
 		type: 'file' | 'directory';
 		name: string;
@@ -13,17 +18,20 @@
 	let {
 		show = false,
 		directories = [] as { slug: string; name: string }[],
+		archetypes = [] as Archetype[],
 		onClose,
 		onCreate,
 	}: {
 		show: boolean;
 		directories: { slug: string; name: string }[];
+		archetypes?: Archetype[];
 		onClose: () => void;
-		onCreate: (title: string, section: string) => void;
+		onCreate: (title: string, section: string, archetype?: string) => void;
 	} = $props();
 
 	let title = $state('');
 	let section = $state('');
+	let selectedArchetype = $state('default');
 	let inputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
@@ -39,7 +47,7 @@
 
 	function handleSubmit() {
 		if (!title.trim()) return;
-		onCreate(title.trim(), section);
+		onCreate(title.trim(), section, selectedArchetype);
 		title = '';
 	}
 
@@ -77,6 +85,17 @@
 						placeholder="Mon super article"
 					/>
 				</label>
+
+				{#if archetypes.length > 0}
+					<label class="field">
+						<span class="label">Archetype</span>
+						<select bind:value={selectedArchetype}>
+							{#each archetypes as a}
+								<option value={a.name}>{a.label}</option>
+							{/each}
+						</select>
+					</label>
+				{/if}
 
 				{#if slugPreview}
 					<div class="slug-preview">

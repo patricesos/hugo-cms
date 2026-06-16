@@ -50,6 +50,7 @@
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
+	let archetypes = $state<{ name: string; label: string }[]>([]);
 	let conflictSlug = $state<string | null>(null);
 	let conflictServerMtimeMs = $state(0);
 
@@ -156,6 +157,7 @@
 
 	onMount(() => {
 		loadTree();
+		loadArchetypes();
 		startConflictPoll();
 		function handleKeydown(e: KeyboardEvent) {
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -188,6 +190,15 @@
 	async function loadTree() {
 		const res = await fetch('/api/content?tree=true');
 		tree = await res.json();
+	}
+
+	async function loadArchetypes() {
+		try {
+			const res = await fetch('/api/archetypes');
+			archetypes = await res.json();
+		} catch {
+			archetypes = [];
+		}
 	}
 
 	async function loadFile(slug: string) {
@@ -276,15 +287,15 @@
 		tree = tree; // trigger reactivity
 	}
 
-	async function handleCreate(title: string, section: string) {
+	async function handleCreate(title: string, section: string, archetype?: string) {
 		const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 		const fullSlug = section ? `${section}/${slug}` : slug;
 		const frontmatter = { title, date: new Date().toISOString().split('T')[0], draft: true };
-		await fetch(`/api/content/${fullSlug}`, {
+		const body: string = await fetch(`/api/content/${fullSlug}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ body: '', frontmatter }),
-		});
+			body: JSON.stringify({ body: '', frontmatter, archetype: archetype || 'default' }),
+		}).then(r => r.json()).then(d => d.body || '');
 		showCreateDialog = false;
 		await loadTree();
 		await loadFile(fullSlug);
@@ -515,6 +526,7 @@
 <CreateFileDialog
 	show={showCreateDialog}
 	{directories}
+	{archetypes}
 	onClose={() => showCreateDialog = false}
 	onCreate={handleCreate}
 />
