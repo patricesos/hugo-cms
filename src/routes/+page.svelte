@@ -70,6 +70,7 @@
 	let showSitemap = $state(false);
 	let showPreview = $state(false);
 	let showConsole = $state(false);
+	let consoleHeight = $state(200);
 	let fmWidth = $state(280);
 	let previewWidth = $state(480);
 	let archetypes = $state<{ name: string; label: string }[]>([]);
@@ -96,6 +97,7 @@
 			fmOpen,
 			showPreview,
 			showConsole,
+			consoleHeight,
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
@@ -114,6 +116,7 @@
 			fmOpen = state.fmOpen ?? true;
 			showPreview = state.showPreview ?? false;
 			showConsole = state.showConsole ?? false;
+			consoleHeight = state.consoleHeight ?? 200;
 			fmWidth = state.fmWidth ?? 280;
 			previewWidth = state.previewWidth ?? 480;
 			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
@@ -162,6 +165,7 @@
 		expandedSlugs;
 		showPreview;
 		showConsole;
+		consoleHeight;
 		previewWidth;
 		saveAppState();
 	});
@@ -886,7 +890,7 @@
 	</div>
 </div>
 
-<HugoConsole show={showConsole} onClose={() => showConsole = false} />
+<HugoConsole show={showConsole} bind:consoleHeight onClose={() => showConsole = false} />
 
 <CreateFileDialog
 	show={showCreateDialog}

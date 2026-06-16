@@ -8,7 +8,7 @@
 		timestamp: number;
 	}
 
-	let { show, onClose }: { show: boolean; onClose: () => void } = $props();
+	let { show, onClose, consoleHeight = $bindable(200) }: { show: boolean; onClose: () => void; consoleHeight?: number } = $props();
 
 	let logs = $state<LogEntry[]>([]);
 	let logEnd = $state<HTMLDivElement | null>(null);
@@ -16,6 +16,32 @@
 	let pollTimer: ReturnType<typeof setInterval> | null = null;
 	let lastTs = $state(0);
 	let autoScroll = $state(true);
+
+	function startResize(e: PointerEvent) {
+		e.preventDefault();
+		const handle = e.currentTarget as HTMLElement;
+		const startY = e.clientY;
+		const startHeight = consoleHeight;
+		handle.setPointerCapture(e.pointerId);
+		document.body.style.cursor = 'row-resize';
+		document.body.style.userSelect = 'none';
+
+		function onMove(ev: PointerEvent) {
+			const maxH = window.innerHeight * 0.6;
+			const newH = Math.max(100, Math.min(maxH, startHeight - (ev.clientY - startY)));
+			consoleHeight = newH;
+		}
+
+		function onUp() {
+			handle.removeEventListener('pointermove', onMove);
+			handle.removeEventListener('pointerup', onUp);
+			document.body.style.cursor = '';
+			document.body.style.userSelect = '';
+		}
+
+		handle.addEventListener('pointermove', onMove);
+		handle.addEventListener('pointerup', onUp);
+	}
 
 	$effect(() => {
 		if (show && !polling) {
@@ -72,7 +98,8 @@
 </script>
 
 {#if show}
-	<div class="console-panel">
+	<div class="console-panel" style="height:{consoleHeight}px">
+		<div class="console-resize-handle" role="presentation" onpointerdown={startResize}></div>
 		<div class="console-header">
 			<span class="console-title">
 				<Terminal size={14} />
@@ -112,8 +139,23 @@
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
-		height: 200px;
 		overflow: hidden;
+		position: relative;
+	}
+
+	.console-resize-handle {
+		height: 4px;
+		flex-shrink: 0;
+		cursor: row-resize;
+		background: transparent;
+		transition: background 0.15s;
+		position: relative;
+		z-index: 5;
+	}
+
+	.console-resize-handle:hover,
+	.console-resize-handle:active {
+		background: var(--c-primary);
 	}
 
 	.console-header {
