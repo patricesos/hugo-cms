@@ -3,18 +3,20 @@
 ## Sprint 6
 
 - [ ] Git intégré (commit/push depuis le CMS)
-- [x] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
-- [ ] Boutons Image et Shortcode dans la barre d'outils de l'éditeur
 - [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
 
 
 ## Backlog
 
 - [ ] Sélecteur de thèmes (Gruvbox, Catppuccin, Monokai…)
-- [ ] Champs personnalisés dans le frontmatter (clé/valeur)
 
 
 ## Done
+
+- [x] Champs personnalisés dans le frontmatter (clé/valeur)
+
+- [x] Boutons Image et Shortcode dans la barre d'outils de l'éditeur
+- [x] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
 
 - [x] Déplacer un fichier entre sections (drag & drop)
 - [x] Renommer un fichier
