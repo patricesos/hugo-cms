@@ -86,6 +86,9 @@
 			</span>
 			<div class="preview-actions">
 				{#if status === 'running'}
+					<button class="preview-btn" onclick={() => url && window.open(url, '_blank')} title="Ouvrir dans un nouvel onglet">
+						<ExternalLink size={13} />
+					</button>
 					<button class="preview-btn" onclick={reloadPreview} title="Recharger">
 						<RefreshCw size={13} />
 					</button>
