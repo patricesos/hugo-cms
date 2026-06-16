@@ -187,10 +187,114 @@
 		}
 	}
 
+	function rawWrap(prefix: string, suffix: string) {
+		const ta = textareaEl;
+		if (!ta) return;
+		const start = ta.selectionStart;
+		const end = ta.selectionEnd;
+		const text = rawContent;
+		const selected = text.substring(start, end);
+		const wrapped = selected ? `${prefix}${selected}${suffix}` : `${prefix}${suffix}`;
+		rawContent = text.substring(0, start) + wrapped + text.substring(end);
+		requestAnimationFrame(() => {
+			ta.focus();
+			if (selected) {
+				ta.setSelectionRange(start, start + wrapped.length);
+			} else {
+				ta.setSelectionRange(start + prefix.length, start + prefix.length);
+			}
+		});
+	}
+
+	function rawHeading(level: number) {
+		const ta = textareaEl;
+		if (!ta) return;
+		const start = ta.selectionStart;
+		const text = rawContent;
+		const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+		const lineEnd = text.indexOf('\n', start);
+		const line = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd);
+		const prefix = '#'.repeat(level) + ' ';
+		const stripped = line.replace(/^#{1,6}\s*/, '');
+		const newLine = `${prefix}${stripped}`;
+		const before = text.substring(0, lineStart);
+		const after = text.substring(lineEnd === -1 ? text.length : lineEnd);
+		rawContent = before + newLine + after;
+		requestAnimationFrame(() => {
+			ta.focus();
+			ta.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length);
+		});
+	}
+
+	function rawList(ordered: boolean) {
+		const ta = textareaEl;
+		if (!ta) return;
+		const start = ta.selectionStart;
+		const text = rawContent;
+		const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+		const lineEnd = text.indexOf('\n', start);
+		const stripped = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd).replace(/^(\s*)(\d+\.\s|[-*+]\s)/, '$1');
+		const prefix = ordered ? '1. ' : '- ';
+		const newLine = `${stripped ? stripped.replace(/^\s*/, '') : ''}`;
+		const indent = stripped.match(/^\s*/)?.[0] || '';
+		const result = `${indent}${prefix}${newLine}`;
+		rawContent = text.substring(0, lineStart) + result + text.substring(lineEnd === -1 ? text.length : lineEnd);
+		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(lineStart + result.length, lineStart + result.length); });
+	}
+
+	function rawBlockquote() {
+		const ta = textareaEl;
+		if (!ta) return;
+		const start = ta.selectionStart;
+		const text = rawContent;
+		const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+		const lineEnd = text.indexOf('\n', start);
+		const line = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd);
+		const newLine = line.startsWith('> ') ? line.slice(2) : `> ${line}`;
+		rawContent = text.substring(0, lineStart) + newLine + text.substring(lineEnd === -1 ? text.length : lineEnd);
+		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(lineStart + newLine.length, lineStart + newLine.length); });
+	}
+
+	function rawLink() {
+		const url = window.prompt('URL du lien:');
+		if (!url) return;
+		rawWrap('[', `](${url})`);
+	}
+
+	function rawHr() {
+		const ta = textareaEl;
+		if (!ta) return;
+		const start = ta.selectionStart;
+		const text = rawContent;
+		const before = text.substring(0, start);
+		const after = text.substring(start);
+		const nl = before.endsWith('\n') ? '' : '\n';
+		rawContent = `${before}${nl}---\n\n${after}`;
+		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + nl.length + 5, start + nl.length + 5); });
+	}
+
+	function rawUndo() {
+		const ta = textareaEl;
+		if (!ta) return;
+		ta.focus();
+		document.execCommand('undo');
+	}
+
+	function rawRedo() {
+		const ta = textareaEl;
+		if (!ta) return;
+		ta.focus();
+		document.execCommand('redo');
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
 			handleManualSave();
+		}
+		if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
+			e.preventDefault();
+			rawMode = !rawMode;
 		}
 	}
 </script>
@@ -199,22 +303,22 @@
 
 <div class="editor-container">
 	<div class="editor-toolbar">
-		<button onclick={() => exec('undo')} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
-		<button onclick={() => exec('redo')} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
+		<button onclick={rawMode ? rawUndo : () => exec('undo')} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
+		<button onclick={rawMode ? rawRedo : () => exec('redo')} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => toggleHeading(1)} class:active={editor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
-		<button onclick={() => toggleHeading(2)} class:active={editor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
-		<button onclick={() => toggleHeading(3)} class:active={editor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
+		<button onclick={rawMode ? () => rawHeading(1) : () => toggleHeading(1)} class:active={!rawMode && editor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
+		<button onclick={rawMode ? () => rawHeading(2) : () => toggleHeading(2)} class:active={!rawMode && editor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
+		<button onclick={rawMode ? () => rawHeading(3) : () => toggleHeading(3)} class:active={!rawMode && editor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => exec('toggleBold')} class:active={editor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
-		<button onclick={() => exec('toggleItalic')} class:active={editor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
-		<button onclick={() => exec('toggleCode')} class:active={editor?.isActive('code')} title="Code"><Code size={15} /></button>
-		<button onclick={setLink} class:active={editor?.isActive('link')} title="Lien"><Link size={15} /></button>
+		<button onclick={rawMode ? () => rawWrap('**', '**') : () => exec('toggleBold')} class:active={!rawMode && editor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
+		<button onclick={rawMode ? () => rawWrap('*', '*') : () => exec('toggleItalic')} class:active={!rawMode && editor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
+		<button onclick={rawMode ? () => rawWrap('`', '`') : () => exec('toggleCode')} class:active={!rawMode && editor?.isActive('code')} title="Code"><Code size={15} /></button>
+		<button onclick={rawMode ? rawLink : setLink} title="Lien"><Link size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => exec('toggleBlockquote')} class:active={editor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
-		<button onclick={() => exec('toggleBulletList')} class:active={editor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
-		<button onclick={() => exec('toggleOrderedList')} class:active={editor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
-		<button onclick={() => exec('setHorizontalRule')} title="Ligne horizontale"><Minus size={15} /></button>
+		<button onclick={rawMode ? rawBlockquote : () => exec('toggleBlockquote')} class:active={!rawMode && editor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
+		<button onclick={rawMode ? () => rawList(false) : () => exec('toggleBulletList')} class:active={!rawMode && editor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
+		<button onclick={rawMode ? () => rawList(true) : () => exec('toggleOrderedList')} class:active={!rawMode && editor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
+		<button onclick={rawMode ? rawHr : () => exec('setHorizontalRule')} title="Ligne horizontale"><Minus size={15} /></button>
 		<span class="sep"></span>
 		<button class:toggle-active={rawMode} onclick={() => rawMode = !rawMode} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
 	</div>

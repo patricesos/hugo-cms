@@ -19,6 +19,7 @@
 		{ keys: ['⌘B', 'Ctrl+B'], label: 'Gras' },
 		{ keys: ['⌘I', 'Ctrl+I'], label: 'Italique' },
 		{ keys: ['⌘K', 'Ctrl+K'], label: 'Insérer un lien' },
+		{ keys: ['⌘R', 'Ctrl+R'], label: 'Basculer éditeur WYSIWYG / Markdown' },
 		{ keys: ['?'], label: 'Aide (ce panneau)' },
 		{ keys: ['Échap'], label: 'Fermer les dialogues / popups' },
 	];
