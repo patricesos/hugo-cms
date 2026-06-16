@@ -100,6 +100,7 @@
 	}
 
 	function markRawUnsaved() {
+		pushRawHistory();
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		onSaveState?.('unsaved');
 		rawSaveTimeout = setTimeout(doRawAutoSave, 2000);
@@ -142,6 +143,7 @@
 				extensions: [
 					StarterKit.configure({
 						heading: { levels: [1, 2, 3] },
+						history: { depth: 250 },
 					}),
 					Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
 					Markdown.configure({
@@ -214,6 +216,10 @@
 				: '';
 			const body = getMarkdown();
 			rawContent = fmString ? `${fmString}\n\n${body}` : body;
+			// seed undo history
+			rawHistory = [rawContent];
+			rawHistoryIdx = 0;
+			rawHistoryLock = 0;
 		} else {
 			// switching to WYSIWYG: textarea → Tiptap, strip frontmatter
 			const { frontmatter: fm, body, format } = splitRawContent(rawContent);
@@ -237,7 +243,14 @@
 		prevFmSnapshot = snapshot;
 		const body = getRawBody(rawContent);
 		const fmString = serializeFm(frontmatter, frontmatterFormat);
-		rawContent = fmString ? `${fmString}\n\n${body}` : body;
+		const newContent = fmString ? `${fmString}\n\n${body}` : body;
+		if (newContent === rawContent) return;
+		// push current state into history before replacing
+		rawHistory = rawHistory.slice(0, rawHistoryIdx + 1);
+		rawHistory.push(rawContent);
+		rawHistoryIdx = rawHistory.length - 1;
+		if (rawHistory.length > 200) rawHistory.shift();
+		rawContent = newContent;
 	});
 
 	function serializeFm(fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
@@ -325,6 +338,7 @@
 		const selected = text.substring(start, end);
 		const wrapped = selected ? `${prefix}${selected}${suffix}` : `${prefix}${suffix}`;
 		rawContent = text.substring(0, start) + wrapped + text.substring(end);
+		markRawUnsaved();
 		requestAnimationFrame(() => {
 			ta.focus();
 			if (selected) {
@@ -349,6 +363,7 @@
 		const before = text.substring(0, lineStart);
 		const after = text.substring(lineEnd === -1 ? text.length : lineEnd);
 		rawContent = before + newLine + after;
+		markRawUnsaved();
 		requestAnimationFrame(() => {
 			ta.focus();
 			ta.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length);
@@ -368,6 +383,7 @@
 		const indent = stripped.match(/^\s*/)?.[0] || '';
 		const result = `${indent}${prefix}${newLine}`;
 		rawContent = text.substring(0, lineStart) + result + text.substring(lineEnd === -1 ? text.length : lineEnd);
+		markRawUnsaved();
 		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(lineStart + result.length, lineStart + result.length); });
 	}
 
@@ -381,6 +397,7 @@
 		const line = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd);
 		const newLine = line.startsWith('> ') ? line.slice(2) : `> ${line}`;
 		rawContent = text.substring(0, lineStart) + newLine + text.substring(lineEnd === -1 ? text.length : lineEnd);
+		markRawUnsaved();
 		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(lineStart + newLine.length, lineStart + newLine.length); });
 	}
 
@@ -399,21 +416,37 @@
 		const after = text.substring(start);
 		const nl = before.endsWith('\n') ? '' : '\n';
 		rawContent = `${before}${nl}---\n\n${after}`;
+		markRawUnsaved();
 		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + nl.length + 5, start + nl.length + 5); });
 	}
 
+	let rawHistory = $state<string[]>([]);
+	let rawHistoryIdx = $state(-1);
+	let rawHistoryLock = $state(0); // prevents push during undo/redo restore
+
 	function rawUndo() {
-		const ta = textareaEl;
-		if (!ta) return;
-		ta.focus();
-		document.execCommand('undo');
+		if (rawHistoryIdx <= 0) return;
+		rawHistoryIdx--;
+		rawHistoryLock++;
+		rawContent = rawHistory[rawHistoryIdx];
+		textareaEl?.focus();
 	}
 
 	function rawRedo() {
-		const ta = textareaEl;
-		if (!ta) return;
-		ta.focus();
-		document.execCommand('redo');
+		if (rawHistoryIdx >= rawHistory.length - 1) return;
+		rawHistoryIdx++;
+		rawHistoryLock++;
+		rawContent = rawHistory[rawHistoryIdx];
+		textareaEl?.focus();
+	}
+
+	function pushRawHistory() {
+		if (rawHistoryLock > 0) { rawHistoryLock--; return; }
+		// trim future
+		rawHistory = rawHistory.slice(0, rawHistoryIdx + 1);
+		rawHistory.push(rawContent);
+		if (rawHistory.length > 200) rawHistory.shift();
+		rawHistoryIdx = rawHistory.length - 1;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -432,8 +465,8 @@
 
 <div class="editor-container">
 	<div class="editor-toolbar">
-		<button onclick={rawMode ? rawUndo : () => exec('undo')} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
-		<button onclick={rawMode ? rawRedo : () => exec('redo')} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
+		<button onclick={rawMode ? rawUndo : () => editor?.commands.undo()} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
+		<button onclick={rawMode ? rawRedo : () => editor?.commands.redo()} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
 		<span class="sep"></span>
 		<button onclick={rawMode ? () => rawHeading(1) : () => toggleHeading(1)} class:active={!rawMode && editor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
 		<button onclick={rawMode ? () => rawHeading(2) : () => toggleHeading(2)} class:active={!rawMode && editor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
