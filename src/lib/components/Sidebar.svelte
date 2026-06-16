@@ -51,21 +51,6 @@
 </script>
 
 <aside class="sidebar">
-	<div class="view-tabs">
-		<button class="view-tab" class:active={sidebarView === 'content'} onclick={() => setView('content')}>
-			<FileText size={14} />
-			<span>Content</span>
-		</button>
-		<button class="view-tab" class:active={sidebarView === 'static'} onclick={() => setView('static')}>
-			<Image size={14} />
-			<span>Static</span>
-		</button>
-		<button class="view-tab" class:active={sidebarView === 'archetypes'} onclick={() => setView('archetypes')}>
-			<FileCode size={14} />
-			<span>Archétypes</span>
-		</button>
-	</div>
-
 	<nav class="file-tree">
 		{#if sidebarView === 'content'}
 			{#each tree as node}
@@ -81,6 +66,21 @@
 			{/each}
 		{/if}
 	</nav>
+
+	<div class="view-tabs">
+		<button class="view-tab" class:active={sidebarView === 'content'} onclick={() => setView('content')}>
+			<FileText size={14} />
+			<span>Content</span>
+		</button>
+		<button class="view-tab" class:active={sidebarView === 'static'} onclick={() => setView('static')}>
+			<Image size={14} />
+			<span>Static</span>
+		</button>
+		<button class="view-tab" class:active={sidebarView === 'archetypes'} onclick={() => setView('archetypes')}>
+			<FileCode size={14} />
+			<span>Archétypes</span>
+		</button>
+	</div>
 </aside>
 
 <style>
@@ -105,7 +105,7 @@
 		display: flex;
 		gap: 2px;
 		padding: 6px 12px;
-		border-bottom: 1px solid var(--c-border);
+		border-top: 1px solid var(--c-border);
 		flex-shrink: 0;
 	}
 

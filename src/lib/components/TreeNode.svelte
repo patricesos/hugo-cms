@@ -46,7 +46,8 @@
 		open = !open;
 	}
 
-	const indent = $derived(depth * 24);
+	const PREFIX_W = 16 + 5 + 15 + 5; // chevron + gap + icon + gap
+	const indent = $derived(depth * 24 + (depth > 0 ? PREFIX_W - 24 : 0));
 	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
 	const fileName = $derived(node.name.replace(/\.md$/, ''));
 
