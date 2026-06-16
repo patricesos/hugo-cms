@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
@@ -475,7 +475,18 @@
 			<FileText size={20} color="var(--c-primary)" />
 			<h2>Hugo CMS</h2>
 		</div>
-		<div class="header-actions">
+	</header>
+	<div class="action-bar">
+		<div class="action-bar-left">
+			<button class="icon-btn" onclick={() => sidebarOpen = !sidebarOpen} title={sidebarOpen ? 'Réduire la sidebar' : 'Afficher la sidebar'}>
+				{#if sidebarOpen}
+					<PanelLeftClose size={16} />
+				{:else}
+					<PanelLeftOpen size={16} />
+				{/if}
+			</button>
+		</div>
+		<div class="action-bar-center">
 			<button class="icon-btn" onclick={() => showSearch = true} title="Rechercher (Ctrl+P)">
 				<Search size={16} />
 			</button>
@@ -491,15 +502,20 @@
 			<button class="icon-btn" onclick={() => showSitemap = !showSitemap} title="Sitemap visuel">
 				<Map size={16} />
 			</button>
-			<button class="icon-btn" onclick={() => sidebarOpen = !sidebarOpen} title={sidebarOpen ? 'Réduire la sidebar' : 'Afficher la sidebar'}>
-				{#if sidebarOpen}
-					<PanelLeftClose size={16} />
+			<button class="icon-btn" class:active={showPreview} onclick={() => showPreview = !showPreview} title="Aperçu Hugo (Cmd+Shift+P)">
+				<Eye size={16} />
+			</button>
+		</div>
+		<div class="action-bar-right">
+			<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
+				{#if fmOpen}
+					<PanelRightClose size={16} />
 				{:else}
-					<PanelLeftOpen size={16} />
+					<PanelRightOpen size={16} />
 				{/if}
 			</button>
 		</div>
-	</header>
+	</div>
 	<div class="app-body" class:sidebar-collapsed={!sidebarOpen}>
 	{#if sidebarOpen}
 		<div class="sidebar-wrap" style="width: {sidebarWidth}px">
@@ -525,11 +541,6 @@
 	{/if}
 
 	<main class="editor-panel">
-		{#if !sidebarOpen}
-			<button class="sidebar-reopen" onclick={() => sidebarOpen = true} title="Afficher la sidebar">
-				<PanelLeftOpen size={18} />
-			</button>
-		{/if}
 		{#if currentSlug || tabs.length > 0}
 			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={loadFile} onClose={handleCloseTab} />
 		{/if}
@@ -585,21 +596,6 @@
 							{:else}
 								<CheckCircle2 size={13} />
 							{/if}
-						</button>
-					</div>
-					<div class="header-actions">
-						<button class="icon-btn delete-btn" onclick={() => handleDelete()} title="Supprimer">
-							<Trash2 size={15} />
-						</button>
-						<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
-							{#if fmOpen}
-								<PanelRightClose size={15} />
-							{:else}
-								<PanelRightOpen size={15} />
-							{/if}
-						</button>
-						<button class="icon-btn" class:active={showPreview} onclick={() => showPreview = !showPreview} title="Aperçu Hugo (Cmd+Shift+P)">
-							<Eye size={15} />
 						</button>
 					</div>
 				</div>
@@ -688,6 +684,33 @@
 		height: 48px;
 	}
 
+	.action-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 4px 12px;
+		border-bottom: 1px solid var(--c-border);
+		background: var(--c-bg-subtle);
+		flex-shrink: 0;
+		height: 34px;
+	}
+
+	.action-bar-left,
+	.action-bar-right {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.action-bar-center {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		position: absolute;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
 	.header-brand {
 		display: flex;
 		align-items: center;
@@ -707,15 +730,16 @@
 		min-height: 0;
 	}
 
-	.app-header .icon-btn {
-		width: 32px;
-		height: 32px;
+
+	.action-bar .icon-btn {
+		width: 26px;
+		height: 26px;
 		border: none;
 		background: transparent;
 		color: var(--c-text-muted);
 	}
 
-	.app-header .icon-btn:hover {
+	.action-bar .icon-btn:hover {
 		background: var(--c-bg-muted);
 		color: var(--c-text);
 	}
@@ -793,31 +817,6 @@
 
 	.conflict-btn.primary:hover {
 		background: #d97706;
-	}
-
-	.sidebar-reopen {
-		position: absolute;
-		top: 8px;
-		left: 8px;
-		z-index: 10;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border: 1px solid var(--c-border);
-		background: var(--c-bg);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		color: var(--c-text-muted);
-		box-shadow: var(--shadow-sm);
-		transition: all 0.12s;
-	}
-
-	.sidebar-reopen:hover {
-		color: var(--c-text);
-		background: var(--c-bg-muted);
-		border-color: var(--c-border);
 	}
 
 	.app-body :global(.sidebar) {
@@ -899,12 +898,6 @@
 	.save-btn.saving :global(.spin) { animation: spin 0.8s linear infinite; }
 
 	@keyframes spin { to { transform: rotate(360deg); } }
-
-	.header-actions {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
 
 	.icon-btn {
 		display: flex;

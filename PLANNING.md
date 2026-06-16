@@ -3,6 +3,10 @@
 ## Sprint 6
 
 - [ ] Git intégré (commit/push depuis le CMS)
+- [ ] Persistance de l'état éditeur après refresh (onglets, dossiers ouverts…)
+- [ ] Nouvelle vue Config : éditer tous les fichiers du dossier config/ (hugo.toml, params, menus…)
+- [ ] ImageView : prévisualisation des images dans l'éditeur
+- [ ] Sidebar : position des icônes de vue (en bas) alignée avec le nombre total d'icônes à gauche (taille totale)
 - [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
 
 
@@ -12,6 +16,10 @@
 
 
 ## Done
+
+- [x] Bouton Aperçu déplacé dans la barre d'actions ; bouton Supprimer retiré de l'en-tête éditeur
+- [x] Barre d'actions sous le header (sidebar toggle + fm toggle aux extrémités, boutons d'action centrés)
+- [x] FM header : déplacer le titre au-dessus des actions
 
 - [x] Champs personnalisés dans le frontmatter (clé/valeur)
 
