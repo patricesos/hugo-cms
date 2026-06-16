@@ -1,3 +1,34 @@
+@font-face {
+	font-family: 'Open Sans';
+	font-style: normal;
+	font-weight: 400;
+	src: url('/fonts/OpenSans-Regular.ttf') format('truetype');
+}
+@font-face {
+	font-family: 'Open Sans';
+	font-style: normal;
+	font-weight: 500;
+	src: url('/fonts/OpenSans-Medium.ttf') format('truetype');
+}
+@font-face {
+	font-family: 'Open Sans';
+	font-style: normal;
+	font-weight: 600;
+	src: url('/fonts/OpenSans-SemiBold.ttf') format('truetype');
+}
+@font-face {
+	font-family: 'Open Sans';
+	font-style: normal;
+	font-weight: 700;
+	src: url('/fonts/OpenSans-Bold.ttf') format('truetype');
+}
+@font-face {
+	font-family: 'Open Sans';
+	font-style: normal;
+	font-weight: 800;
+	src: url('/fonts/OpenSans-ExtraBold.ttf') format('truetype');
+}
+
 *, *::before, *::after {
 	box-sizing: border-box;
 	margin: 0;
@@ -20,7 +51,7 @@
 
 	--c-text: #18181b;
 	--c-text-secondary: #71717a;
-	--c-text-muted: #a1a1aa;
+	--c-text-muted: #76767a;
 
 	--c-success: #16a34a;
 	--c-warning: #d97706;
@@ -35,7 +66,7 @@
 	--shadow-md: 0 4px 16px rgba(0,0,0,0.08);
 	--shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
 
-	--font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	--font-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 	--font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', monospace;
 	--font-serif: Georgia, 'Times New Roman', serif;
 }

@@ -1311,15 +1311,9 @@
 	}
 
 	.empty-state .hugo-logo {
-		width: 520px;
+		width: 260px;
 		max-width: 85%;
-		opacity: 0.3;
-	}
-
-	.empty-state h2 {
-		font-size: 18px;
-		color: var(--c-text-secondary);
-		margin-top: 8px;
+		opacity: 0.8;
 	}
 
 	.empty-state p {

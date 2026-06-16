@@ -82,7 +82,7 @@
 </script>
 
 <aside class="sidebar">
-	<div class="view-select" role="combobox" aria-haspopup="listbox" aria-expanded={dropdownOpen} aria-controls="view-dropdown-menu">
+	<div class="view-select" role="combobox" aria-label="Vue" aria-haspopup="listbox" aria-expanded={dropdownOpen} aria-controls="view-dropdown-menu">
 		<button class="view-dropdown-trigger" onclick={() => dropdownOpen = !dropdownOpen} onblur={handleBlur}>
 			<ChevronLeft size={12} />
 			{#if currentView.icon === FileText}
