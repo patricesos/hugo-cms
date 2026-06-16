@@ -26,6 +26,8 @@
 		frontmatter?: Record<string, unknown>;
 	}
 
+	type TabKind = 'content' | 'static' | 'archetype' | 'config';
+
 	interface Tab {
 		slug: string;
 		title: string;
@@ -33,7 +35,7 @@
 		frontmatter: Record<string, unknown>;
 		mtimeMs: number;
 		frontmatterLanguage?: 'yaml' | 'toml';
-		isImage?: boolean;
+		kind: TabKind;
 	}
 
 	let tree = $state<TreeNode[]>([]);
@@ -80,7 +82,7 @@
 	function saveAppState() {
 		if (!hydrated) return;
 		const state = {
-			tabs: tabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, isImage: t.isImage })),
+			tabs: tabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, kind: t.kind })),
 			currentSlug,
 			sidebarOpen,
 			sidebarView,
@@ -106,19 +108,14 @@
 			previewWidth = state.previewWidth ?? 480;
 			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 			if (state.tabs && state.currentSlug) {
-				const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; isImage?: boolean }) => ({
-					slug: t.slug,
-					title: t.title,
-					content: '',
-					frontmatter: {},
-					mtimeMs: 0,
-					frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml',
-					isImage: t.isImage ?? false,
-				}));
+				const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; kind?: TabKind; isImage?: boolean }) => {
+					const kind: TabKind = t.kind ?? (t.isImage ? 'static' : 'content');
+					return { slug: t.slug, title: t.title, content: '', frontmatter: {}, mtimeMs: 0, frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml', kind };
+				});
 				tabs = restored;
 				currentSlug = state.currentSlug;
 				for (const t of restored) {
-					if (t.isImage) continue;
+					if (t.kind === 'static' || t.kind === 'archetype' || t.kind === 'config') continue;
 					fetch(`/api/content/${t.slug}`).then(r => r.json()).then(data => {
 						t.content = data.body || '';
 						t.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
@@ -132,7 +129,7 @@
 					}).catch(() => {});
 				}
 				const active = restored.find(t => t.slug === state.currentSlug);
-				if (active && !active.isImage) {
+				if (active) {
 					switchToTab(state.currentSlug);
 				}
 			}
@@ -172,7 +169,7 @@
 	async function checkExternalChanges() {
 		if (!currentSlug || saveState === 'unsaved') return;
 		const tab = tabs.find(t => t.slug === currentSlug);
-		if (!tab || tab.isImage) return;
+		if (!tab || tab.kind !== 'content') return;
 		try {
 			const res = await fetch(`/api/content/${currentSlug}`);
 			if (!res.ok) return;
@@ -384,6 +381,7 @@
 			frontmatter: (data.frontmatter as Record<string, unknown>) || {},
 			mtimeMs: data.mtimeMs ?? 0,
 			frontmatterLanguage: data.frontmatterLanguage ?? 'yaml',
+			kind: 'content',
 		};
 		tabs = [...tabs, tab];
 		await switchToTab(slug);
@@ -393,10 +391,10 @@
 	async function switchToTab(slug: string) {
 		const tab = tabs.find(t => t.slug === slug);
 		if (!tab) return;
-		if (!tab.isImage) {
+		if (tab.kind === 'content') {
 			if (editorGetContent && currentSlug) {
 				const currentTab = tabs.find(t => t.slug === currentSlug);
-				if (currentTab && !currentTab.isImage) {
+				if (currentTab && currentTab.kind === 'content') {
 					currentTab.content = editorGetContent();
 					currentTab.frontmatter = { ...currentFrontmatter };
 				}
@@ -406,11 +404,16 @@
 			currentFrontmatter = { ...tab.frontmatter };
 			currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
 			editorSetContent?.(tab.content);
-			sidebarView = 'content';
-		} else {
-			currentSlug = tab.slug;
-			sidebarView = 'static';
+		} else if (tab.kind === 'archetype') {
+			currentArchetype = tab.slug;
+		} else if (tab.kind === 'config') {
+			currentConfigSlug = tab.slug;
 		}
+		currentSlug = tab.slug;
+		if (tab.kind === 'archetype') sidebarView = 'archetypes';
+		else if (tab.kind === 'config') sidebarView = 'config';
+		else if (tab.kind === 'static') sidebarView = 'static';
+		else sidebarView = 'content';
 	}
 
 	async function handleSave(markdown: string) {
@@ -577,12 +580,15 @@
 	function handleCloseTab(slug: string) {
 		const idx = tabs.findIndex(t => t.slug === slug);
 		if (idx === -1) return;
+		const closed = tabs[idx];
 		tabs = tabs.filter(t => t.slug !== slug);
+		if (currentArchetype === slug) currentArchetype = null;
+		if (currentConfigSlug === slug) currentConfigSlug = null;
 		if (currentSlug === slug) {
 			const nextTab = tabs[Math.min(idx, tabs.length - 1)];
 			if (nextTab) {
 				currentSlug = nextTab.slug;
-				if (!nextTab.isImage) {
+				if (nextTab.kind === 'content') {
 					editorContent = nextTab.content;
 					currentFrontmatter = { ...nextTab.frontmatter };
 					editorSetContent?.(nextTab.content);
@@ -681,7 +687,7 @@
 							content: '',
 							frontmatter: {},
 							mtimeMs: 0,
-							isImage: true,
+							kind: 'static',
 						};
 						tabs = [...tabs, tab];
 						switchToTab(slug);
@@ -689,9 +695,27 @@
 						window.open(`/api/assets/${path}`, '_blank');
 					}
 				}}
-				onSelectArchetype={(slug) => { currentArchetype = slug; sidebarView = 'archetypes'; }}
-				onSelectConfig={(slug) => { currentConfigSlug = slug; sidebarView = 'config'; }}
-				onViewChange={(v) => { sidebarView = v; if (v !== 'archetypes') currentArchetype = null; if (v !== 'config') currentConfigSlug = null; if (v === 'config') loadConfigTree(); }}
+				onSelectArchetype={(slug) => {
+					const existing = tabs.find(t => t.slug === slug);
+					if (existing) { switchToTab(slug); return; }
+					tabs = [...tabs, {
+						slug, title: slug.split('/').pop() || slug,
+						content: '', frontmatter: {}, mtimeMs: 0, kind: 'archetype',
+					}];
+					currentArchetype = slug;
+					switchToTab(slug);
+				}}
+				onSelectConfig={(slug) => {
+					const existing = tabs.find(t => t.slug === slug);
+					if (existing) { switchToTab(slug); return; }
+					tabs = [...tabs, {
+						slug, title: slug.split('/').pop() || slug,
+						content: '', frontmatter: {}, mtimeMs: 0, kind: 'config',
+					}];
+					currentConfigSlug = slug;
+					switchToTab(slug);
+				}}
+				onViewChange={(v) => { sidebarView = v; if (v === 'config') loadConfigTree(); }}
 			/>
 		</div>
 		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
@@ -699,21 +723,21 @@
 
 	<main class="editor-panel">
 		{#if currentSlug || tabs.length > 0}
-			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={(slug) => { const t = tabs.find(tab => tab.slug === slug); if (t?.isImage) switchToTab(slug); else loadFile(slug); }} onClose={handleCloseTab} />
+			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={(slug) => { const t = tabs.find(tab => tab.slug === slug); if (t?.kind === 'content') loadFile(slug); else switchToTab(slug); }} onClose={handleCloseTab} />
 		{/if}
 		<div class="editor-panel-body">
 			<div class="editor-panel-content">
-				{#if sidebarView === 'archetypes'}
+				{#if currentTab?.kind === 'archetype'}
 					<ArchetypeView
 						slug={currentArchetype}
-						onClose={() => currentArchetype = null}
-						onDelete={(s) => { loadArchetypes(); currentArchetype = null; }}
+						onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentArchetype = null; currentSlug = null; }}
+						onDelete={(s) => { loadArchetypes(); tabs = tabs.filter(t => t.slug !== s); currentArchetype = null; currentSlug = null; }}
 					/>
-				{:else if sidebarView === 'config'}
+				{:else if currentTab?.kind === 'config'}
 					<ConfigView
 						slug={currentConfigSlug}
-						onClose={() => currentConfigSlug = null}
-						onDelete={(s) => { loadConfigTree(); currentConfigSlug = null; }}
+						onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentConfigSlug = null; currentSlug = null; }}
+						onDelete={(s) => { loadConfigTree(); tabs = tabs.filter(t => t.slug !== s); currentConfigSlug = null; currentSlug = null; }}
 					/>
 				{:else if showSitemap && !currentSlug}
 					<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
@@ -725,7 +749,7 @@
 							<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
 						</div>
 					{/if}
-				{:else if currentTab?.isImage}
+				{:else if currentTab?.kind === 'static'}
 					<div class="editor-fixed-wrap">
 						<div class="editor-header">
 							<div class="header-left">
