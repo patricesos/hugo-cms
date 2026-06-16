@@ -12,7 +12,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"dist": "powershell -NoProfile -File scripts/dist.ps1"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",

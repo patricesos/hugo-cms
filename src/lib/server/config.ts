@@ -1,9 +1,33 @@
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+
+function loadDotenv(): void {
+	const envPath = resolve(process.cwd(), '.env');
+	if (!existsSync(envPath)) return;
+	const content = readFileSync(envPath, 'utf-8');
+	for (const line of content.split('\n')) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('#')) continue;
+		const eq = trimmed.indexOf('=');
+		if (eq === -1) continue;
+		const key = trimmed.slice(0, eq).trim();
+		let val = trimmed.slice(eq + 1).trim();
+		if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+			val = val.slice(1, -1);
+		}
+		if (key && !process.env[key]) {
+			process.env[key] = val;
+		}
+	}
+}
 
 function env(name: string, fallback: string): string {
-	const v = process.env[name];
+	let v = process.env[name];
 	if (v === undefined || v === '') return fallback;
+	v = v.trim();
+	if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+		v = v.slice(1, -1);
+	}
 	return v;
 }
 
@@ -44,16 +68,22 @@ export interface CmsConfig {
 }
 
 function loadConfig(): CmsConfig {
+	loadDotenv();
 	const sitePath = env('HUGO_SITE_PATH', '');
-	const contentDir = sitePath ? resolve(sitePath, 'content') : env('HUGO_CONTENT_PATH', resolve(process.cwd(), 'demo-content'));
-	const staticPath = sitePath
-		? resolve(sitePath, 'static')
-		: env('HUGO_STATIC_PATH', resolve(contentDir, '..', 'static'));
-	const hugoRoot = sitePath || resolve(contentDir, '..');
+	console.log(`[config] HUGO_SITE_PATH = "${sitePath}"`);
+	console.log(`[config] existsSync = ${existsSync(sitePath)}`);
+	if (!sitePath || !existsSync(sitePath)) {
+		throw new Error(
+			`HUGO_SITE_PATH "${sitePath}" is not set or does not exist.\n`
+			+ 'Set HUGO_SITE_PATH in .env to point to your Hugo site root.'
+		);
+	}
+	const contentDir = resolve(sitePath, 'content');
+	const staticPath = resolve(sitePath, 'static');
 	const config: CmsConfig = {
-		hugoSitePath: hugoRoot,
-		hugoContentPath: sitePath ? env('HUGO_CONTENT_PATH', contentDir) : contentDir,
-		hugoStaticPath: sitePath ? env('HUGO_STATIC_PATH', staticPath) : staticPath,
+		hugoSitePath: sitePath,
+		hugoContentPath: env('HUGO_CONTENT_PATH', contentDir),
+		hugoStaticPath: env('HUGO_STATIC_PATH', staticPath),
 		hugoServerPort: envInt('HUGO_SERVER_PORT', 1313),
 		hugoBindAddress: env('HUGO_BIND_ADDRESS', '127.0.0.1'),
 		defaultAuthor: env('DEFAULT_AUTHOR', 'patricesos'),
@@ -76,11 +106,6 @@ function loadConfig(): CmsConfig {
 		appTitle: env('APP_TITLE', 'Hugo CMS'),
 		defaultArchetype: env('DEFAULT_ARCHETYPE', 'default'),
 	};
-
-	if (!existsSync(config.hugoContentPath)) {
-		console.warn(`⚠ HUGO_CONTENT_PATH does not exist: ${config.hugoContentPath}`);
-		console.warn('Using demo-content/ directory. Set HUGO_CONTENT_PATH in .env for a real Hugo repo.');
-	}
 
 	return config;
 }

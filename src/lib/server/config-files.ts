@@ -28,7 +28,7 @@ export async function listConfigTree(): Promise<TreeNode[]> {
 		await walkConfigDir(CONFIG_DIR, '', results);
 	} else {
 		for (const pattern of ROOT_CONFIG_PATTERNS) {
-			const filePath = join(HUGO_ROOT, pattern);
+			const filePath = join(cmsConfig.hugoSitePath, pattern);
 			if (existsSync(filePath)) {
 				results.push({
 					type: 'file',
@@ -82,7 +82,7 @@ function resolveConfigPath(slug: string): string {
 	}
 	for (const pattern of ROOT_CONFIG_PATTERNS) {
 		if (slug === pattern) {
-			return join(HUGO_ROOT, pattern);
+			return join(cmsConfig.hugoSitePath, pattern);
 		}
 	}
 	return safeResolveIn(CONFIG_DIR, slug);
