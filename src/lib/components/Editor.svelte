@@ -339,24 +339,16 @@
 	}
 
 	function toolbarShortcode() {
-		if (rawMode) {
-			const name = window.prompt('Nom du shortcode:');
-			if (!name) return;
-			const params = window.prompt('Paramètres (optionnel):');
-			const inner = window.prompt('Contenu (optionnel):');
-			const sc = inner
-				? `{{< ${name} ${params || ''} >}}\n${inner}\n{{< /${name} >}}`
-				: `{{< ${name} ${params || ''} >}}`;
-			rawWrapInner(sc);
-		} else {
-			showShortcodeDialog = true;
-		}
+		showShortcodeDialog = true;
 	}
 
 	function handleShortcodeInsert(shortcode: string) {
-		if (!editor) return;
-		const { from, to } = editor.state.selection;
-		editor.chain().focus().deleteRange({ from, to }).insertContent(shortcode).run();
+		if (rawMode) {
+			rawWrapInner(shortcode);
+		} else if (editor) {
+			const { from, to } = editor.state.selection;
+			editor.chain().focus().deleteRange({ from, to }).insertContent(shortcode).run();
+		}
 		showShortcodeDialog = false;
 	}
 
