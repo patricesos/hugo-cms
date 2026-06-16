@@ -88,6 +88,7 @@
 			sidebarView,
 			sidebarWidth,
 			fmOpen,
+			showPreview,
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
@@ -104,6 +105,7 @@
 			sidebarView = state.sidebarView ?? 'content';
 			sidebarWidth = state.sidebarWidth ?? 260;
 			fmOpen = state.fmOpen ?? true;
+			showPreview = state.showPreview ?? false;
 			fmWidth = state.fmWidth ?? 280;
 			previewWidth = state.previewWidth ?? 480;
 			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
