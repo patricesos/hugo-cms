@@ -26,6 +26,9 @@
 		onSetContent?: (fn: (content: string) => void) => void;
 	}
 
+	const SH_OPEN_SH = 'SH_OPEN_SH';
+	const SH_CLOSE_SH = 'SH_CLOSE_SH';
+
 	let { content = '', frontmatter = {}, frontmatterFormat = $bindable('yaml'), rawMode = $bindable(false), saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor: TiptapEditor | null = null;
@@ -48,8 +51,17 @@
 		});
 	}
 
+	function protectShortcodes(text: string): string {
+		return text.replace(/\{\{</g, SH_OPEN_SH).replace(/>\}\}/g, SH_CLOSE_SH);
+	}
+
+	function restoreShortcodes(text: string): string {
+		return text.replace(new RegExp(SH_OPEN_SH, 'g'), '{{<').replace(new RegExp(SH_CLOSE_SH, 'g'), '>}}');
+	}
+
 	function getMarkdown(): string {
-		return ((editor?.storage as unknown) as Record<string, Record<string, () => string>>).markdown?.getMarkdown() ?? '';
+		const md = ((editor?.storage as unknown) as Record<string, Record<string, () => string>>).markdown?.getMarkdown() ?? '';
+		return restoreShortcodes(md);
 	}
 
 	function handleImageSelect(url: string) {
@@ -162,7 +174,7 @@
 					Image,
 					SlashCommands,
 				],
-				content: initContent,
+				content: protectShortcodes(initContent),
 				onUpdate: markUnsaved,
 				onSelectionUpdate: () => {
 					if (!editor || !bubbleEl) return;
@@ -235,7 +247,7 @@
 				onFrontmatterChange?.(fm);
 			}
 			if (editor) {
-				editor.commands.setContent(body);
+				editor.commands.setContent(protectShortcodes(body));
 				updateStats();
 			}
 		}
@@ -348,7 +360,7 @@
 			rawWrapInner(shortcode);
 		} else if (editor) {
 			const { from, to } = editor.state.selection;
-			editor.chain().focus().deleteRange({ from, to }).insertContent(shortcode).run();
+			editor.chain().focus().deleteRange({ from, to }).insertContent([{ type: 'text', text: shortcode }]).run();
 		}
 		showShortcodeDialog = false;
 	}
