@@ -58,35 +58,57 @@
 		pendingImageInsert = null;
 	}
 
+	let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let rawSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+	let saveVersion = 0;
+
+	function clearAutoSave() {
+		if (autoSaveTimeout) {
+			clearTimeout(autoSaveTimeout);
+			autoSaveTimeout = null;
+		}
+	}
 
 	function markUnsaved() {
+		clearAutoSave();
 		onSaveState?.('unsaved');
-		if (saveTimeout) clearTimeout(saveTimeout);
-		saveTimeout = setTimeout(() => {
-			if (!editor) return;
-			onSaveState?.('saving');
-			onSave?.(getMarkdown());
-			onSaveState?.('saved');
-		}, 2000);
+		autoSaveTimeout = setTimeout(doAutoSave, 2000);
+	}
+
+	async function doAutoSave() {
+		if (!editor) return;
+		const version = ++saveVersion;
+		onSaveState?.('saving');
+		await onSave?.(getMarkdown());
+		if (version !== saveVersion) return;
+		onSaveState?.('saved');
+		autoSaveTimeout = null;
+	}
+
+	async function doRawAutoSave() {
+		const version = ++saveVersion;
+		onSaveState?.('saving');
+		await onSave?.(rawContent);
+		if (version !== saveVersion) return;
+		onSaveState?.('saved');
+		rawSaveTimeout = null;
 	}
 
 	function markRawUnsaved() {
-		onSaveState?.('unsaved');
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
-		rawSaveTimeout = setTimeout(() => {
-			onSaveState?.('saving');
-			onSave?.(rawContent);
-			onSaveState?.('saved');
-		}, 2000);
+		onSaveState?.('unsaved');
+		rawSaveTimeout = setTimeout(doRawAutoSave, 2000);
 	}
 
-	function handleManualSave() {
+	async function handleManualSave() {
+		clearAutoSave();
+		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
+		++saveVersion;
 		onSaveState?.('saving');
 		if (rawMode) {
-			onSave?.(rawContent);
+			await onSave?.(rawContent);
 		} else if (editor) {
-			onSave?.(getMarkdown());
+			await onSave?.(getMarkdown());
 		}
 		onSaveState?.('saved');
 	}
@@ -100,6 +122,7 @@
 		window.addEventListener('slash:image', onSlashImage);
 
 		function createEditor(initContent: string) {
+			clearAutoSave();
 			if (editor) editor.destroy();
 			editor = new TiptapEditor({
 				element: editorEl,
@@ -137,7 +160,7 @@
 		return () => {
 			window.removeEventListener('slash:image', onSlashImage);
 			editor?.destroy();
-			if (saveTimeout) clearTimeout(saveTimeout);
+			clearAutoSave();
 			if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		};
 	});

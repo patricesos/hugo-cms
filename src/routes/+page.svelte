@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2 } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, FileText, Trash2, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from '@lucide/svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -25,6 +25,7 @@
 		title: string;
 		content: string;
 		frontmatter: Record<string, unknown>;
+		mtimeMs: number;
 	}
 
 	let tree = $state<TreeNode[]>([]);
@@ -45,6 +46,68 @@
 	let showShortcuts = $state(false);
 	let sidebarOpen = $state(true);
 	let sidebarWidth = $state(260);
+	let conflictSlug = $state<string | null>(null);
+	let conflictServerMtimeMs = $state(0);
+
+	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
+
+	function startConflictPoll() {
+		stopConflictPoll();
+		conflictPollTimer = setInterval(checkExternalChanges, 5000);
+	}
+
+	function stopConflictPoll() {
+		if (conflictPollTimer) {
+			clearInterval(conflictPollTimer);
+			conflictPollTimer = null;
+		}
+	}
+
+	async function checkExternalChanges() {
+		if (!currentSlug || saveState === 'unsaved') return;
+		const tab = tabs.find(t => t.slug === currentSlug);
+		if (!tab) return;
+		try {
+			const res = await fetch(`/api/content/${currentSlug}`);
+			if (!res.ok) return;
+			const data = await res.json();
+			const serverMtime: number = data.mtimeMs;
+			if (Math.abs(serverMtime - tab.mtimeMs) > 1) {
+				conflictSlug = currentSlug;
+				conflictServerMtimeMs = serverMtime;
+			}
+		} catch {
+			// ignore fetch errors
+		}
+	}
+
+	function resolveConflict(action: 'reload' | 'overwrite') {
+		if (!conflictSlug) return;
+		const tab = tabs.find(t => t.slug === conflictSlug);
+		if (!tab) { conflictSlug = null; return; }
+		if (action === 'reload') {
+			reloadFileFromDisk(tab);
+		}
+		conflictSlug = null;
+	}
+
+	async function reloadFileFromDisk(tab: Tab) {
+		try {
+			const res = await fetch(`/api/content/${tab.slug}`);
+			const data = await res.json();
+			tab.content = data.body || '';
+			tab.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
+			tab.mtimeMs = data.mtimeMs;
+			tab.title = (data.frontmatter?.title as string) || tab.slug.split('/').pop() || '';
+			if (currentSlug === tab.slug) {
+				editorContent = tab.content;
+				currentFrontmatter = { ...tab.frontmatter };
+				editorSetContent?.(tab.content);
+			}
+		} catch {
+			// ignore
+		}
+	}
 
 	function startResize(e: MouseEvent) {
 		e.preventDefault();
@@ -89,6 +152,7 @@
 
 	onMount(() => {
 		loadTree();
+		startConflictPoll();
 		function handleKeydown(e: KeyboardEvent) {
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
 				e.preventDefault();
@@ -99,8 +163,19 @@
 			}
 		}
 		document.addEventListener('keydown', handleKeydown);
-		return () => document.removeEventListener('keydown', handleKeydown);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		return () => {
+			document.removeEventListener('keydown', handleKeydown);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			stopConflictPoll();
+		};
 	});
+
+	function handleVisibilityChange() {
+		if (document.visibilityState === 'visible') {
+			checkExternalChanges();
+		}
+	}
 
 	async function loadTree() {
 		const res = await fetch('/api/content?tree=true');
@@ -121,6 +196,7 @@
 			title: (data.frontmatter?.title as string) || slug.split('/').pop() || '',
 			content: data.body || '',
 			frontmatter: (data.frontmatter as Record<string, unknown>) || {},
+			mtimeMs: data.mtimeMs ?? 0,
 		};
 		tabs = [...tabs, tab];
 		await switchToTab(slug);
@@ -146,15 +222,25 @@
 	async function handleSave(markdown: string) {
 		if (!currentSlug) return;
 		const tab = tabs.find(t => t.slug === currentSlug);
-		if (tab) {
-			tab.content = markdown;
-			tab.frontmatter = { ...currentFrontmatter };
-		}
-		await fetch(`/api/content/${currentSlug}`, {
+		if (!tab) return;
+		const expectedMtimeMs = tab.mtimeMs;
+		tab.content = markdown;
+		tab.frontmatter = { ...currentFrontmatter };
+		const res = await fetch(`/api/content/${currentSlug}`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ body: markdown, frontmatter: currentFrontmatter }),
+			body: JSON.stringify({ body: markdown, frontmatter: currentFrontmatter, expectedMtimeMs }),
 		});
+		if (res.status === 409) {
+			const { serverMtimeMs } = await res.json();
+			conflictSlug = currentSlug;
+			conflictServerMtimeMs = serverMtimeMs;
+			return;
+		}
+		if (res.ok) {
+			const data = await res.json();
+			tab.mtimeMs = data.mtimeMs ?? tab.mtimeMs;
+		}
 	}
 
 	function handleFrontmatterChange(fm: Record<string, unknown>) {
@@ -335,6 +421,14 @@
 						<div class="skeleton-block"></div>
 					</div>
 				{/if}
+				{#if conflictSlug === currentSlug}
+					<div class="conflict-banner" transition:slide={{ duration: 200, axis: 'y' }}>
+						<span class="conflict-icon"><AlertTriangle size={14} /></span>
+						<span class="conflict-text">Fichier modifié en externe</span>
+						<button class="conflict-btn" onclick={() => resolveConflict('reload')}>Recharger</button>
+						<button class="conflict-btn primary" onclick={() => resolveConflict('overwrite')}>Écraser</button>
+					</div>
+				{/if}
 				<div class="editor-header">
 					<div class="header-left">
 						<PenLine size={14} color="var(--c-text-muted)" />
@@ -447,6 +541,54 @@
 		flex-direction: column;
 		gap: 12px;
 		padding: 48px;
+	}
+
+	.conflict-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 16px;
+		background: #fef3c7;
+		border-bottom: 1px solid #f59e0b;
+		flex-shrink: 0;
+		font-size: 13px;
+		color: #92400e;
+	}
+
+	.conflict-icon {
+		display: flex;
+		flex-shrink: 0;
+	}
+
+	.conflict-text {
+		flex: 1;
+		font-weight: 500;
+	}
+
+	.conflict-btn {
+		padding: 4px 12px;
+		border: 1px solid #f59e0b;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		font-size: 12px;
+		font-family: inherit;
+		color: #92400e;
+		transition: all 0.12s;
+	}
+
+	.conflict-btn:hover {
+		background: #f59e0b;
+		color: white;
+	}
+
+	.conflict-btn.primary {
+		background: #f59e0b;
+		color: white;
+	}
+
+	.conflict-btn.primary:hover {
+		background: #d97706;
 	}
 
 	.sidebar-reopen {

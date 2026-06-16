@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, mkdir, rename } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, rename, stat } from 'node:fs/promises';
 import { join, relative, resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { cmsConfig } from './config';
@@ -52,7 +52,8 @@ export async function readContent(slug: string): Promise<ContentItem> {
 	const filePath = safeResolve(slug + '.md');
 	const raw = await readFile(filePath, 'utf-8');
 	const { frontmatter, body } = parseFrontmatter(raw);
-	return { frontmatter, body, slug };
+	const stats = await stat(filePath);
+	return { frontmatter, body, slug, mtimeMs: stats.mtimeMs };
 }
 
 export async function createContent(
@@ -67,7 +68,8 @@ export async function createContent(
 	}
 	const full = serializeFrontmatter(body, frontmatter || { title: 'Untitled', date: new Date().toISOString().split('T')[0], draft: true });
 	await writeFile(filePath, full, 'utf-8');
-	return { frontmatter: frontmatter || {}, body, slug };
+	const stats = await stat(filePath);
+	return { frontmatter: frontmatter || {}, body, slug, mtimeMs: stats.mtimeMs };
 }
 
 export async function listContentTree(dir: string = ''): Promise<TreeNode[]> {
@@ -106,14 +108,20 @@ export async function listContentTree(dir: string = ''): Promise<TreeNode[]> {
 export async function updateContent(
 	slug: string,
 	body: string,
-	frontmatter?: Record<string, unknown>
+	frontmatter?: Record<string, unknown>,
+	expectedMtimeMs?: number
 ): Promise<ContentItem> {
 	const filePath = safeResolve(slug + '.md');
+	const stats = await stat(filePath);
+	if (expectedMtimeMs !== undefined && Math.abs(stats.mtimeMs - expectedMtimeMs) > 1) {
+		throw Object.assign(new Error('File modified externally'), { statusCode: 409, serverMtimeMs: stats.mtimeMs });
+	}
 	const full = frontmatter
 		? serializeFrontmatter(body, frontmatter)
 		: body;
 	await writeFile(filePath, full, 'utf-8');
-	return { frontmatter: frontmatter || {}, body, slug };
+	const newStats = await stat(filePath);
+	return { frontmatter: frontmatter || {}, body, slug, mtimeMs: newStats.mtimeMs };
 }
 
 export async function deleteContent(slug: string): Promise<void> {

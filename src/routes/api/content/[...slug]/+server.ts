@@ -27,11 +27,15 @@ export async function POST({ params, request }) {
 export async function PUT({ params, request }) {
 	const slug = params.slug;
 	if (!slug) error(400, 'Slug is required');
-	const { body, frontmatter } = await request.json();
+	const { body, frontmatter, expectedMtimeMs } = await request.json();
 	try {
-		const item = await updateContent(slug, body, frontmatter);
+		const item = await updateContent(slug, body, frontmatter, expectedMtimeMs);
 		return json(item);
 	} catch (e) {
+		const err = e as Error & { statusCode?: number; serverMtimeMs?: number };
+		if (err.statusCode === 409) {
+			return json({ error: 'conflict', slug, serverMtimeMs: err.serverMtimeMs }, { status: 409 });
+		}
 		error(404, (e as Error).message);
 	}
 }
