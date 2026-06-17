@@ -8,6 +8,7 @@ export interface UserSettings {
 	showBubbleMenu: boolean;
 	showSlashMenu: boolean;
 	draftByDefault: boolean;
+	autoSaveDelay: number;
 	sidebarOpen: boolean;
 	fmOpen: boolean;
 	showConsole: boolean;
@@ -20,6 +21,7 @@ const defaults: UserSettings = {
 	showBubbleMenu: true,
 	showSlashMenu: true,
 	draftByDefault: true,
+	autoSaveDelay: 2000,
 	sidebarOpen: true,
 	fmOpen: true,
 	showConsole: false,
@@ -40,7 +42,11 @@ export function loadUserSettings(): UserSettings {
 		const result = { ...defaults };
 		for (const key of Object.keys(defaults) as (keyof UserSettings)[]) {
 			const val = parsed[key];
-			if (typeof val === 'boolean') result[key] = val;
+			if (key === 'autoSaveDelay') {
+				if (typeof val === 'number' && val >= 500) result[key] = val;
+			} else if (typeof val === 'boolean') {
+				result[key] = val;
+			}
 		}
 		return result;
 	} catch {
@@ -55,7 +61,11 @@ export function saveUserSettings(settings: UserSettings): void {
 	const obj: Record<string, unknown> = {};
 	for (const key of Object.keys(defaults) as (keyof UserSettings)[]) {
 		const val = settings[key];
-		if (typeof val === 'boolean') obj[key] = val;
+		if (key === 'autoSaveDelay') {
+			if (typeof val === 'number' && val >= 500) obj[key] = val;
+		} else if (typeof val === 'boolean') {
+			obj[key] = val;
+		}
 	}
 	writeFileSync(path, stringify(obj as import('@iarna/toml').JsonMap), 'utf-8');
 }

@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { Editor as TiptapEditor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
-	import { getClientConfigSync } from '$lib/client-config';
 	import Placeholder from '@tiptap/extension-placeholder';
 	import { Markdown } from 'tiptap-markdown';
 	import Image from '@tiptap/extension-image';
@@ -20,6 +19,7 @@
 		rawMode?: boolean;
 		showBubbleMenu?: boolean;
 		showSlashMenu?: boolean;
+		autoSaveDelay?: number;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
@@ -32,7 +32,7 @@
 	const SH_OPEN_SH = 'SH_OPEN_SH';
 	const SH_CLOSE_SH = 'SH_CLOSE_SH';
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -99,8 +99,7 @@
 		clearAutoSave();
 		++saveVersion;
 		onSaveState?.('unsaved');
-		const delay = getClientConfigSync()?.autoSaveDelay ?? 2000;
-		autoSaveTimeout = setTimeout(doAutoSave, delay);
+		autoSaveTimeout = setTimeout(doAutoSave, autoSaveDelay);
 	}
 
 	async function doAutoSave() {
@@ -129,8 +128,7 @@
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		++saveVersion;
 		onSaveState?.('unsaved');
-		const delay = getClientConfigSync()?.autoSaveDelay ?? 2000;
-		rawSaveTimeout = setTimeout(doRawAutoSave, delay);
+		rawSaveTimeout = setTimeout(doRawAutoSave, autoSaveDelay);
 	}
 
 	async function handleManualSave() {

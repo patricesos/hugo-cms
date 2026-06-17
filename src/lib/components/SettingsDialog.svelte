@@ -7,6 +7,7 @@
 		showBubbleMenu: boolean;
 		showSlashMenu: boolean;
 		draftByDefault: boolean;
+		autoSaveDelay: number;
 		sidebarOpen: boolean;
 		fmOpen: boolean;
 		showConsole: boolean;
@@ -21,8 +22,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -87,6 +88,10 @@
 				<label class="toggle-row">
 					<span>Brouillon par défaut</span>
 					<input type="checkbox" checked={local.draftByDefault} onchange={(e) => { const el = e.target as HTMLInputElement; local.draftByDefault = el.checked; emit(); }} />
+				</label>
+				<label class="toggle-row">
+					<span>Auto-save (ms)</span>
+					<input type="number" min="500" max="30000" step="100" value={local.autoSaveDelay} oninput={(e) => { const el = e.target as HTMLInputElement; local.autoSaveDelay = parseInt(el.value, 10) || 2000; emit(); }} class="number-input" />
 				</label>
 			</div>
 			<div class="section">
@@ -203,6 +208,18 @@
 		font-size: 13px;
 		color: var(--c-text);
 		cursor: pointer;
+	}
+
+	.number-input {
+		width: 80px;
+		padding: 3px 6px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text);
+		font-size: 12px;
+		font-family: inherit;
+		text-align: right;
 	}
 
 	.toggle-row input[type="checkbox"] {

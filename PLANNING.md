@@ -24,7 +24,7 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 ### Éditeur
 
 - [x] Mode éditeur par défaut (WYSIWYG / Markdown brut)
-- [ ] Délai auto-save (ms) — actuellement 2000ms via FM_SAVE_DELAY / AUTO_SAVE_DELAY
+- [x] Délai auto-save (ms) — actuellement 2000ms via FM_SAVE_DELAY / AUTO_SAVE_DELAY
 - [x] Activer/désactiver le bubble menu
 - [x] Activer/désactiver le slash menu
 - [ ] Nombre max d'entrées dans l'historique undo/redo

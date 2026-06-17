@@ -62,6 +62,7 @@
 	let showBubbleMenu = $state(true);
 	let showSlashMenu = $state(true);
 	let draftByDefault = $state(true);
+	let autoSaveDelay = $state(2000);
 	let settingsKey = $state(0);
 	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
 	let gitLoading = $state(false);
@@ -118,7 +119,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -152,6 +153,7 @@
 					showBubbleMenu = state.settings.showBubbleMenu ?? true;
 					showSlashMenu = state.settings.showSlashMenu ?? true;
 					draftByDefault = state.settings.draftByDefault ?? true;
+					autoSaveDelay = state.settings.autoSaveDelay ?? 2000;
 				}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 				if (state.tabs && state.currentSlug) {
@@ -192,16 +194,17 @@
 		try {
 			const res = await fetch('/api/user-settings');
 			if (res.ok) {
-				const s = await res.json() as Record<string, boolean>;
-				if (s.defaultRawMode !== undefined) defaultRawMode = s.defaultRawMode;
-				if (s.showBubbleMenu !== undefined) showBubbleMenu = s.showBubbleMenu;
-				if (s.showSlashMenu !== undefined) showSlashMenu = s.showSlashMenu;
-				if (s.draftByDefault !== undefined) draftByDefault = s.draftByDefault;
-				if (s.sidebarOpen !== undefined) sidebarOpen = s.sidebarOpen;
-				if (s.fmOpen !== undefined) fmOpen = s.fmOpen;
-				if (s.showConsole !== undefined) showConsole = s.showConsole;
-				if (s.showPreview !== undefined) showPreview = s.showPreview;
-				if (s.showGit !== undefined) showGit = s.showGit;
+				const s = await res.json() as Record<string, unknown>;
+				if (s.defaultRawMode !== undefined) defaultRawMode = s.defaultRawMode as boolean;
+				if (s.showBubbleMenu !== undefined) showBubbleMenu = s.showBubbleMenu as boolean;
+				if (s.showSlashMenu !== undefined) showSlashMenu = s.showSlashMenu as boolean;
+				if (s.draftByDefault !== undefined) draftByDefault = s.draftByDefault as boolean;
+				if (s.autoSaveDelay !== undefined) autoSaveDelay = s.autoSaveDelay as number;
+				if (s.sidebarOpen !== undefined) sidebarOpen = s.sidebarOpen as boolean;
+				if (s.fmOpen !== undefined) fmOpen = s.fmOpen as boolean;
+				if (s.showConsole !== undefined) showConsole = s.showConsole as boolean;
+				if (s.showPreview !== undefined) showPreview = s.showPreview as boolean;
+				if (s.showGit !== undefined) showGit = s.showGit as boolean;
 			}
 		} catch {}
 	}
@@ -222,6 +225,7 @@
 		showBubbleMenu;
 		showSlashMenu;
 		draftByDefault;
+		autoSaveDelay;
 		previewWidth;
 		saveAppState();
 	});
@@ -1003,6 +1007,7 @@
 											rawMode={defaultRawMode}
 											{showBubbleMenu}
 											{showSlashMenu}
+											{autoSaveDelay}
 											{saveRequest}
 											getContent={(fn) => { editorGetContent = fn; }}
 											onSetContent={(fn) => { editorSetContent = fn; }}
@@ -1099,9 +1104,9 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1111,6 +1116,7 @@
 			showBubbleMenu = s.showBubbleMenu;
 			showSlashMenu = s.showSlashMenu;
 			draftByDefault = s.draftByDefault;
+			autoSaveDelay = s.autoSaveDelay;
 			sidebarOpen = s.sidebarOpen;
 			fmOpen = s.fmOpen;
 			showConsole = s.showConsole;
