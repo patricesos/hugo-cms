@@ -3,22 +3,72 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
-using System.Text;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
+
+class LogWindow : Form
+{
+    private TextBox textBox;
+
+    public LogWindow()
+    {
+        Text = "Hugo CMS — Console";
+        Size = new Size(800, 400);
+        StartPosition = FormStartPosition.Manual;
+        Location = new Point(100, 100);
+
+        textBox = new TextBox();
+        textBox.Multiline = true;
+        textBox.ReadOnly = true;
+        textBox.ScrollBars = ScrollBars.Vertical;
+        textBox.WordWrap = true;
+        textBox.Dock = DockStyle.Fill;
+        textBox.Font = new Font("Consolas", 9.75f);
+        textBox.BackColor = Color.FromArgb(30, 30, 30);
+        textBox.ForeColor = Color.FromArgb(220, 220, 220);
+
+        Controls.Add(textBox);
+    }
+
+    public void Append(string text)
+    {
+        if (textBox.IsDisposed) return;
+
+        if (textBox.InvokeRequired)
+        {
+            textBox.BeginInvoke(new Action<string>(Append), text);
+            return;
+        }
+
+        textBox.AppendText(text);
+        textBox.SelectionStart = textBox.Text.Length;
+        textBox.ScrollToCaret();
+    }
+}
 
 class TrayLauncher : Form
 {
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+    private const int SW_HIDE = 0;
+    private const int SW_SHOW = 5;
+
     private NotifyIcon trayIcon;
     private Process serverProcess;
     private ContextMenuStrip trayMenu;
+    private ToolStripMenuItem consoleMenuItem;
+    private LogWindow logWindow;
     private string appDir;
     private string nodePath;
-    private static readonly string AppName = "Hugo CMS";
+    private bool consoleVisible = false;
 
     [STAThread]
     static void Main(string[] args)
     {
-        Console.Title = AppName;
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new TrayLauncher());
@@ -29,20 +79,31 @@ class TrayLauncher : Form
         appDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         nodePath = FindNode();
 
-        WriteColored("Hugo CMS Tray Launcher", ConsoleColor.Cyan);
-        WriteColored("================================", ConsoleColor.DarkGray);
-        WriteLog(string.Format("App directory: {0}", appDir));
-        WriteLog(string.Format("Node path: {0}", nodePath));
+        logWindow = new LogWindow();
+        logWindow.FormClosing += (s, e) =>
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                logWindow.Hide();
+                consoleVisible = false;
+                consoleMenuItem.Checked = false;
+            }
+        };
 
         trayMenu = new ContextMenuStrip();
         trayMenu.Items.Add("Ouvrir dans le navigateur", null, OnOpen);
+        trayMenu.Items.Add("-");
+        consoleMenuItem = new ToolStripMenuItem("Console", null, OnConsole);
+        consoleMenuItem.Checked = false;
+        trayMenu.Items.Add(consoleMenuItem);
         trayMenu.Items.Add("-");
         trayMenu.Items.Add("Redemarrer", null, OnRestart);
         trayMenu.Items.Add("-");
         trayMenu.Items.Add("Quitter", null, OnQuit);
 
         trayIcon = new NotifyIcon();
-        trayIcon.Text = AppName;
+        trayIcon.Text = "Hugo CMS";
         trayIcon.Icon = LoadIcon();
         trayIcon.ContextMenuStrip = trayMenu;
         trayIcon.Visible = true;
@@ -110,53 +171,53 @@ class TrayLauncher : Form
         else if (File.Exists(indexPath))
             scriptPath = indexPath;
         else
-        {
-            WriteColored("ERROR: No server entry found (bundle.mjs or build/index.js)", ConsoleColor.Red);
             return;
-        }
 
-        WriteLog(string.Format("Starting server: {0} {1}", nodePath, scriptPath));
+        // Force logWindow handle so InvokeRequired works from any thread
+        IntPtr tmp = logWindow.Handle;
 
         ProcessStartInfo psi = new ProcessStartInfo();
         psi.FileName = nodePath;
         psi.Arguments = string.Format("\"{0}\"", scriptPath);
         psi.WorkingDirectory = appDir;
         psi.UseShellExecute = false;
+        psi.CreateNoWindow = true;
         psi.RedirectStandardOutput = true;
         psi.RedirectStandardError = true;
-        psi.CreateNoWindow = false;
-        psi.StandardOutputEncoding = Encoding.UTF8;
-        psi.StandardErrorEncoding = Encoding.UTF8;
 
         try
         {
             serverProcess = new Process();
             serverProcess.StartInfo = psi;
+            serverProcess.EnableRaisingEvents = true;
+
             serverProcess.OutputDataReceived += (s, e) =>
             {
                 if (e.Data != null)
-                    WriteLog(e.Data);
+                    logWindow.Append(string.Format("[{0}] {1}{2}", DateTime.Now.ToString("HH:mm:ss"), e.Data, Environment.NewLine));
             };
+
             serverProcess.ErrorDataReceived += (s, e) =>
             {
                 if (e.Data != null)
-                    WriteColored(e.Data, ConsoleColor.Yellow);
+                    logWindow.Append(string.Format("[{0}] ERR {1}{2}", DateTime.Now.ToString("HH:mm:ss"), e.Data, Environment.NewLine));
             };
-            serverProcess.EnableRaisingEvents = true;
+
             serverProcess.Exited += (s, e) =>
             {
-                string msg = string.Format("Server process exited (code: {0})", serverProcess.ExitCode);
-                WriteColored(msg, ConsoleColor.Red);
+                logWindow.Append(string.Format("[{0}] Server stopped.{1}", DateTime.Now.ToString("HH:mm:ss"), Environment.NewLine));
                 serverProcess = null;
             };
+
             serverProcess.Start();
             serverProcess.BeginOutputReadLine();
             serverProcess.BeginErrorReadLine();
-            WriteColored("Server started successfully", ConsoleColor.Green);
+
+            consoleVisible = false;
+            consoleMenuItem.Checked = false;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            WriteColored(string.Format("Failed to start server: {0}", ex.Message), ConsoleColor.Red);
             serverProcess = null;
         }
     }
@@ -166,25 +227,36 @@ class TrayLauncher : Form
         if (serverProcess == null || serverProcess.HasExited)
             return;
 
-        WriteLog("Stopping server...");
         try
         {
-            if (!serverProcess.CloseMainWindow())
-            {
-                serverProcess.Kill();
-            }
-            if (!serverProcess.WaitForExit(5000))
-            {
-                serverProcess.Kill();
-                serverProcess.WaitForExit(2000);
-            }
-            WriteLog("Server stopped");
+            logWindow.Append(string.Format("[{0}] Stopping server...{1}", DateTime.Now.ToString("HH:mm:ss"), Environment.NewLine));
+            serverProcess.Kill();
+            serverProcess.WaitForExit(2000);
         }
-        catch (Exception ex)
-        {
-            WriteColored(string.Format("Error stopping server: {0}", ex.Message), ConsoleColor.Red);
-        }
+        catch { }
         serverProcess = null;
+    }
+
+    private void ToggleConsole()
+    {
+        consoleVisible = !consoleVisible;
+
+        if (consoleVisible)
+        {
+            logWindow.Show();
+            logWindow.Activate();
+        }
+        else
+        {
+            logWindow.Hide();
+        }
+
+        consoleMenuItem.Checked = consoleVisible;
+    }
+
+    private void OnConsole(object sender, EventArgs e)
+    {
+        ToggleConsole();
     }
 
     private void OnOpen(object sender, EventArgs e)
@@ -197,40 +269,22 @@ class TrayLauncher : Form
                 UseShellExecute = true
             });
         }
-        catch (Exception ex)
-        {
-            WriteColored(string.Format("Error opening browser: {0}", ex.Message), ConsoleColor.Red);
-        }
+        catch { }
     }
 
     private void OnRestart(object sender, EventArgs e)
     {
-        WriteColored("Restarting server...", ConsoleColor.Yellow);
         StopServer();
         StartServer();
-        WriteColored("Server restarted", ConsoleColor.Green);
     }
 
     private void OnQuit(object sender, EventArgs e)
     {
-        WriteColored("Shutting down...", ConsoleColor.Yellow);
         StopServer();
+        if (logWindow != null && !logWindow.IsDisposed)
+            logWindow.Close();
         trayIcon.Visible = false;
         Application.Exit();
-    }
-
-    private void WriteLog(string message)
-    {
-        string timestamp = DateTime.Now.ToString("HH:mm:ss");
-        Console.WriteLine(string.Format("[{0}] {1}", timestamp, message));
-    }
-
-    private void WriteColored(string message, ConsoleColor color)
-    {
-        ConsoleColor original = Console.ForegroundColor;
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ForegroundColor = original;
     }
 
     protected override void Dispose(bool disposing)
@@ -242,6 +296,8 @@ class TrayLauncher : Form
                 trayIcon.Dispose();
             if (trayMenu != null)
                 trayMenu.Dispose();
+            if (logWindow != null && !logWindow.IsDisposed)
+                logWindow.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -254,15 +310,5 @@ class TrayLauncher : Form
             value = false;
         }
         base.SetVisibleCore(value);
-    }
-
-    protected override void OnFormClosing(FormClosingEventArgs e)
-    {
-        if (e.CloseReason == CloseReason.UserClosing)
-        {
-            e.Cancel = true;
-            Hide();
-        }
-        base.OnFormClosing(e);
     }
 }

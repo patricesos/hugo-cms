@@ -25,7 +25,7 @@ npx esbuild build/index.js --bundle --platform=node --format=esm --outfile=$dist
 Write-Host "=== 5. Copy client assets ===" -ForegroundColor Cyan
 if (Test-Path "$root/build/client") {
     Remove-Item -Recurse -Force "$distDir/client" -ErrorAction SilentlyContinue
-    Copy-Item -Recurse "$root/build/client" "$distDir/client" -Force
+    Copy-Item -Recurse "$root/build/client" "$distDir/client"
 }
 
 Write-Host "=== 6. Copy icon to dist root ===" -ForegroundColor Cyan
@@ -33,7 +33,7 @@ Copy-Item "$iconDir/hugo-cms.ico" "$distDir/hugo-cms.ico" -Force
 
 Write-Host "=== 7. Compile C# tray launcher ===" -ForegroundColor Cyan
 $csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-& $csc /target:exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $root/scripts/tray-launcher.cs 2>&1 | Out-Null
+& $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $root/scripts/tray-launcher.cs 2>&1 | Out-Null
 
 Write-Host "=== Done ===" -ForegroundColor Green
 Write-Host "Distribution folder: $distDir" -ForegroundColor Green
