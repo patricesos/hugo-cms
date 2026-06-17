@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch } from '@lucide/svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -56,6 +56,12 @@
 	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let sidebarOpen = $state(true);
 	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
+	let showGit = $state(false);
+	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
+	let gitLoading = $state(false);
+	let showCommitDialog = $state(false);
+	let GitSidebarComp = $state<any>(null);
+	let CommitDialogComp = $state<any>(null);
 	let currentArchetype = $state<string | null>(null);
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
@@ -100,6 +106,7 @@
 			fmOpen,
 			showPreview,
 			showConsole,
+			showGit,
 			consoleHeight,
 			fmWidth,
 			previewWidth,
@@ -119,6 +126,7 @@
 			fmOpen = state.fmOpen ?? true;
 			showPreview = state.showPreview ?? false;
 			showConsole = state.showConsole ?? false;
+			showGit = state.showGit ?? false;
 			consoleHeight = state.consoleHeight ?? 200;
 			fmWidth = state.fmWidth ?? 280;
 			previewWidth = state.previewWidth ?? 480;
@@ -168,6 +176,7 @@
 		expandedSlugs;
 		showPreview;
 		showConsole;
+		showGit;
 		consoleHeight;
 		previewWidth;
 		saveAppState();
@@ -381,6 +390,8 @@
 	$effect(() => { if (currentTab?.kind === 'archetype' && !ArchetypeViewComp) import('$lib/components/ArchetypeView.svelte').then(m => ArchetypeViewComp = m.default); });
 	$effect(() => { if (currentTab?.kind === 'config' && !ConfigViewComp) import('$lib/components/ConfigView.svelte').then(m => ConfigViewComp = m.default); });
 	$effect(() => { if (currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
+	$effect(() => { if (showGit && !GitSidebarComp) import('$lib/components/GitSidebar.svelte').then(m => GitSidebarComp = m.default); });
+	$effect(() => { if (showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
 
 	function handleVisibilityChange() {
 		if (document.visibilityState === 'visible' && currentSlug) {
@@ -662,6 +673,53 @@
 			}
 		}
 	}
+
+	async function refreshGitStatus() {
+		gitLoading = true;
+		try {
+			const res = await fetch('/api/git/status');
+			if (res.ok) {
+				gitStatus = await res.json();
+			} else {
+				gitStatus = null;
+			}
+		} catch {
+			gitStatus = null;
+		}
+		gitLoading = false;
+	}
+
+	async function handleGitInit() {
+		await fetch('/api/git/init', { method: 'POST' });
+		await refreshGitStatus();
+	}
+
+	async function handleGitCommit(message: string) {
+		const res = await fetch('/api/git/commit', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ message }),
+		});
+		if (res.ok) {
+			await refreshGitStatus();
+		}
+	}
+
+	async function handleGitPush() {
+		await fetch('/api/git/push', { method: 'POST' });
+		await refreshGitStatus();
+	}
+
+	let gitInitialized = $state(false);
+
+	function toggleGit() {
+		showGit = !showGit;
+		if (showGit && !gitStatus && !gitInitialized) {
+			gitInitialized = true;
+			refreshGitStatus();
+		}
+	}
+
 </script>
 
 <div class="app-shell">
@@ -706,6 +764,9 @@
 			<button class="icon-btn" class:active={showConsole} onclick={() => showConsole = !showConsole} title="Console Hugo">
 				<Terminal size={16} />
 			</button>
+			<button class="icon-btn" class:active={showGit} onclick={toggleGit} title="Git">
+				<GitBranch size={16} />
+			</button>
 		</div>
 		<div class="action-bar-right">
 			<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
@@ -720,68 +781,79 @@
 	<div class="app-body" class:sidebar-collapsed={!sidebarOpen}>
 	{#if sidebarOpen}
 		<div class="sidebar-wrap" style="width: {sidebarWidth}px">
-			<Sidebar
-				tree={tree}
-				{assetTree}
-				{archetypeTree}
-				{configTree}
-				{currentSlug}
-				{sidebarView}
-				{expandedSlugs}
-				onLoadFile={loadFile}
-				onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
-				onCreateFolderInFolder={(slug) => { createFolderParent = slug; showCreateFolderDialog = true; }}
-				onDeleteFile={handleDelete}
-				onDeleteFolder={handleDeleteFolder}
-				onRenameFile={handleRename}
-				onDuplicateFile={handleDuplicate}
-				onToggleFolder={(slug) => {
-					const next = new Set(expandedSlugs);
-					if (next.has(slug)) next.delete(slug); else next.add(slug);
-					expandedSlugs = next;
-				}}
-				onSelectAsset={(path) => {
-					const ext = path.split('.').pop()?.toLowerCase();
-					if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
-						const slug = path;
+			{#if showGit && GitSidebarComp}
+				<GitSidebarComp
+					status={gitStatus}
+					loading={gitLoading}
+					onRefresh={refreshGitStatus}
+					onCommit={() => showCommitDialog = true}
+					onPush={handleGitPush}
+					onInit={handleGitInit}
+				/>
+			{:else}
+				<Sidebar
+					tree={tree}
+					{assetTree}
+					{archetypeTree}
+					{configTree}
+					{currentSlug}
+					{sidebarView}
+					{expandedSlugs}
+					onLoadFile={loadFile}
+					onCreateFileInFolder={(slug) => { createFileSection = slug; showCreateDialog = true; }}
+					onCreateFolderInFolder={(slug) => { createFolderParent = slug; showCreateFolderDialog = true; }}
+					onDeleteFile={handleDelete}
+					onDeleteFolder={handleDeleteFolder}
+					onRenameFile={handleRename}
+					onDuplicateFile={handleDuplicate}
+					onToggleFolder={(slug) => {
+						const next = new Set(expandedSlugs);
+						if (next.has(slug)) next.delete(slug); else next.add(slug);
+						expandedSlugs = next;
+					}}
+					onSelectAsset={(path) => {
+						const ext = path.split('.').pop()?.toLowerCase();
+						if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
+							const slug = path;
+							const existing = tabs.find(t => t.slug === slug);
+							if (existing) { switchToTab(slug); return; }
+							const tab: Tab = {
+								slug,
+								title: slug.split('/').pop() || slug,
+								content: '',
+								frontmatter: {},
+								mtimeMs: 0,
+								kind: 'static',
+							};
+							tabs = [...tabs, tab];
+							switchToTab(slug);
+						} else {
+							window.open(`/api/assets/${path}`, '_blank');
+						}
+					}}
+					onSelectArchetype={(slug) => {
 						const existing = tabs.find(t => t.slug === slug);
 						if (existing) { switchToTab(slug); return; }
-						const tab: Tab = {
-							slug,
-							title: slug.split('/').pop() || slug,
-							content: '',
-							frontmatter: {},
-							mtimeMs: 0,
-							kind: 'static',
-						};
-						tabs = [...tabs, tab];
+						tabs = [...tabs, {
+							slug, title: slug.split('/').pop() || slug,
+							content: '', frontmatter: {}, mtimeMs: 0, kind: 'archetype',
+						}];
+						currentArchetype = slug;
 						switchToTab(slug);
-					} else {
-						window.open(`/api/assets/${path}`, '_blank');
-					}
-				}}
-				onSelectArchetype={(slug) => {
-					const existing = tabs.find(t => t.slug === slug);
-					if (existing) { switchToTab(slug); return; }
-					tabs = [...tabs, {
-						slug, title: slug.split('/').pop() || slug,
-						content: '', frontmatter: {}, mtimeMs: 0, kind: 'archetype',
-					}];
-					currentArchetype = slug;
-					switchToTab(slug);
-				}}
-				onSelectConfig={(slug) => {
-					const existing = tabs.find(t => t.slug === slug);
-					if (existing) { switchToTab(slug); return; }
-					tabs = [...tabs, {
-						slug, title: slug.split('/').pop() || slug,
-						content: '', frontmatter: {}, mtimeMs: 0, kind: 'config',
-					}];
-					currentConfigSlug = slug;
-					switchToTab(slug);
-				}}
-				onViewChange={(v) => { sidebarView = v; if (v === 'config') loadConfigTree(); }}
-			/>
+					}}
+					onSelectConfig={(slug) => {
+						const existing = tabs.find(t => t.slug === slug);
+						if (existing) { switchToTab(slug); return; }
+						tabs = [...tabs, {
+							slug, title: slug.split('/').pop() || slug,
+							content: '', frontmatter: {}, mtimeMs: 0, kind: 'config',
+						}];
+						currentConfigSlug = slug;
+						switchToTab(slug);
+					}}
+					onViewChange={(v) => { sidebarView = v; if (v === 'config') loadConfigTree(); }}
+				/>
+			{/if}
 		</div>
 		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
 	{/if}
@@ -958,6 +1030,15 @@
 	<ShortcutsHelpComp
 		show={showShortcuts}
 		onClose={() => showShortcuts = false}
+	/>
+{/if}
+
+{#if CommitDialogComp}
+	<CommitDialogComp
+		show={showCommitDialog}
+		status={gitStatus}
+		onClose={() => showCommitDialog = false}
+		onCommit={handleGitCommit}
 	/>
 {/if}
 
