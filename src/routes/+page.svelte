@@ -57,6 +57,8 @@
 	let sidebarOpen = $state(true);
 	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
 	let showGit = $state(false);
+	let gitRemote = $state('origin');
+	let gitBranch = $state('main');
 	let showSettings = $state(false);
 	let defaultRawMode = $state(false);
 	let showBubbleMenu = $state(true);
@@ -126,7 +128,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -167,6 +169,8 @@
 					editorMaxWidthCustom = state.settings.editorMaxWidthCustom ?? 720;
 					historyDepth = state.settings.historyDepth ?? 250;
 					autoSaveDelay = state.settings.autoSaveDelay ?? 2000;
+					gitRemote = state.settings.gitRemote ?? 'origin';
+					gitBranch = state.settings.gitBranch ?? 'main';
 					fmRawMode = state.settings.fmRawMode ?? false;
 				}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
@@ -226,6 +230,8 @@
 				if (s.showConsole !== undefined) showConsole = s.showConsole as boolean;
 				if (s.showPreview !== undefined) showPreview = s.showPreview as boolean;
 				if (s.showGit !== undefined) showGit = s.showGit as boolean;
+				if (s.gitRemote !== undefined) gitRemote = s.gitRemote as string;
+				if (s.gitBranch !== undefined) gitBranch = s.gitBranch as string;
 			}
 		} catch {}
 	}
@@ -242,6 +248,8 @@
 		showPreview;
 		showConsole;
 		showGit;
+		gitRemote;
+		gitBranch;
 		consoleHeight;
 		defaultRawMode;
 		showBubbleMenu;
@@ -1150,9 +1158,9 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; gitRemote: string; gitBranch: string }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1177,6 +1185,8 @@
 			showConsole = s.showConsole;
 			showPreview = s.showPreview;
 			showGit = s.showGit;
+			gitRemote = s.gitRemote;
+			gitBranch = s.gitBranch;
 		}}
 	/>
 {/if}

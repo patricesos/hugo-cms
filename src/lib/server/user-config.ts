@@ -29,6 +29,8 @@ export interface UserSettings {
 	showConsole: boolean;
 	showPreview: boolean;
 	showGit: boolean;
+	gitRemote: string;
+	gitBranch: string;
 }
 
 const defaults: UserSettings = {
@@ -52,6 +54,8 @@ const defaults: UserSettings = {
 	showConsole: false,
 	showPreview: false,
 	showGit: false,
+	gitRemote: 'origin',
+	gitBranch: 'main',
 };
 
 function configPath(): string {
@@ -87,6 +91,8 @@ export function loadUserSettings(): UserSettings {
 				if (typeof val === 'number' && val >= 200 && val <= 500) result[key] = val;
 			} else if (key === 'sidebarView') {
 				if (val === 'content' || val === 'static' || val === 'archetypes' || val === 'config') result[key] = val;
+			} else if (key === 'gitRemote' || key === 'gitBranch') {
+				if (typeof val === 'string') result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -124,6 +130,8 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (typeof val === 'number' && val >= 200 && val <= 500) obj[key] = val;
 			} else if (key === 'sidebarView') {
 				if (val === 'content' || val === 'static' || val === 'archetypes' || val === 'config') obj[key] = val;
+			} else if (key === 'gitRemote' || key === 'gitBranch') {
+				if (typeof val === 'string') obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}

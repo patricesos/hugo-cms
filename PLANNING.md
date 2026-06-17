@@ -44,8 +44,8 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 ### Git
 
 - [x] Git intégré activé (oui/non)
-- [ ] Remote par défaut (origin / custom)
-- [ ] Branche par défaut (main / custom)
+- [x] Remote par défaut (origin / custom)
+- [x] Branche par défaut (main / custom)
 - [x] Afficher panneau Git par défaut (oui/non)
 
 ### Avancé — visible dans la vue Config ou un sous-menu

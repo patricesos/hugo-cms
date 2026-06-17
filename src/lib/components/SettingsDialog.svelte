@@ -23,6 +23,8 @@
 		showConsole: boolean;
 		showPreview: boolean;
 		showGit: boolean;
+		gitRemote: string;
+		gitBranch: string;
 	}
 
 	let { show = false, settings = {} as SettingsState, onClose, onSave }: {
@@ -32,8 +34,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main' });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main' });
 
 	$effect(() => {
 		if (show) {
@@ -196,6 +198,14 @@
 					<span>Git intégré activé</span>
 					<input type="checkbox" checked={local.showGit} onchange={(e) => { const el = e.target as HTMLInputElement; local.showGit = el.checked; emit(); }} />
 				</label>
+				<label class="toggle-row">
+					<span>Remote par défaut</span>
+					<input type="text" value={local.gitRemote} oninput={(e) => { const el = e.target as HTMLInputElement; local.gitRemote = el.value; emit(); }} class="text-input" />
+				</label>
+				<label class="toggle-row">
+					<span>Branche par défaut</span>
+					<input type="text" value={local.gitBranch} oninput={(e) => { const el = e.target as HTMLInputElement; local.gitBranch = el.value; emit(); }} class="text-input" />
+				</label>
 			</div>
 		</div>
 
@@ -295,6 +305,17 @@
 		color: var(--c-text);
 		font-size: 12px;
 		font-family: inherit;
+	}
+
+	.text-input {
+		padding: 3px 8px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text);
+		font-size: 12px;
+		font-family: inherit;
+		width: 120px;
 	}
 
 	.number-input {
