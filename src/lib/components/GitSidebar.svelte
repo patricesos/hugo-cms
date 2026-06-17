@@ -164,6 +164,8 @@
 	.git-sidebar {
 		display: flex;
 		flex-direction: column;
+		width: 100%;
+		min-width: 0;
 		height: 100%;
 		font-size: 13px;
 	}
@@ -172,28 +174,32 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 10px 12px;
+		padding: 8px 12px;
 		border-bottom: 1px solid var(--c-border);
 	}
 
 	.branch-info {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
 		color: var(--c-text);
 		font-weight: 500;
-		font-size: 13px;
+		font-size: 12px;
+		min-width: 0;
 	}
 
 	.branch-name {
 		font-family: var(--font-mono);
-		font-size: 12px;
+		font-size: 11px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.ahead-behind {
 		display: flex;
-		gap: 4px;
-		font-size: 11px;
+		gap: 2px;
+		font-size: 10px;
 		font-family: var(--font-mono);
 	}
 
@@ -203,14 +209,15 @@
 	.git-actions {
 		display: flex;
 		gap: 2px;
+		flex-shrink: 0;
 	}
 
 	.icon-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 26px;
-		height: 26px;
+		width: 24px;
+		height: 24px;
 		border: none;
 		border-radius: var(--radius-sm);
 		background: transparent;
