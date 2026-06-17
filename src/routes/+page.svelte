@@ -118,70 +118,92 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+		fetch('/api/user-settings', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(state.settings),
+		}).catch(() => {});
 	}
 
 	async function restoreAppState() {
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY);
-			if (!raw) { hydrated = true; return; }
-			const state = JSON.parse(raw);
-			sidebarOpen = state.sidebarOpen ?? true;
-			sidebarView = state.sidebarView ?? 'content';
-			sidebarWidth = state.sidebarWidth ?? 260;
-			fmOpen = state.fmOpen ?? true;
-			showPreview = state.showPreview ?? false;
-			showConsole = state.showConsole ?? false;
-			showGit = state.showGit ?? false;
-			if (showGit) {
-				gitInitialized = true;
-				await refreshGitStatus();
-			}
-			consoleHeight = state.consoleHeight ?? 200;
-			fmWidth = state.fmWidth ?? 280;
-			previewWidth = state.previewWidth ?? 480;
-			if (state.settings) {
-				defaultRawMode = state.settings.defaultRawMode ?? false;
-				showBubbleMenu = state.settings.showBubbleMenu ?? true;
-				showSlashMenu = state.settings.showSlashMenu ?? true;
-				draftByDefault = state.settings.draftByDefault ?? true;
-			}
-			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
-			if (state.tabs && state.currentSlug) {
-				const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; kind?: TabKind; isImage?: boolean }) => {
-					const kind: TabKind = t.kind ?? (t.isImage ? 'static' : 'content');
-					return { slug: t.slug, title: t.title, content: '', frontmatter: {}, mtimeMs: 0, frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml', kind };
-				});
-				tabs = restored;
-				currentSlug = state.currentSlug;
-				const contentTabs = restored.filter(t => t.kind === 'content');
-				await Promise.all(contentTabs.map(async (t) => {
-					try {
-						const res = await fetch(`/api/content/${t.slug}`);
-						const data = await res.json();
-						t.content = data.body || '';
-						t.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
-						t.mtimeMs = data.mtimeMs ?? 0;
-						t.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
-					} catch { /* ignore */ }
-				}));
-				const active = restored.find(t => t.slug === state.currentSlug);
-				if (active) {
-					if (active.kind === 'content') {
-						editorContent = active.content;
-						currentFrontmatter = { ...active.frontmatter };
-						currentFmFormat = active.frontmatterLanguage ?? 'yaml';
-						editorSetContent?.(active.content);
+			if (raw) {
+				const state = JSON.parse(raw);
+				sidebarOpen = state.sidebarOpen ?? true;
+				sidebarView = state.sidebarView ?? 'content';
+				sidebarWidth = state.sidebarWidth ?? 260;
+				fmOpen = state.fmOpen ?? true;
+				showPreview = state.showPreview ?? false;
+				showConsole = state.showConsole ?? false;
+				showGit = state.showGit ?? false;
+				if (showGit) {
+					gitInitialized = true;
+					await refreshGitStatus();
+				}
+				consoleHeight = state.consoleHeight ?? 200;
+				fmWidth = state.fmWidth ?? 280;
+				previewWidth = state.previewWidth ?? 480;
+				if (state.settings) {
+					defaultRawMode = state.settings.defaultRawMode ?? false;
+					showBubbleMenu = state.settings.showBubbleMenu ?? true;
+					showSlashMenu = state.settings.showSlashMenu ?? true;
+					draftByDefault = state.settings.draftByDefault ?? true;
+				}
+				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
+				if (state.tabs && state.currentSlug) {
+					const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; kind?: TabKind; isImage?: boolean }) => {
+						const kind: TabKind = t.kind ?? (t.isImage ? 'static' : 'content');
+						return { slug: t.slug, title: t.title, content: '', frontmatter: {}, mtimeMs: 0, frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml', kind };
+					});
+					tabs = restored;
+					currentSlug = state.currentSlug;
+					const contentTabs = restored.filter(t => t.kind === 'content');
+					await Promise.all(contentTabs.map(async (t) => {
+						try {
+							const res = await fetch(`/api/content/${t.slug}`);
+							const data = await res.json();
+							t.content = data.body || '';
+							t.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
+							t.mtimeMs = data.mtimeMs ?? 0;
+							t.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
+						} catch { /* ignore */ }
+					}));
+					const active = restored.find(t => t.slug === state.currentSlug);
+					if (active) {
+						if (active.kind === 'content') {
+							editorContent = active.content;
+							currentFrontmatter = { ...active.frontmatter };
+							currentFmFormat = active.frontmatterLanguage ?? 'yaml';
+							editorSetContent?.(active.content);
+						}
+						switchToTab(state.currentSlug);
 					}
-					switchToTab(state.currentSlug);
 				}
 			}
 			hydrated = true;
 		} catch {
 			hydrated = true;
 		}
+		// fetch user settings from file system (overrides localStorage + defaults)
+		try {
+			const res = await fetch('/api/user-settings');
+			if (res.ok) {
+				const s = await res.json() as Record<string, boolean>;
+				if (s.defaultRawMode !== undefined) defaultRawMode = s.defaultRawMode;
+				if (s.showBubbleMenu !== undefined) showBubbleMenu = s.showBubbleMenu;
+				if (s.showSlashMenu !== undefined) showSlashMenu = s.showSlashMenu;
+				if (s.draftByDefault !== undefined) draftByDefault = s.draftByDefault;
+				if (s.sidebarOpen !== undefined) sidebarOpen = s.sidebarOpen;
+				if (s.fmOpen !== undefined) fmOpen = s.fmOpen;
+				if (s.showConsole !== undefined) showConsole = s.showConsole;
+				if (s.showPreview !== undefined) showPreview = s.showPreview;
+				if (s.showGit !== undefined) showGit = s.showGit;
+			}
+		} catch {}
 	}
 	$effect(() => {
 		tabs;
@@ -1077,16 +1099,23 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean }) => {
-			const captured = editorGetContent?.();
-			if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu) {
+				const captured = editorGetContent?.();
+				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
+				settingsKey++;
+			}
 			defaultRawMode = s.defaultRawMode;
 			showBubbleMenu = s.showBubbleMenu;
 			showSlashMenu = s.showSlashMenu;
 			draftByDefault = s.draftByDefault;
-			settingsKey++;
+			sidebarOpen = s.sidebarOpen;
+			fmOpen = s.fmOpen;
+			showConsole = s.showConsole;
+			showPreview = s.showPreview;
+			showGit = s.showGit;
 		}}
 	/>
 {/if}

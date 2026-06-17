@@ -7,6 +7,11 @@
 		showBubbleMenu: boolean;
 		showSlashMenu: boolean;
 		draftByDefault: boolean;
+		sidebarOpen: boolean;
+		fmOpen: boolean;
+		showConsole: boolean;
+		showPreview: boolean;
+		showGit: boolean;
 	}
 
 	let { show = false, settings = {} as SettingsState, onClose, onSave }: {
@@ -16,8 +21,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -82,6 +87,32 @@
 				<label class="toggle-row">
 					<span>Brouillon par défaut</span>
 					<input type="checkbox" checked={local.draftByDefault} onchange={(e) => { const el = e.target as HTMLInputElement; local.draftByDefault = el.checked; emit(); }} />
+				</label>
+			</div>
+			<div class="section">
+				<div class="section-title"><PenTool size={13} /> Panneaux</div>
+				<label class="toggle-row">
+					<span>Sidebar ouverte</span>
+					<input type="checkbox" checked={local.sidebarOpen} onchange={(e) => { const el = e.target as HTMLInputElement; local.sidebarOpen = el.checked; emit(); }} />
+				</label>
+				<label class="toggle-row">
+					<span>Frontmatter ouvert</span>
+					<input type="checkbox" checked={local.fmOpen} onchange={(e) => { const el = e.target as HTMLInputElement; local.fmOpen = el.checked; emit(); }} />
+				</label>
+				<label class="toggle-row">
+					<span>Console Hugo</span>
+					<input type="checkbox" checked={local.showConsole} onchange={(e) => { const el = e.target as HTMLInputElement; local.showConsole = el.checked; emit(); }} />
+				</label>
+				<label class="toggle-row">
+					<span>Aperçu Hugo</span>
+					<input type="checkbox" checked={local.showPreview} onchange={(e) => { const el = e.target as HTMLInputElement; local.showPreview = el.checked; emit(); }} />
+				</label>
+			</div>
+			<div class="section">
+				<div class="section-title"><PenTool size={13} /> Git</div>
+				<label class="toggle-row">
+					<span>Git intégré activé</span>
+					<input type="checkbox" checked={local.showGit} onchange={(e) => { const el = e.target as HTMLInputElement; local.showGit = el.checked; emit(); }} />
 				</label>
 			</div>
 		</div>

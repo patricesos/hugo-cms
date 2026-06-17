@@ -23,30 +23,30 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 
 ### Éditeur
 
-- [ ] Mode éditeur par défaut (WYSIWYG / Markdown brut)
+- [x] Mode éditeur par défaut (WYSIWYG / Markdown brut)
 - [ ] Délai auto-save (ms) — actuellement 2000ms via FM_SAVE_DELAY / AUTO_SAVE_DELAY
-- [ ] Activer/désactiver le bubble menu
-- [ ] Activer/désactiver le slash menu
+- [x] Activer/désactiver le bubble menu
+- [x] Activer/désactiver le slash menu
 - [ ] Nombre max d'entrées dans l'historique undo/redo
-- [ ] Draft par défaut pour les nouveaux fichiers (oui/non)
+- [x] Draft par défaut pour les nouveaux fichiers (oui/non)
 
 ### Panneaux
 
-- [ ] Sidebar ouverte par défaut (oui/non)
+- [x] Sidebar ouverte par défaut (oui/non)
 - [ ] Largeur sidebar par défaut (min 180, max 500)
 - [ ] Vue sidebar par défaut (Content / Static / Archetypes / Config)
-- [ ] Panneau Frontmatter ouvert par défaut (oui/non)
+- [x] Panneau Frontmatter ouvert par défaut (oui/non)
 - [ ] Largeur Frontmatter par défaut (min 200, max 500)
 - [ ] Mode Frontmatter par défaut (formulaire / raw)
-- [ ] Console Hugo ouverte par défaut (oui/non)
-- [ ] Aperçu Hugo ouvert par défaut (oui/non)
+- [x] Console Hugo ouverte par défaut (oui/non)
+- [x] Aperçu Hugo ouvert par défaut (oui/non)
 
 ### Git
 
-- [ ] Git intégré activé (oui/non)
+- [x] Git intégré activé (oui/non)
 - [ ] Remote par défaut (origin / custom)
 - [ ] Branche par défaut (main / custom)
-- [ ] Afficher panneau Git par défaut (oui/non)
+- [x] Afficher panneau Git par défaut (oui/non)
 
 ### Avancé — visible dans la vue Config ou un sous-menu
 
