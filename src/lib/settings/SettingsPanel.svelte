@@ -9,13 +9,13 @@
 		onChange: (key: string, value: any) => void;
 	} = $props();
 
-	let activeTab = $state(schema[0]?.id ?? '');
+	let activeTab = $state('');
 	let searchQuery = $state('');
 
 	let currentTab = $derived(schema.find(t => t.id === activeTab));
 
 	$effect(() => {
-		if (schema.length > 0 && !schema.find(t => t.id === activeTab)) {
+		if (schema.length > 0 && !currentTab) {
 			activeTab = schema[0].id;
 		}
 	});
