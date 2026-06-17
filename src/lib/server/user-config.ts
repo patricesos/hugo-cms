@@ -19,6 +19,7 @@ export interface UserSettings {
 	editorFontSize: EditorFontSize;
 	editorMaxWidth: EditorMaxWidth;
 	editorMaxWidthCustom: number;
+	historyDepth: number;
 	sidebarOpen: boolean;
 	fmOpen: boolean;
 	showConsole: boolean;
@@ -37,6 +38,7 @@ const defaults: UserSettings = {
 	editorFontSize: 'normal',
 	editorMaxWidth: '720px',
 	editorMaxWidthCustom: 720,
+	historyDepth: 250,
 	sidebarOpen: true,
 	fmOpen: true,
 	showConsole: false,
@@ -69,6 +71,8 @@ export function loadUserSettings(): UserSettings {
 				if (val === '720px' || val === '100%' || val === 'custom') result[key] = val;
 			} else if (key === 'editorMaxWidthCustom') {
 				if (typeof val === 'number' && val >= 400 && val <= 2000) result[key] = val;
+			} else if (key === 'historyDepth') {
+				if (typeof val === 'number' && val >= 10 && val <= 10000) result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -98,6 +102,8 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (val === '720px' || val === '100%' || val === 'custom') obj[key] = val;
 			} else if (key === 'editorMaxWidthCustom') {
 				if (typeof val === 'number' && val >= 400 && val <= 2000) obj[key] = val;
+			} else if (key === 'historyDepth') {
+				if (typeof val === 'number' && val >= 10 && val <= 10000) obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}

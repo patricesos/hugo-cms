@@ -13,6 +13,7 @@
 		editorFontSize: string;
 		editorMaxWidth: string;
 		editorMaxWidthCustom: number;
+		historyDepth: number;
 		sidebarOpen: boolean;
 		fmOpen: boolean;
 		showConsole: boolean;
@@ -27,8 +28,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -139,6 +140,10 @@
 						<option value="mono">Monospace</option>
 						<option value="system-ui">System UI</option>
 					</select>
+				</label>
+				<label class="toggle-row">
+					<span>Undo/redo max</span>
+					<input type="number" min="10" max="10000" step="10" value={local.historyDepth} oninput={(e) => { const el = e.target as HTMLInputElement; local.historyDepth = parseInt(el.value, 10) || 250; emit(); }} class="number-input" />
 				</label>
 			</div>
 			<div class="section">

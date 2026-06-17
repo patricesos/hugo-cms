@@ -27,7 +27,7 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 - [x] Délai auto-save (ms) — actuellement 2000ms via FM_SAVE_DELAY / AUTO_SAVE_DELAY
 - [x] Activer/désactiver le bubble menu
 - [x] Activer/désactiver le slash menu
-- [ ] Nombre max d'entrées dans l'historique undo/redo
+- [x] Nombre max d'entrées dans l'historique undo/redo
 - [x] Draft par défaut pour les nouveaux fichiers (oui/non)
 
 ### Panneaux

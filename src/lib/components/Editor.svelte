@@ -24,6 +24,7 @@
 		editorFontSize?: string;
 		editorMaxWidth?: string;
 		editorMaxWidthCustom?: number;
+		historyDepth?: number;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
@@ -36,7 +37,7 @@
 	const SH_OPEN_SH = 'SH_OPEN_SH';
 	const SH_CLOSE_SH = 'SH_CLOSE_SH';
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -164,7 +165,7 @@
 			extensions: [
 				StarterKit.configure({
 					heading: { levels: [1, 2, 3] },
-					history: { depth: 250 },
+					history: { depth: historyDepth },
 				}),
 				Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
 				Markdown.configure({
