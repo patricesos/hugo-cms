@@ -280,6 +280,7 @@
 			tabindex="-1"
 			transition:fly={{ duration: 160, y: 16 }}
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.key === 'Escape' && (confirmHash = null)}
 		>
 			<div class="confirm-icon"><Undo2 size={18} /></div>
 			<p class="confirm-msg">Annuler ce commit et garder les modifications ?</p>
