@@ -307,6 +307,20 @@ export const settingsSchema: SettingTab[] = [
 				],
 			},
 			{
+				label: 'Serveur CMS',
+				fields: [
+					{
+						key: 'cmsPort',
+						label: 'Port CMS',
+						description: "Port du serveur hugo-cms (utilisé par le lanceur système ; redémarrage requis)",
+						type: 'number',
+						default: 1703,
+						min: 1,
+						max: 65535,
+					},
+				],
+			},
+			{
 				label: 'Corbeille',
 				fields: [
 					{

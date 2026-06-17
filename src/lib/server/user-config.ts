@@ -36,6 +36,7 @@ export interface UserSettings {
 	hugoSitePathCustom: string;
 	hugoBindAddress: string;
 	hugoPort: number;
+	cmsPort: number;
 	trashDir: string;
 }
 
@@ -67,6 +68,7 @@ const defaults: UserSettings = {
 	hugoSitePathCustom: '',
 	hugoBindAddress: '127.0.0.1',
 	hugoPort: 1313,
+	cmsPort: 1703,
 	trashDir: '_trash',
 };
 
@@ -112,6 +114,8 @@ export function loadUserSettings(): UserSettings {
 			} else if (key === 'hugoBindAddress') {
 				if (typeof val === 'string') result[key] = val;
 			} else if (key === 'hugoPort') {
+				if (typeof val === 'number' && val >= 1 && val <= 65535) result[key] = val;
+			} else if (key === 'cmsPort') {
 				if (typeof val === 'number' && val >= 1 && val <= 65535) result[key] = val;
 			} else if (key === 'trashDir') {
 				if (typeof val === 'string') result[key] = val;
@@ -161,6 +165,8 @@ export function saveUserSettings(settings: UserSettings): void {
 			} else if (key === 'hugoBindAddress') {
 				if (typeof val === 'string') obj[key] = val;
 			} else if (key === 'hugoPort') {
+				if (typeof val === 'number' && val >= 1 && val <= 65535) obj[key] = val;
+			} else if (key === 'cmsPort') {
 				if (typeof val === 'number' && val >= 1 && val <= 65535) obj[key] = val;
 			} else if (key === 'trashDir') {
 				if (typeof val === 'string') obj[key] = val;

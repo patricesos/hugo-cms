@@ -57,6 +57,7 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 - [x] Timeout arrêt Hugo (5000ms)
 - [x] Intervalle polling changements externes (5000ms)
 - [x] Dossier Corbeille (\_trash)
+- [x] Port CMS (1703 par défaut, redémarrage requis)
 - [x] Auteur par défaut (patricesos)
 - [x] Format de date (YYYY-MM-DD)
 - [x] Archétype par défaut (default)

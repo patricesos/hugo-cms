@@ -184,6 +184,7 @@ class TrayLauncher : Form
         psi.CreateNoWindow = true;
         psi.RedirectStandardOutput = true;
         psi.RedirectStandardError = true;
+        psi.EnvironmentVariables["PORT"] = GetCmsPort();
 
         try
         {
@@ -259,13 +260,34 @@ class TrayLauncher : Form
         ToggleConsole();
     }
 
+    private string GetCmsPort()
+    {
+        string envPort = Environment.GetEnvironmentVariable("PORT");
+        if (!string.IsNullOrEmpty(envPort)) return envPort;
+
+        string cfgPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".config", "hugocms", "config.toml");
+        if (File.Exists(cfgPath))
+        {
+            try
+            {
+                string toml = File.ReadAllText(cfgPath);
+                var m = System.Text.RegularExpressions.Regex.Match(toml, @"^cmsPort\s*=\s*(\d[_\d]*\d|\d)\s*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+                if (m.Success) return m.Groups[1].Value.Replace("_", "");
+            }
+            catch { }
+        }
+        return "1703";
+    }
+
     private void OnOpen(object sender, EventArgs e)
     {
         try
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "http://localhost:3000",
+                FileName = string.Format("http://localhost:{0}", GetCmsPort()),
                 UseShellExecute = true
             });
         }
