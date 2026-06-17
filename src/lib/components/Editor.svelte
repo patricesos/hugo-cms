@@ -573,8 +573,9 @@
 		bind:value={rawContent}
 		oninput={markRawUnsaved}
 		placeholder="Commencez à écrire…"
+		aria-label="Contenu brut"
 	></textarea>
-	<div bind:this={editorEl} class="editor-content" class:active={!rawMode}></div>
+	<div bind:this={editorEl} class="editor-content" class:active={!rawMode} role="textbox" aria-label="Éditeur de contenu"></div>
 
 	<div bind:this={bubbleEl} class="bubble-menu">
 		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleBold().run(); }} class:active={editor?.isActive('bold')} title="Gras"><Bold size={14} /></button>

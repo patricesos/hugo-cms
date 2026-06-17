@@ -50,13 +50,13 @@
 	--c-border-light: #f0f0f1;
 
 	--c-text: #18181b;
-	--c-text-secondary: #71717a;
-	--c-text-muted: #76767a;
+	--c-text-secondary: #5c5c66;
+	--c-text-muted: #5c5c66;
 
-	--c-success: #16a34a;
-	--c-warning: #d97706;
+	--c-success: #15803d;
+	--c-warning: #b45309;
 	--c-info: #6366f1;
-	--c-danger: #ef4444;
+	--c-danger: #dc2626;
 
 	--radius-sm: 4px;
 	--radius-md: 6px;

@@ -70,7 +70,7 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
-		padding: 6px 6px 6px 10px;
+		padding: 6px 8px 6px 12px;
 		border: none;
 		border-right: 1px solid var(--c-border);
 		background: transparent;
@@ -114,8 +114,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 18px;
-		height: 18px;
+		width: 24px;
+		height: 24px;
 		padding: 0;
 		border: none;
 		border-radius: 3px;

@@ -2,21 +2,12 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal } from '@lucide/svelte';
-	import Editor from '$lib/components/Editor.svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import CreateFileDialog from '$lib/components/CreateFileDialog.svelte';
-	import CreateFolderDialog from '$lib/components/CreateFolderDialog.svelte';
-	import SearchDialog from '$lib/components/SearchDialog.svelte';
-	import ShortcutsHelp from '$lib/components/ShortcutsHelp.svelte';
-	import HugoPreview from '$lib/components/HugoPreview.svelte';
-	import ArchetypeView from '$lib/components/ArchetypeView.svelte';
-	import ImageView from '$lib/components/ImageView.svelte';
-	import ConfigView from '$lib/components/ConfigView.svelte';
-	import HugoConsole from '$lib/components/HugoConsole.svelte';
+
 
 	interface TreeNode {
 		type: 'file' | 'directory';
@@ -81,6 +72,18 @@
 	let expandedSlugs = $state<Set<string>>(new Set());
 	let hugoStatus = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let hydrated = $state(false);
+
+	// Lazy-loaded component references
+	let EditorComp = $state<any>(null);
+	let CreateFileDialogComp = $state<any>(null);
+	let CreateFolderDialogComp = $state<any>(null);
+	let SearchDialogComp = $state<any>(null);
+	let ShortcutsHelpComp = $state<any>(null);
+	let HugoPreviewComp = $state<any>(null);
+	let HugoConsoleComp = $state<any>(null);
+	let ArchetypeViewComp = $state<any>(null);
+	let ConfigViewComp = $state<any>(null);
+	let ImageViewComp = $state<any>(null);
 
 	import { getClientConfig } from '$lib/client-config';
 
@@ -337,6 +340,8 @@
 		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(async () => {
 			await restoreAppState();
 		});
+		// Lazy-load Editor on mount (not needed during SSR)
+		import('$lib/components/Editor.svelte').then(m => EditorComp = m.default);
 		function handleKeydown(e: KeyboardEvent) {
 			const mod = e.metaKey || e.ctrlKey;
 			if (mod && !e.shiftKey && e.code === 'KeyP') {
@@ -365,6 +370,17 @@
 			if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		};
 	});
+
+	// Lazy-import dialogs/panels when they become visible
+	$effect(() => { if (showCreateDialog && !CreateFileDialogComp) import('$lib/components/CreateFileDialog.svelte').then(m => CreateFileDialogComp = m.default); });
+	$effect(() => { if (showCreateFolderDialog && !CreateFolderDialogComp) import('$lib/components/CreateFolderDialog.svelte').then(m => CreateFolderDialogComp = m.default); });
+	$effect(() => { if (showSearch && !SearchDialogComp) import('$lib/components/SearchDialog.svelte').then(m => SearchDialogComp = m.default); });
+	$effect(() => { if (showShortcuts && !ShortcutsHelpComp) import('$lib/components/ShortcutsHelp.svelte').then(m => ShortcutsHelpComp = m.default); });
+	$effect(() => { if (showPreview && !HugoPreviewComp) import('$lib/components/HugoPreview.svelte').then(m => HugoPreviewComp = m.default); });
+	$effect(() => { if (showConsole && !HugoConsoleComp) import('$lib/components/HugoConsole.svelte').then(m => HugoConsoleComp = m.default); });
+	$effect(() => { if (currentTab?.kind === 'archetype' && !ArchetypeViewComp) import('$lib/components/ArchetypeView.svelte').then(m => ArchetypeViewComp = m.default); });
+	$effect(() => { if (currentTab?.kind === 'config' && !ConfigViewComp) import('$lib/components/ConfigView.svelte').then(m => ConfigViewComp = m.default); });
+	$effect(() => { if (currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
 
 	function handleVisibilityChange() {
 		if (document.visibilityState === 'visible' && currentSlug) {
@@ -777,17 +793,21 @@
 		<div class="editor-panel-body">
 			<div class="editor-panel-content">
 				{#if currentTab?.kind === 'archetype'}
-					<ArchetypeView
-						slug={currentArchetype}
-						onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentArchetype = null; currentSlug = null; }}
-						onDelete={(s) => { loadArchetypes(); tabs = tabs.filter(t => t.slug !== s); currentArchetype = null; currentSlug = null; }}
-					/>
+					{#if ArchetypeViewComp}
+						<ArchetypeViewComp
+							slug={currentArchetype}
+							onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentArchetype = null; currentSlug = null; }}
+							onDelete={(s) => { loadArchetypes(); tabs = tabs.filter(t => t.slug !== s); currentArchetype = null; currentSlug = null; }}
+						/>
+					{/if}
 				{:else if currentTab?.kind === 'config'}
-					<ConfigView
-						slug={currentConfigSlug}
-						onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentConfigSlug = null; currentSlug = null; }}
-						onDelete={(s) => { loadConfigTree(); tabs = tabs.filter(t => t.slug !== s); currentConfigSlug = null; currentSlug = null; }}
-					/>
+					{#if ConfigViewComp}
+						<ConfigViewComp
+							slug={currentConfigSlug}
+							onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentConfigSlug = null; currentSlug = null; }}
+							onDelete={(s) => { loadConfigTree(); tabs = tabs.filter(t => t.slug !== s); currentConfigSlug = null; currentSlug = null; }}
+						/>
+					{/if}
 				{:else if showSitemap && !currentSlug}
 					<SitemapView {tree} {currentSlug} onLoadFile={(slug) => { loadFile(slug); showSitemap = false; }} onRefresh={loadTree} />
 				{:else if !currentSlug}
@@ -806,7 +826,9 @@
 							</div>
 						</div>
 						{#key currentSlug}
-							<ImageView slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
+							{#if ImageViewComp}
+								<ImageViewComp slug={currentSlug} assetUrl={`/api/assets/${currentSlug}`} />
+							{/if}
 						{/key}
 					</div>
 				{:else}
@@ -851,18 +873,26 @@
 						<div class="editor-body" class:with-fm={fmOpen}>
 							<div class="editor-main">
 								<div class="editor-area">
-									<Editor
-										content={editorContent}
-										frontmatter={currentFrontmatter}
-										frontmatterFormat={currentFmFormat}
-										{saveRequest}
-										getContent={(fn) => { editorGetContent = fn; }}
-										onSetContent={(fn) => { editorSetContent = fn; }}
-										onSave={handleSave}
-										onFrontmatterChange={(fm) => { currentFrontmatter = fm; if (currentSlug) { const tab = tabs.find(t => t.slug === currentSlug); if (tab) tab.frontmatter = fm; updateTreeFrontmatter(currentSlug, fm); } }}
-										onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
-										onSaveState={(s) => { saveState = s; }}
-									/>
+									{#if EditorComp}
+										<EditorComp
+											content={editorContent}
+											frontmatter={currentFrontmatter}
+											frontmatterFormat={currentFmFormat}
+											{saveRequest}
+											getContent={(fn) => { editorGetContent = fn; }}
+											onSetContent={(fn) => { editorSetContent = fn; }}
+											onSave={handleSave}
+											onFrontmatterChange={(fm) => { currentFrontmatter = fm; if (currentSlug) { const tab = tabs.find(t => t.slug === currentSlug); if (tab) tab.frontmatter = fm; updateTreeFrontmatter(currentSlug, fm); } }}
+											onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
+											onSaveState={(s) => { saveState = s; }}
+										/>
+									{:else}
+										<div class="editor-loading">
+											<div class="skeleton-block"></div>
+											<div class="skeleton-block short"></div>
+											<div class="skeleton-block"></div>
+										</div>
+									{/if}
 								</div>
 								{#if fmOpen}
 									<div class="fm-resize-handle" role="presentation" onmousedown={startFmResize}></div>
@@ -882,42 +912,54 @@
 			</div>
 			{#if showPreview}
 				<div class="preview-resize-handle" role="presentation" onpointerdown={startPreviewResize}></div>
-				<HugoPreview show={showPreview} onClose={() => showPreview = false} onStatusChange={(s) => hugoStatus = s} style="width:{previewWidth}px;min-width:{previewWidth}px" />
+				{#if HugoPreviewComp}
+					<HugoPreviewComp show={showPreview} onClose={() => showPreview = false} onStatusChange={(s) => hugoStatus = s} style="width:{previewWidth}px;min-width:{previewWidth}px" />
+				{/if}
 			{/if}
 		</div>
 	</main>
 	</div>
 </div>
 
-<HugoConsole show={showConsole} bind:consoleHeight onClose={() => showConsole = false} />
+{#if HugoConsoleComp}
+	<HugoConsoleComp show={showConsole} bind:consoleHeight onClose={() => showConsole = false} />
+{/if}
 
-<CreateFileDialog
-	show={showCreateDialog}
-	{directories}
-	{archetypes}
-	presetSection={createFileSection}
-	onClose={() => showCreateDialog = false}
-	onCreate={handleCreate}
-/>
+{#if CreateFileDialogComp}
+	<CreateFileDialogComp
+		show={showCreateDialog}
+		{directories}
+		{archetypes}
+		presetSection={createFileSection}
+		onClose={() => showCreateDialog = false}
+		onCreate={handleCreate}
+	/>
+{/if}
 
-<CreateFolderDialog
-	show={showCreateFolderDialog}
-	parentSlug={createFolderParent}
-	onClose={() => showCreateFolderDialog = false}
-	onCreate={handleCreateFolder}
-/>
+{#if CreateFolderDialogComp}
+	<CreateFolderDialogComp
+		show={showCreateFolderDialog}
+		parentSlug={createFolderParent}
+		onClose={() => showCreateFolderDialog = false}
+		onCreate={handleCreateFolder}
+	/>
+{/if}
 
-<SearchDialog
-	show={showSearch}
-	entries={searchEntries}
-	onSelect={loadFile}
-	onClose={() => showSearch = false}
-/>
+{#if SearchDialogComp}
+	<SearchDialogComp
+		show={showSearch}
+		entries={searchEntries}
+		onSelect={loadFile}
+		onClose={() => showSearch = false}
+	/>
+{/if}
 
-<ShortcutsHelp
-	show={showShortcuts}
-	onClose={() => showShortcuts = false}
-/>
+{#if ShortcutsHelpComp}
+	<ShortcutsHelpComp
+		show={showShortcuts}
+		onClose={() => showShortcuts = false}
+	/>
+{/if}
 
 <style>
 	.app-shell {
@@ -1330,6 +1372,14 @@
 
 	.skeleton-block.short {
 		width: 60%;
+	}
+
+	.editor-loading {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 48px;
 	}
 
 	@keyframes shimmer {
