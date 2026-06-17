@@ -20,6 +20,7 @@
 		showBubbleMenu?: boolean;
 		showSlashMenu?: boolean;
 		autoSaveDelay?: number;
+		editorFont?: string;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
@@ -32,7 +33,7 @@
 	const SH_OPEN_SH = 'SH_OPEN_SH';
 	const SH_CLOSE_SH = 'SH_CLOSE_SH';
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -548,7 +549,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="editor-container">
+<div class="editor-container" style="--editor-font: var(--font-{editorFont})">
 	<div class="editor-toolbar">
 		<button onclick={rawMode ? rawUndo : () => editor?.commands.undo()} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
 		<button onclick={rawMode ? rawRedo : () => editor?.commands.redo()} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
@@ -665,7 +666,7 @@
 		margin: 0 auto;
 		width: 100%;
 		outline: none;
-		font-family: var(--font-serif);
+		font-family: var(--editor-font, var(--font-serif));
 		font-size: 16px;
 		line-height: 1.8;
 		overflow-y: auto;
@@ -737,7 +738,7 @@
 		flex: 1;
 		width: 100%;
 		padding: 24px 32px;
-		font-family: var(--font-mono);
+		font-family: var(--editor-font, var(--font-mono));
 		font-size: 14px;
 		line-height: 1.7;
 		border: none;

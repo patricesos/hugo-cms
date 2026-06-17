@@ -9,6 +9,7 @@
 		draftByDefault: boolean;
 		autoSaveDelay: number;
 		theme: string;
+		editorFont: string;
 		sidebarOpen: boolean;
 		fmOpen: boolean;
 		showConsole: boolean;
@@ -23,8 +24,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -104,6 +105,15 @@
 				<label class="toggle-row">
 					<span>Auto-save (ms)</span>
 					<input type="number" min="500" max="30000" step="100" value={local.autoSaveDelay} oninput={(e) => { const el = e.target as HTMLInputElement; local.autoSaveDelay = parseInt(el.value, 10) || 2000; emit(); }} class="number-input" />
+				</label>
+				<label class="toggle-row">
+					<span>Police éditeur</span>
+					<select value={local.editorFont} onchange={(e) => { const el = e.target as HTMLSelectElement; local.editorFont = el.value; emit(); }} class="select-input">
+						<option value="serif">Serif (Georgia)</option>
+						<option value="sans">Sans-serif (Open Sans)</option>
+						<option value="mono">Monospace</option>
+						<option value="system-ui">System UI</option>
+					</select>
 				</label>
 			</div>
 			<div class="section">

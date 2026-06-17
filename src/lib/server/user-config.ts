@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { stringify, parse } from '@iarna/toml';
 
 export type Theme = 'light' | 'dark' | 'system';
+export type EditorFont = 'sans' | 'mono' | 'serif' | 'system-ui';
 
 export interface UserSettings {
 	defaultRawMode: boolean;
@@ -12,6 +13,7 @@ export interface UserSettings {
 	draftByDefault: boolean;
 	autoSaveDelay: number;
 	theme: Theme;
+	editorFont: EditorFont;
 	sidebarOpen: boolean;
 	fmOpen: boolean;
 	showConsole: boolean;
@@ -26,6 +28,7 @@ const defaults: UserSettings = {
 	draftByDefault: true,
 	autoSaveDelay: 2000,
 	theme: 'system',
+	editorFont: 'serif',
 	sidebarOpen: true,
 	fmOpen: true,
 	showConsole: false,
@@ -50,6 +53,8 @@ export function loadUserSettings(): UserSettings {
 				if (typeof val === 'number' && val >= 500) result[key] = val;
 			} else if (key === 'theme') {
 				if (val === 'light' || val === 'dark' || val === 'system') result[key] = val;
+			} else if (key === 'editorFont') {
+				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -71,6 +76,8 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (typeof val === 'number' && val >= 500) obj[key] = val;
 			} else if (key === 'theme') {
 				if (val === 'light' || val === 'dark' || val === 'system') obj[key] = val;
+			} else if (key === 'editorFont') {
+				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}
