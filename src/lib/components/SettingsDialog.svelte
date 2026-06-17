@@ -18,6 +18,7 @@
 		sidebarWidth: number;
 		fmOpen: boolean;
 		fmWidth: number;
+		sidebarView: string;
 		showConsole: boolean;
 		showPreview: boolean;
 		showGit: boolean;
@@ -30,8 +31,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -157,6 +158,15 @@
 				<label class="toggle-row">
 					<span>Largeur sidebar (px)</span>
 					<input type="number" min="180" max="500" step="5" value={local.sidebarWidth} oninput={(e) => { const el = e.target as HTMLInputElement; local.sidebarWidth = parseInt(el.value, 10) || 260; emit(); }} class="number-input" />
+				</label>
+				<label class="toggle-row">
+					<span>Vue sidebar par défaut</span>
+					<select value={local.sidebarView} onchange={(e) => { const el = e.target as HTMLSelectElement; local.sidebarView = el.value; emit(); }} class="select-input">
+						<option value="content">Content</option>
+						<option value="static">Static</option>
+						<option value="archetypes">Archetypes</option>
+						<option value="config">Config</option>
+					</select>
 				</label>
 				<label class="toggle-row">
 					<span>Frontmatter ouvert</span>

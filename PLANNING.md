@@ -34,7 +34,7 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 
 - [x] Sidebar ouverte par défaut (oui/non)
 - [x] Largeur sidebar par défaut (min 180, max 500)
-- [ ] Vue sidebar par défaut (Content / Static / Archetypes / Config)
+- [x] Vue sidebar par défaut (Content / Static / Archetypes / Config)
 - [x] Panneau Frontmatter ouvert par défaut (oui/non)
 - [x] Largeur Frontmatter par défaut (min 200, max 500)
 - [ ] Mode Frontmatter par défaut (formulaire / raw)
