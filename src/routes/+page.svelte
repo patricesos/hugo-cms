@@ -127,6 +127,10 @@
 			showPreview = state.showPreview ?? false;
 			showConsole = state.showConsole ?? false;
 			showGit = state.showGit ?? false;
+			if (showGit) {
+				gitInitialized = true;
+				await refreshGitStatus();
+			}
 			consoleHeight = state.consoleHeight ?? 200;
 			fmWidth = state.fmWidth ?? 280;
 			previewWidth = state.previewWidth ?? 480;
@@ -1276,7 +1280,7 @@
 	}
 
 	.resize-handle {
-		width: 4px;
+		width: 5px;
 		flex-shrink: 0;
 		cursor: col-resize;
 		background: transparent;
@@ -1285,8 +1289,24 @@
 		z-index: 5;
 	}
 
+	.resize-handle::before {
+		content: '';
+		position: absolute;
+		top: 3px;
+		bottom: 3px;
+		left: 2px;
+		width: 1px;
+		background: var(--c-border);
+		transition: background 0.15s;
+	}
+
 	.resize-handle:hover,
 	.resize-handle:active {
+		background: var(--c-primary);
+	}
+
+	.resize-handle:hover::before,
+	.resize-handle:active::before {
 		background: var(--c-primary);
 	}
 
@@ -1398,7 +1418,7 @@
 	}
 
 	.fm-resize-handle {
-		width: 4px;
+		width: 5px;
 		flex-shrink: 0;
 		cursor: col-resize;
 		background: transparent;
@@ -1407,8 +1427,24 @@
 		z-index: 5;
 	}
 
+	.fm-resize-handle::before {
+		content: '';
+		position: absolute;
+		top: 3px;
+		bottom: 3px;
+		left: 2px;
+		width: 1px;
+		background: var(--c-border);
+		transition: background 0.15s;
+	}
+
 	.fm-resize-handle:hover,
 	.fm-resize-handle:active {
+		background: var(--c-primary);
+	}
+
+	.fm-resize-handle:hover::before,
+	.fm-resize-handle:active::before {
 		background: var(--c-primary);
 	}
 
