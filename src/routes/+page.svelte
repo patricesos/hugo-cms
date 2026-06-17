@@ -108,7 +108,7 @@
 	let ImageViewComp = $state<any>(null);
 	let SettingsDialogComp = $state<any>(null);
 
-	import { getClientConfig } from '$lib/client-config';
+	import { getClientConfig, getServerConfig } from '$lib/client-config';
 
 	const STORAGE_KEY = 'hugo-cms-state';
 
@@ -269,6 +269,7 @@
 	let currentTab = $derived(tabs.find(t => t.slug === currentSlug));
 
 	let clientCfg = $state<{ externalPollInterval: number; fmSaveDelay: number; appTitle: string; trashDir: string } | null>(null);
+	let serverConfig = $state<Record<string, string | number | boolean> | null>(null);
 	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 
 	function startConflictPoll() {
@@ -430,6 +431,7 @@
 
 	onMount(() => {
 		getClientConfig().then(cfg => { clientCfg = cfg; });
+		getServerConfig().then(cfg => { serverConfig = cfg; });
 		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(async () => {
 			await restoreAppState();
 		});
@@ -1159,6 +1161,7 @@
 	<SettingsDialogComp
 		show={showSettings}
 		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch }}
+		{serverConfig}
 		onClose={() => showSettings = false}
 		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; gitRemote: string; gitBranch: string }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {

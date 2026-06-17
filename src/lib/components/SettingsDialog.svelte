@@ -27,9 +27,10 @@
 		gitBranch: string;
 	}
 
-	let { show = false, settings = {} as SettingsState, onClose, onSave }: {
+	let { show = false, settings = {} as SettingsState, serverConfig = null, onClose, onSave }: {
 		show: boolean;
 		settings: SettingsState;
+		serverConfig: Record<string, string | number | boolean> | null;
 		onClose: () => void;
 		onSave: (s: SettingsState) => void;
 	} = $props();
@@ -207,6 +208,17 @@
 					<input type="text" value={local.gitBranch} oninput={(e) => { const el = e.target as HTMLInputElement; local.gitBranch = el.value; emit(); }} class="text-input" />
 				</label>
 			</div>
+			{#if serverConfig}
+			<div class="section">
+				<div class="section-title"><PenTool size={13} /> Avancé (serveur)</div>
+				{#each Object.entries(serverConfig) as [key, val]}
+				<div class="readonly-row">
+					<span class="readonly-key">{key}</span>
+					<span class="readonly-val">{String(val)}</span>
+				</div>
+				{/each}
+			</div>
+			{/if}
 		</div>
 
 		<div class="dialog-footer">
@@ -285,6 +297,25 @@
 		letter-spacing: 0.5px;
 		padding-bottom: 4px;
 		border-bottom: 1px solid var(--c-border);
+	}
+
+	.readonly-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 3px 0;
+		font-size: 12px;
+		color: var(--c-text-muted);
+	}
+
+	.readonly-key {
+		font-size: 12px;
+	}
+
+	.readonly-val {
+		font-size: 12px;
+		font-family: monospace;
+		color: var(--c-text-secondary);
 	}
 
 	.toggle-row {
