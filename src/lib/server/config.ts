@@ -155,4 +155,12 @@ function buildConfig(sitePath: string): CmsConfig {
 	};
 }
 
-export const cmsConfig = loadConfig();
+export const cmsConfig: CmsConfig = (() => {
+	try {
+		return loadConfig();
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
+		console.error(`[config] ${msg}`);
+		throw new Error(msg.split('\n')[0]);
+	}
+})();
