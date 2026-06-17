@@ -31,6 +31,9 @@ if (Test-Path "$root/build/client") {
 Write-Host "=== 6. Copy icon to dist root ===" -ForegroundColor Cyan
 Copy-Item "$iconDir/hugo-cms.ico" "$distDir/hugo-cms.ico" -Force
 
+Write-Host "=== 6b. Copy .env.example ===" -ForegroundColor Cyan
+Copy-Item "$root/.env.example" "$distDir/.env.example" -Force
+
 Write-Host "=== 7. Compile C# tray launcher ===" -ForegroundColor Cyan
 $csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $root/scripts/tray-launcher.cs 2>&1 | Out-Null

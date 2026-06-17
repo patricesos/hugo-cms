@@ -1,8 +1,20 @@
 import { resolve, dirname, isAbsolute } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, copyFileSync } from 'node:fs';
 import { loadUserSettings } from './user-config';
 
-function findEnvFile(): string | null {
+/** Find or create .env relative to runtime CWD first, then walk up parents. */
+function resolveDotenv(): string | null {
+	// 1. If .env.example exists in CWD, always create .env there (runtime-local)
+	const cwdExample = resolve(process.cwd(), '.env.example');
+	if (existsSync(cwdExample)) {
+		const cwdDotenv = resolve(process.cwd(), '.env');
+		if (!existsSync(cwdDotenv)) {
+			copyFileSync(cwdExample, cwdDotenv);
+			console.log(`[config] Created ${cwdDotenv} from .env.example`);
+		}
+		return cwdDotenv;
+	}
+	// 2. Walk up parents to find an existing .env (dev mode)
 	let dir = process.cwd();
 	for (let i = 0; i < 20; i++) {
 		const candidate = resolve(dir, '.env');
@@ -15,7 +27,7 @@ function findEnvFile(): string | null {
 }
 
 function loadDotenv(): void {
-	const envPath = findEnvFile();
+	const envPath = resolveDotenv();
 	if (!envPath) return;
 	const envDir = dirname(envPath);
 	const content = readFileSync(envPath, 'utf-8');
@@ -98,22 +110,16 @@ function loadConfig(): CmsConfig {
 	loadDotenv();
 	const envSitePath = env('HUGO_SITE_PATH', '');
 	console.log(`[config] HUGO_SITE_PATH = "${envSitePath}"`);
-	if (!envSitePath || !looksLikeHugoRoot(envSitePath)) {
-		throw new Error(
-			`HUGO_SITE_PATH "${envSitePath}" is not a Hugo site root.\n`
-			+ 'Set HUGO_SITE_PATH in .env to your Hugo site (must contain a config file or config/ folder).'
-		);
-	}
 	const userSettings = loadUserSettings();
 	const sitePath = (!userSettings.hugoSitePathUseDotEnv && userSettings.hugoSitePathCustom)
 		? userSettings.hugoSitePathCustom
 		: envSitePath;
-	if (sitePath !== envSitePath) {
-		console.log(`[config] Overriding with custom path from user settings: "${sitePath}"`);
-		if (!looksLikeHugoRoot(sitePath)) {
-			console.warn(`[config] Custom path "${sitePath}" is not a valid Hugo root, falling back to .env`);
-			return buildConfig(envSitePath);
-		}
+	console.log(`[config] Using site path: "${sitePath}"`);
+	if (!sitePath || !looksLikeHugoRoot(sitePath)) {
+		throw new Error(
+			`HUGO_SITE_PATH "${sitePath}" is not a Hugo site root.\n`
+			+ 'Set HUGO_SITE_PATH in .env or provide a valid custom path in Settings.'
+		);
 	}
 	return buildConfig(sitePath);
 }
