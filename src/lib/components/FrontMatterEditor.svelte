@@ -15,9 +15,10 @@
 		[key: string]: unknown;
 	}
 
-	let { frontmatter = {}, format = 'yaml', onChange }: {
+	let { frontmatter = {}, format = 'yaml', fmRawMode = false, onChange }: {
 		frontmatter?: FrontMatter;
 		format?: 'yaml' | 'toml';
+		fmRawMode?: boolean;
 		onChange?: (fm: FrontMatter) => void;
 	} = $props();
 
@@ -26,6 +27,10 @@
 	let local = $state<FrontMatter>({});
 	let showCustomFields = $state(false);
 	let rawMode = $state(false);
+
+	$effect(() => {
+		rawMode = fmRawMode;
+	});
 	let rawYaml = $state('');
 
 	$effect(() => {

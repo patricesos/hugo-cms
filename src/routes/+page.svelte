@@ -82,6 +82,7 @@
 	let showConsole = $state(false);
 	let consoleHeight = $state(200);
 	let fmWidth = $state(280);
+	let fmRawMode = $state(false);
 	let previewWidth = $state(480);
 	let archetypes = $state<{ name: string; label: string }[]>([]);
 	let configTree = $state<TreeNode[]>([]);
@@ -125,7 +126,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, sidebarView, showConsole, showPreview, showGit },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -166,6 +167,7 @@
 					editorMaxWidthCustom = state.settings.editorMaxWidthCustom ?? 720;
 					historyDepth = state.settings.historyDepth ?? 250;
 					autoSaveDelay = state.settings.autoSaveDelay ?? 2000;
+					fmRawMode = state.settings.fmRawMode ?? false;
 				}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 				if (state.tabs && state.currentSlug) {
@@ -218,6 +220,7 @@
 				if (s.editorMaxWidth !== undefined) editorMaxWidth = s.editorMaxWidth as string;
 				if (s.editorMaxWidthCustom !== undefined) editorMaxWidthCustom = s.editorMaxWidthCustom as number;
 				if (s.historyDepth !== undefined) historyDepth = s.historyDepth as number;
+				if (s.fmRawMode !== undefined) fmRawMode = s.fmRawMode as boolean;
 				if (s.sidebarOpen !== undefined) sidebarOpen = s.sidebarOpen as boolean;
 				if (s.fmOpen !== undefined) fmOpen = s.fmOpen as boolean;
 				if (s.showConsole !== undefined) showConsole = s.showConsole as boolean;
@@ -234,6 +237,7 @@
 		sidebarWidth;
 		fmOpen;
 		fmWidth;
+		fmRawMode;
 		expandedSlugs;
 		showPreview;
 		showConsole;
@@ -1072,6 +1076,7 @@
 										<FrontMatterEditor
 											frontmatter={currentFrontmatter}
 											format={currentFmFormat}
+											{fmRawMode}
 											onChange={handleFrontmatterChange}
 										/>
 									</aside>
@@ -1145,9 +1150,9 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, sidebarView, showConsole, showPreview, showGit }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1168,7 +1173,7 @@
 			sidebarWidth = s.sidebarWidth;
 			fmOpen = s.fmOpen;
 			fmWidth = s.fmWidth;
-			sidebarView = s.sidebarView;
+			fmRawMode = s.fmRawMode;
 			showConsole = s.showConsole;
 			showPreview = s.showPreview;
 			showGit = s.showGit;

@@ -24,6 +24,7 @@ export interface UserSettings {
 	sidebarWidth: number;
 	fmOpen: boolean;
 	fmWidth: number;
+	fmRawMode: boolean;
 	sidebarView: string;
 	showConsole: boolean;
 	showPreview: boolean;
@@ -46,6 +47,7 @@ const defaults: UserSettings = {
 	sidebarWidth: 260,
 	fmOpen: true,
 	fmWidth: 280,
+	fmRawMode: false,
 	sidebarView: 'content',
 	showConsole: false,
 	showPreview: false,
