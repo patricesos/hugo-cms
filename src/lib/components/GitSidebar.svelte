@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { GitBranch, RefreshCw, GitCommit, ArrowUp, History, FileCode, Plus, Pencil, Trash2, HelpCircle, CheckCircle2 } from '@lucide/svelte';
+	import { fade, slide } from 'svelte/transition';
+	import { GitBranch, RefreshCw, GitCommit, ArrowUp, History, FileCode, Plus, Pencil, Trash2, HelpCircle, CheckCircle2, Loader2, Undo2, Clock, User, Copy, ArrowLeft } from '@lucide/svelte';
 
 	export interface GitStatus {
 		branch: string;
@@ -13,6 +14,13 @@
 		behind: number;
 	}
 
+	interface LogEntry {
+		hash: string;
+		date: string;
+		message: string;
+		authorName: string;
+	}
+
 	let {
 		status = null as GitStatus | null,
 		loading = false,
@@ -20,7 +28,6 @@
 		onCommit,
 		onPush,
 		onInit,
-		onLog,
 		onOpenFile,
 	}: {
 		status: GitStatus | null;
@@ -29,7 +36,6 @@
 		onCommit: () => void;
 		onPush: () => void;
 		onInit: () => void;
-		onLog: () => void;
 		onOpenFile?: (path: string) => void;
 	} = $props();
 
@@ -38,24 +44,84 @@
 		if (typeof status.modified === 'undefined') return 0;
 		return status.modified.length + status.added.length + status.deleted.length + status.renamed.length + status.untracked.length;
 	});
+
+	let view = $state<'changes' | 'history'>('changes');
+	let logEntries = $state<LogEntry[]>([]);
+	let logLoading = $state(false);
+	let logError = $state('');
+	let copied = $state<string | null>(null);
+	let reseting = $state<string | null>(null);
+
+	$effect(() => {
+		if (view === 'history') {
+			logLoading = true;
+			logError = '';
+			logEntries = [];
+			fetch('/api/git/log')
+				.then(r => r.json())
+				.then(data => { logEntries = data as LogEntry[]; logLoading = false; })
+				.catch(e => { logError = String(e); logLoading = false; });
+		}
+	});
+
+	function copyHash(hash: string) {
+		navigator.clipboard.writeText(hash);
+		copied = hash;
+		setTimeout(() => { copied = null; }, 1500);
+	}
+
+	async function handleReset(hash: string) {
+		if (!window.confirm('Annuler ce commit et garder les modifications ?')) return;
+		reseting = hash;
+		try {
+			await fetch('/api/git/reset', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ hash }),
+			});
+			view = 'changes';
+			onRefresh();
+		} finally {
+			reseting = null;
+		}
+	}
+
+	function formatDate(date: string) {
+		const d = new Date(date);
+		return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+	}
+
+	function shortHash(hash: string) {
+		return hash.slice(0, 7);
+	}
 </script>
 
 <div class="git-sidebar">
 	<div class="git-header">
-		<div class="branch-info">
-			<GitBranch size={14} />
-			<span class="branch-name">{status?.branch ?? '—'}</span>
-			{#if status && (status.ahead > 0 || status.behind > 0)}
-				<span class="ahead-behind">
-					{#if status.ahead > 0}
-						<span class="ahead">+{status.ahead}</span>
-					{/if}
-					{#if status.behind > 0}
-						<span class="behind">-{status.behind}</span>
-					{/if}
-				</span>
-			{/if}
-		</div>
+		{#if view === 'history'}
+			<div class="branch-info">
+				<button class="icon-btn back-btn" onclick={() => view = 'changes'} title="Retour">
+					<ArrowLeft size={13} />
+				</button>
+				<History size={14} />
+				<span class="view-title">Historique</span>
+			</div>
+		{:else}
+			<div class="branch-info">
+				<GitBranch size={14} />
+				<span class="branch-name">{status?.branch ?? '—'}</span>
+				{#if status && (status.ahead > 0 || status.behind > 0)}
+					<span class="ahead-behind">
+						{#if status.ahead > 0}
+							<span class="ahead">+{status.ahead}</span>
+						{/if}
+						{#if status.behind > 0}
+							<span class="behind">-{status.behind}</span>
+						{/if}
+					</span>
+				{/if}
+			</div>
+		{/if}
 		<div class="git-actions">
 			<button class="icon-btn" onclick={onRefresh} title="Rafraîchir" disabled={loading}>
 				<span class:spin={loading}><RefreshCw size={13} /></span>
@@ -75,6 +141,58 @@
 				</button>
 			{/if}
 		</div>
+	{:else if view === 'history'}
+		<div class="scroll-area" transition:slide={{ duration: 120 }}>
+			{#if logLoading}
+				<div class="loading-state">
+					<Loader2 size={16} class="spin" />
+					<span>Chargement…</span>
+				</div>
+			{:else if logError}
+				<div class="error-state">{logError}</div>
+			{:else if logEntries.length === 0}
+				<div class="empty-state">
+					<GitCommit size={16} />
+					<span>Aucun commit</span>
+				</div>
+			{:else}
+				{#each logEntries as entry, i}
+					<div class="log-entry" class:is-head={i === 0}>
+						<div class="entry-hash">
+							<button class="hash-btn" title="Copier le hash" onclick={() => copyHash(entry.hash)}>
+								{#if copied === entry.hash}
+									<CheckCircle2 size={10} />
+								{:else}
+									<Copy size={10} />
+								{/if}
+								<code>{shortHash(entry.hash)}</code>
+							</button>
+						</div>
+						<div class="entry-body">
+							<div class="entry-msg">{entry.message}</div>
+							<div class="entry-meta">
+								<User size={10} />
+								{entry.authorName}
+								<Clock size={10} />
+								{formatDate(entry.date)}
+							</div>
+						</div>
+						<button
+							class="reset-btn"
+							title="Reset — annule ce commit et garde les modifs"
+							onclick={() => handleReset(entry.hash)}
+							disabled={reseting === entry.hash}
+						>
+							{#if reseting === entry.hash}
+								<Loader2 size={12} class="spin" />
+							{:else}
+								<Undo2 size={12} />
+							{/if}
+						</button>
+					</div>
+				{/each}
+			{/if}
+		</div>
 	{:else}
 		{#if totalChanges === 0}
 			<div class="clean-state">
@@ -82,7 +200,7 @@
 				<span>Working tree propre</span>
 			</div>
 		{:else}
-			<div class="file-list">
+			<div class="scroll-area">
 				{#if status.staged.length > 0}
 					<div class="section-label">Stagés</div>
 					{#each status.staged as file}
@@ -144,8 +262,10 @@
 				{/if}
 			</div>
 		{/if}
+	{/if}
 
-		<div class="git-footer">
+	<div class="git-footer">
+		{#if view === 'changes'}
 			<div class="git-footer-actions">
 				{#if totalChanges > 0}
 					<button class="btn primary" onclick={onCommit}>
@@ -160,12 +280,12 @@
 					</button>
 				{/if}
 			</div>
-			<button class="btn secondary log-btn" onclick={onLog}>
-				<History size={13} />
-				<span>Historique</span>
-			</button>
-		</div>
-	{/if}
+		{/if}
+		<button class="btn secondary log-btn" onclick={() => view = view === 'history' ? 'changes' : 'history'}>
+			<History size={13} />
+			<span>{view === 'history' ? 'Modifications' : 'Historique'}</span>
+		</button>
+	</div>
 </div>
 
 <style>
@@ -232,6 +352,7 @@
 		color: var(--c-text-muted);
 		cursor: pointer;
 		transition: all 0.1s;
+		flex-shrink: 0;
 	}
 
 	.icon-btn:hover:not(:disabled) {
@@ -240,6 +361,16 @@
 	}
 
 	.icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+	.back-btn {
+		margin-right: -2px;
+		color: var(--c-text);
+	}
+
+	.view-title {
+		font-weight: 500;
+		font-size: 12px;
+	}
 
 	.empty-state {
 		flex: 1;
@@ -273,7 +404,7 @@
 		font-size: 12px;
 	}
 
-	.file-list {
+	.scroll-area {
 		flex: 1;
 		overflow-y: auto;
 		padding: 4px 0;
@@ -327,6 +458,113 @@
 	.icon-deleted { color: var(--c-danger); }
 	.icon-renamed { color: #9333ea; }
 	.icon-untracked { color: var(--c-text-muted); }
+
+	.loading-state {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 24px;
+		color: var(--c-text-muted);
+		font-size: 12px;
+	}
+
+	.error-state {
+		padding: 12px;
+		color: var(--c-danger);
+		font-size: 12px;
+	}
+
+	.log-entry {
+		display: flex;
+		gap: 8px;
+		padding: 8px 12px;
+		align-items: flex-start;
+		border-bottom: 1px solid var(--c-border);
+	}
+
+	.log-entry:last-child {
+		border-bottom: none;
+	}
+
+	.entry-hash {
+		flex-shrink: 0;
+		padding-top: 1px;
+	}
+
+	.hash-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		padding: 1px 5px;
+		border: 1px solid var(--c-border);
+		border-radius: 3px;
+		background: var(--c-bg-muted);
+		color: var(--c-text-muted);
+		font-size: 10px;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.1s;
+	}
+
+	.hash-btn:hover {
+		border-color: var(--c-primary);
+		color: var(--c-primary);
+	}
+
+	.hash-btn code {
+		font-family: var(--font-mono);
+		font-size: 10px;
+	}
+
+	.entry-body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.entry-msg {
+		font-size: 12px;
+		font-weight: 500;
+		color: var(--c-text);
+		line-height: 1.4;
+		word-break: break-word;
+	}
+
+	.entry-meta {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 3px;
+		color: var(--c-text-muted);
+		font-size: 10px;
+	}
+
+	.reset-btn {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--c-text-muted);
+		cursor: pointer;
+		transition: all 0.1s;
+		margin-top: -1px;
+	}
+
+	.reset-btn:hover:not(:disabled) {
+		border-color: var(--c-danger);
+		color: var(--c-danger);
+		background: #fef2f2;
+	}
+
+	.reset-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
 
 	.git-footer {
 		display: flex;

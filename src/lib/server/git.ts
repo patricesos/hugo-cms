@@ -44,8 +44,12 @@ export async function getStatus(): Promise<GitStatus | null> {
 	}
 }
 
-export async function commit(message: string): Promise<{ hash: string; summary: string }> {
-	await git.add('.');
+export async function commit(message: string, files?: string[]): Promise<{ hash: string; summary: string }> {
+	if (files && files.length > 0) {
+		await git.add(files);
+	} else {
+		await git.add('.');
+	}
 	const result = await git.commit(message);
 	return { hash: result.commit ?? '', summary: result.summary ?? '' };
 }
@@ -58,6 +62,11 @@ export async function getLog(file?: string, maxCount = 20): Promise<GitLogEntry[
 		message: entry.message,
 		authorName: entry.author_name,
 	}));
+}
+
+export async function reset(hash: string): Promise<{ hash: string; message: string }> {
+	await git.raw(['reset', '--soft', hash]);
+	return { hash, message: `Reset vers ${hash.slice(0, 7)}` };
 }
 
 export async function push(): Promise<{ pushed: boolean; message: string }> {

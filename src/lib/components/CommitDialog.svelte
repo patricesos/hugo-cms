@@ -23,13 +23,14 @@
 		show: boolean;
 		status: GitStatus | null;
 		onClose: () => void;
-		onCommit: (message: string) => void;
+		onCommit: (message: string, files: string[]) => void;
 	} = $props();
 
 	let message = $state('');
 	let committing = $state(false);
 	let done = $state(false);
 	let error = $state('');
+	let selected = $state(new Set<string>());
 
 	const allFiles = $derived.by(() => {
 		if (!status) return [];
@@ -42,16 +43,42 @@
 		];
 	});
 
+	const allSelected = $derived(allFiles.length > 0 && selected.size === allFiles.length);
+	const selectedFiles = $derived(allFiles.filter(f => selected.has(f.path)).map(f => f.path));
+
+	$effect(() => {
+		if (show) selected = new Set(allFiles.map(f => f.path));
+	});
+
+	function toggleAll() {
+		if (allSelected) {
+			selected = new Set();
+		} else {
+			selected = new Set(allFiles.map(f => f.path));
+		}
+	}
+
+	function toggleFile(path: string) {
+		const next = new Set(selected);
+		if (next.has(path)) {
+			next.delete(path);
+		} else {
+			next.add(path);
+		}
+		selected = next;
+	}
+
 	function handleSubmit() {
-		if (!message.trim() || committing) return;
+		if (!message.trim() || committing || selectedFiles.length === 0) return;
 		committing = true;
 		error = '';
 		try {
-			onCommit(message.trim());
+			onCommit(message.trim(), selectedFiles);
 			done = true;
 			setTimeout(() => {
 				done = false;
 				message = '';
+				selected = new Set();
 				committing = false;
 				onClose();
 			}, 1200);
@@ -108,12 +135,18 @@
 					></textarea>
 
 					<div class="file-list">
-						<span class="file-count">{allFiles.length} fichier{allFiles.length !== 1 ? 's' : ''}</span>
+						<div class="file-list-header">
+							<span class="file-count">{allFiles.length} fichier{allFiles.length !== 1 ? 's' : ''}</span>
+							<button class="toggle-all" onclick={toggleAll} disabled={committing}>
+								{allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+							</button>
+						</div>
 						{#each allFiles as file}
-							<div class="file-row">
+							<label class="file-row" class:disabled={committing}>
+								<input type="checkbox" checked={selected.has(file.path)} onchange={() => toggleFile(file.path)} disabled={committing} />
 								<span class="file-kind" class:added={file.kind === 'A'} class:deleted={file.kind === 'D'} class:renamed={file.kind === 'R'} class:untracked={file.kind === '?'}>{file.kind}</span>
 								<span class="file-path">{file.path}</span>
-							</div>
+							</label>
 						{/each}
 					</div>
 				{/if}
@@ -125,14 +158,14 @@
 					<button
 						class="btn primary"
 						onclick={handleSubmit}
-						disabled={!message.trim() || committing}
+						disabled={!message.trim() || committing || selectedFiles.length === 0}
 					>
 						{#if committing}
 							<Loader2 size={14} class="spin" />
 							<span>Commit…</span>
 						{:else}
 							<GitCommit size={14} />
-							<span>Commit {allFiles.length > 0 ? `(${allFiles.length})` : ''}</span>
+							<span>Commit {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}</span>
 						{/if}
 					</button>
 				{/if}
@@ -234,18 +267,59 @@
 		gap: 3px;
 	}
 
+	.file-list-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 4px;
+	}
+
 	.file-count {
 		font-size: 12px;
 		color: var(--c-text-muted);
-		margin-bottom: 4px;
+	}
+
+	.toggle-all {
+		font-size: 11px;
+		color: var(--c-primary);
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		padding: 0;
+	}
+
+	.toggle-all:hover {
+		text-decoration: underline;
+	}
+
+	.toggle-all:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 
 	.file-row {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 6px;
 		padding: 3px 0;
 		font-size: 13px;
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+	}
+
+	.file-row:hover {
+		background: var(--c-bg-muted);
+	}
+
+	.file-row.disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+
+	.file-row input[type="checkbox"] {
+		margin: 0;
+		flex-shrink: 0;
 	}
 
 	.file-kind {

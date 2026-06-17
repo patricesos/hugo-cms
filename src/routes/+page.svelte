@@ -60,10 +60,8 @@
 	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
 	let gitLoading = $state(false);
 	let showCommitDialog = $state(false);
-	let showLogDialog = $state(false);
 	let GitSidebarComp = $state<any>(null);
 	let CommitDialogComp = $state<any>(null);
-	let GitHistoryDialogComp = $state<any>(null);
 	let currentArchetype = $state<string | null>(null);
 	let sidebarWidth = $state(260);
 	let showSitemap = $state(false);
@@ -394,7 +392,6 @@
 	$effect(() => { if (currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
 	$effect(() => { if (showGit && !GitSidebarComp) import('$lib/components/GitSidebar.svelte').then(m => GitSidebarComp = m.default); });
 	$effect(() => { if (showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
-	$effect(() => { if (showLogDialog && !GitHistoryDialogComp) import('$lib/components/GitHistoryDialog.svelte').then(m => GitHistoryDialogComp = m.default); });
 
 	function handleVisibilityChange() {
 		if (document.visibilityState === 'visible' && currentSlug) {
@@ -697,11 +694,11 @@
 		await refreshGitStatus();
 	}
 
-	async function handleGitCommit(message: string) {
+	async function handleGitCommit(message: string, files: string[]) {
 		const res = await fetch('/api/git/commit', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ message }),
+			body: JSON.stringify({ message, files }),
 		});
 		if (res.ok) {
 			await refreshGitStatus();
@@ -792,7 +789,6 @@
 					onCommit={() => showCommitDialog = true}
 					onPush={handleGitPush}
 					onInit={handleGitInit}
-					onLog={() => showLogDialog = true}
 				/>
 			{:else}
 				<Sidebar
@@ -1046,12 +1042,7 @@
 	/>
 {/if}
 
-{#if GitHistoryDialogComp}
-	<GitHistoryDialogComp
-		show={showLogDialog}
-		onClose={() => showLogDialog = false}
-	/>
-{/if}
+
 
 <style>
 	.app-shell {
