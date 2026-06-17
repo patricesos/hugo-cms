@@ -21,6 +21,7 @@ export interface UserSettings {
 	editorMaxWidthCustom: number;
 	historyDepth: number;
 	sidebarOpen: boolean;
+	sidebarWidth: number;
 	fmOpen: boolean;
 	showConsole: boolean;
 	showPreview: boolean;
@@ -40,6 +41,7 @@ const defaults: UserSettings = {
 	editorMaxWidthCustom: 720,
 	historyDepth: 250,
 	sidebarOpen: true,
+	sidebarWidth: 260,
 	fmOpen: true,
 	showConsole: false,
 	showPreview: false,
@@ -73,6 +75,8 @@ export function loadUserSettings(): UserSettings {
 				if (typeof val === 'number' && val >= 400 && val <= 2000) result[key] = val;
 			} else if (key === 'historyDepth') {
 				if (typeof val === 'number' && val >= 10 && val <= 10000) result[key] = val;
+			} else if (key === 'sidebarWidth') {
+				if (typeof val === 'number' && val >= 180 && val <= 500) result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -104,6 +108,8 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (typeof val === 'number' && val >= 400 && val <= 2000) obj[key] = val;
 			} else if (key === 'historyDepth') {
 				if (typeof val === 'number' && val >= 10 && val <= 10000) obj[key] = val;
+			} else if (key === 'sidebarWidth') {
+				if (typeof val === 'number' && val >= 180 && val <= 500) obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}

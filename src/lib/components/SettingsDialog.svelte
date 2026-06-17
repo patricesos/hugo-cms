@@ -15,6 +15,7 @@
 		editorMaxWidthCustom: number;
 		historyDepth: number;
 		sidebarOpen: boolean;
+		sidebarWidth: number;
 		fmOpen: boolean;
 		showConsole: boolean;
 		showPreview: boolean;
@@ -28,8 +29,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -151,6 +152,10 @@
 				<label class="toggle-row">
 					<span>Sidebar ouverte</span>
 					<input type="checkbox" checked={local.sidebarOpen} onchange={(e) => { const el = e.target as HTMLInputElement; local.sidebarOpen = el.checked; emit(); }} />
+				</label>
+				<label class="toggle-row">
+					<span>Largeur sidebar (px)</span>
+					<input type="number" min="180" max="500" step="5" value={local.sidebarWidth} oninput={(e) => { const el = e.target as HTMLInputElement; local.sidebarWidth = parseInt(el.value, 10) || 260; emit(); }} class="number-input" />
 				</label>
 				<label class="toggle-row">
 					<span>Frontmatter ouvert</span>
