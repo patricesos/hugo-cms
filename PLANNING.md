@@ -19,7 +19,7 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 - [x] Police éditeur (Open Sans, monospace, Georgia, system-ui)
 - [x] Taille de police éditeur (petite, normale, grande)
 - [x] Largeur max du contenu éditeur (720px / 100% / custom)
-- [ ] Langue de l'interface (Français, English)
+- [ ] Langue de l'interface (Français, English) *(Nice to have)*
 
 ### Éditeur
 
@@ -48,18 +48,18 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 - [x] Branche par défaut (main / custom)
 - [x] Afficher panneau Git par défaut (oui/non)
 
-### Avancé — visible dans la vue Config ou un sous-menu
+### Avancé — visible dans les Paramètres (lecture seule)
 
-- [ ] Chemin Hugo site (read-only, depuis .env)
-- [ ] Port serveur Hugo (1313 par défaut)
-- [ ] Adresse bind Hugo (127.0.0.1 par défaut)
-- [ ] Timeout démarrage Hugo (15000ms)
-- [ ] Timeout arrêt Hugo (5000ms)
-- [ ] Intervalle polling changements externes (5000ms)
-- [ ] Dossier Corbeille (\_trash)
-- [ ] Auteur par défaut (patricesos)
-- [ ] Format de date (YYYY-MM-DD)
-- [ ] Archétype par défaut (default)
+- [x] Chemin Hugo site (read-only, depuis .env)
+- [x] Port serveur Hugo (1313 par défaut)
+- [x] Adresse bind Hugo (127.0.0.1 par défaut)
+- [x] Timeout démarrage Hugo (15000ms)
+- [x] Timeout arrêt Hugo (5000ms)
+- [x] Intervalle polling changements externes (5000ms)
+- [x] Dossier Corbeille (\_trash)
+- [x] Auteur par défaut (patricesos)
+- [x] Format de date (YYYY-MM-DD)
+- [x] Archétype par défaut (default)
 - [ ] Slugify : conserver les caractères non-ASCII (oui/non) — actuellement strip tout sauf a-z0-9-
 
 
