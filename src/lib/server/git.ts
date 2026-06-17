@@ -65,7 +65,7 @@ export async function getLog(file?: string, maxCount = 20): Promise<GitLogEntry[
 }
 
 export async function reset(hash: string): Promise<{ hash: string; message: string }> {
-	await git.raw(['reset', '--soft', hash]);
+	await git.reset(['--soft', hash]);
 	return { hash, message: `Reset vers ${hash.slice(0, 7)}` };
 }
 

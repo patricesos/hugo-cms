@@ -80,13 +80,15 @@
 		confirmHash = null;
 		reseting = hash;
 		try {
-			await fetch('/api/git/reset', {
+			const res = await fetch('/api/git/reset', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ hash }),
 			});
-			view = 'changes';
-			onRefresh();
+			if (res.ok) {
+				view = 'changes';
+				onRefresh();
+			}
 		} finally {
 			reseting = null;
 		}
@@ -269,8 +271,7 @@
 	{/if}
 
 	{#if confirmHash}
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<div class="overlay" role="presentation" transition:fade={{ duration: 120 }} onclick={() => confirmHash = null}></div>
+		<div class="overlay" role="presentation" transition:fade={{ duration: 120 }} onclick={() => confirmHash = null} onkeydown={(e) => e.key === 'Escape' && (confirmHash = null)}></div>
 		<div
 			class="confirm-dialog"
 			role="dialog"
