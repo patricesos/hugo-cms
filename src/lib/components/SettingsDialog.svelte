@@ -127,8 +127,9 @@
 		background: var(--c-bg);
 		border: 1px solid var(--c-border);
 		border-radius: 10px;
-		width: 520px;
+		width: 680px;
 		max-width: calc(100vw - 32px);
+		height: 640px;
 		max-height: calc(100vh - 64px);
 		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 		display: flex;

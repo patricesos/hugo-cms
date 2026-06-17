@@ -68,20 +68,21 @@
 		{/each}
 	</nav>
 
-	<div class="search-row">
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-		<input
-			type="text"
-			placeholder="Rechercher un paramètre…"
-			bind:value={searchQuery}
-			class="search-input"
-		/>
-		{#if isSearching}
-			<button class="clear-btn" onclick={() => searchQuery = ''}>✕</button>
-		{/if}
-	</div>
+	<div class="content">
+		<div class="search-row">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+			<input
+				type="text"
+				placeholder="Rechercher un paramètre…"
+				bind:value={searchQuery}
+				class="search-input"
+			/>
+			{#if isSearching}
+				<button class="clear-btn" onclick={() => searchQuery = ''}>✕</button>
+			{/if}
+		</div>
 
-	<div class="fields-scroll">
+		<div class="fields-scroll">
 		{#if filteredGroups.length > 0 || activeTab === 'advanced'}
 			{#each filteredGroups as group}
 				{#if group.label && !isSearching}
@@ -113,26 +114,30 @@
 			<div class="empty-state">Aucun résultat pour « {searchQuery} »</div>
 		{/if}
 	</div>
+	</div>
 </div>
 
 <style>
 	.panel {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		gap: 0;
 		height: 100%;
 	}
 
 	.tab-nav {
 		display: flex;
+		flex-direction: column;
 		gap: 0;
-		border-bottom: 1px solid var(--c-border);
+		border-right: 1px solid var(--c-border);
 		flex-shrink: 0;
+		width: 130px;
+		padding: 8px 0;
 	}
 
 	.tab-btn {
-		flex: 1;
-		padding: 9px 6px;
+		flex: none;
+		padding: 9px 14px;
 		border: none;
 		background: transparent;
 		color: var(--c-text-muted);
@@ -140,9 +145,10 @@
 		font-weight: 500;
 		font-family: inherit;
 		cursor: pointer;
-		border-bottom: 2px solid transparent;
+		border-left: 3px solid transparent;
 		transition: all 0.12s;
-		text-align: center;
+		text-align: left;
+		width: 100%;
 	}
 
 	.tab-btn:hover {
@@ -152,7 +158,17 @@
 
 	.tab-btn.active {
 		color: var(--c-primary);
-		border-bottom-color: var(--c-primary);
+		border-left-color: var(--c-primary);
+		background: color-mix(in srgb, var(--c-primary) 8%, transparent);
+	}
+
+	.content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
+		padding-left: 16px;
 	}
 
 	.search-row {
