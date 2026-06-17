@@ -61,6 +61,9 @@
 	let gitBranch = $state('main');
 	let hugoSitePathUseDotEnv = $state(true);
 	let hugoSitePathCustom = $state('');
+	let hugoBindAddress = $state('127.0.0.1');
+	let hugoPort = $state(1313);
+	let trashDir = $state('_trash');
 	let savedPathConfig = $state({ useDotEnv: true, customPath: '' });
 	let showRestartBanner = $state(false);
 	let showSettings = $state(false);
@@ -152,9 +155,12 @@
 	let previewReloadKey = $state(0);
 	let hydrated = $state(false);
 
+	let savedTrashDir = $state('_trash');
+
 	$effect(() => {
 		if (showSettings) {
 			savedPathConfig = { useDotEnv: hugoSitePathUseDotEnv, customPath: hugoSitePathCustom };
+			savedTrashDir = trashDir;
 		}
 	});
 
@@ -191,7 +197,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom, showFilenameInTabs },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom, showFilenameInTabs, hugoBindAddress, hugoPort, trashDir },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -236,9 +242,12 @@
 					gitRemote = state.settings.gitRemote ?? 'origin';
 					gitBranch = state.settings.gitBranch ?? 'main';
 					fmRawMode = state.settings.fmRawMode ?? false;
-					hugoSitePathUseDotEnv = state.settings.hugoSitePathUseDotEnv ?? true;
-					hugoSitePathCustom = state.settings.hugoSitePathCustom ?? '';
-				}
+				hugoSitePathUseDotEnv = state.settings.hugoSitePathUseDotEnv ?? true;
+				hugoSitePathCustom = state.settings.hugoSitePathCustom ?? '';
+				hugoBindAddress = state.settings.hugoBindAddress ?? '127.0.0.1';
+				hugoPort = state.settings.hugoPort ?? 1313;
+				trashDir = state.settings.trashDir ?? '_trash';
+			}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 				if (state.tabs && state.currentSlug) {
 					const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; kind?: TabKind; isImage?: boolean }) => {
@@ -300,6 +309,9 @@
 				if (s.gitBranch !== undefined) gitBranch = s.gitBranch as string;
 				if (s.hugoSitePathUseDotEnv !== undefined) hugoSitePathUseDotEnv = s.hugoSitePathUseDotEnv as boolean;
 				if (s.hugoSitePathCustom !== undefined) hugoSitePathCustom = s.hugoSitePathCustom as string;
+				if (s.hugoBindAddress !== undefined) hugoBindAddress = s.hugoBindAddress as string;
+				if (s.hugoPort !== undefined) hugoPort = s.hugoPort as number;
+				if (s.trashDir !== undefined) trashDir = s.trashDir as string;
 				if (s.showFilenameInTabs !== undefined) showFilenameInTabs = s.showFilenameInTabs as boolean;
 			}
 		} catch {}
@@ -333,6 +345,9 @@
 		historyDepth;
 		hugoSitePathUseDotEnv;
 		hugoSitePathCustom;
+		hugoBindAddress;
+		hugoPort;
+		trashDir;
 		previewWidth;
 		saveAppState();
 	});
@@ -1268,15 +1283,15 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom, showFilenameInTabs }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom, showFilenameInTabs, hugoBindAddress, hugoPort, trashDir }}
 		{serverConfig}
 		onClose={() => showSettings = false}
 		onConfirm={() => {
-			if (hugoSitePathUseDotEnv !== savedPathConfig.useDotEnv || hugoSitePathCustom !== savedPathConfig.customPath) {
+			if (hugoSitePathUseDotEnv !== savedPathConfig.useDotEnv || hugoSitePathCustom !== savedPathConfig.customPath || trashDir !== savedTrashDir) {
 				showRestartBanner = true;
 			}
 		}}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; showFilenameInTabs: boolean; gitRemote: string; gitBranch: string; hugoSitePathUseDotEnv: boolean; hugoSitePathCustom: string }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; showFilenameInTabs: boolean; gitRemote: string; gitBranch: string; hugoSitePathUseDotEnv: boolean; hugoSitePathCustom: string; hugoBindAddress: string; hugoPort: number; trashDir: string }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1306,6 +1321,9 @@
 			gitBranch = s.gitBranch;
 			hugoSitePathUseDotEnv = s.hugoSitePathUseDotEnv;
 			hugoSitePathCustom = s.hugoSitePathCustom;
+			hugoBindAddress = s.hugoBindAddress;
+			hugoPort = s.hugoPort;
+			trashDir = s.trashDir;
 		}}
 	/>
 {/if}

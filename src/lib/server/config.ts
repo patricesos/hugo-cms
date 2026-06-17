@@ -1,6 +1,6 @@
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { readFileSync, existsSync, copyFileSync } from 'node:fs';
-import { loadUserSettings } from './user-config';
+import { loadUserSettings, type UserSettings } from './user-config';
 
 /** Find or create .env relative to runtime CWD first, then walk up parents. */
 function resolveDotenv(): string | null {
@@ -121,18 +121,18 @@ function loadConfig(): CmsConfig {
 			+ 'Set HUGO_SITE_PATH in .env or provide a valid custom path in Settings.'
 		);
 	}
-	return buildConfig(sitePath);
+	return buildConfig(sitePath, userSettings);
 }
 
-function buildConfig(sitePath: string): CmsConfig {
+function buildConfig(sitePath: string, userSettings: UserSettings): CmsConfig {
 	const contentDir = resolve(sitePath, 'content');
 	const staticPath = resolve(sitePath, 'static');
 	return {
 		hugoSitePath: sitePath,
 		hugoContentPath: env('HUGO_CONTENT_PATH', contentDir),
 		hugoStaticPath: env('HUGO_STATIC_PATH', staticPath),
-		hugoServerPort: envInt('HUGO_SERVER_PORT', 1313),
-		hugoBindAddress: env('HUGO_BIND_ADDRESS', '127.0.0.1'),
+		hugoServerPort: envInt('HUGO_SERVER_PORT', userSettings.hugoPort),
+		hugoBindAddress: env('HUGO_BIND_ADDRESS', userSettings.hugoBindAddress),
 		defaultAuthor: env('DEFAULT_AUTHOR', 'patricesos'),
 		dateFormat: env('DATE_FORMAT', 'YYYY-MM-DD'),
 		git: {
@@ -140,7 +140,7 @@ function buildConfig(sitePath: string): CmsConfig {
 			remote: env('GIT_REMOTE', 'origin'),
 			branch: env('GIT_BRANCH', 'main'),
 		},
-		trashDir: env('TRASH_DIR', '_trash'),
+		trashDir: env('TRASH_DIR', userSettings.trashDir),
 		archetypesDir: env('ARCHETYPES_DIR', 'archetypes'),
 		configDir: env('CONFIG_DIR', 'config'),
 		shortcodesDir: env('SHORTCODES_DIR', 'layouts/shortcodes'),

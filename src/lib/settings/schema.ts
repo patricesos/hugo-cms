@@ -285,6 +285,39 @@ export const settingsSchema: SettingTab[] = [
 					},
 				],
 			},
+			{
+				label: 'Serveur Hugo',
+				fields: [
+					{
+						key: 'hugoBindAddress',
+						label: 'Adresse de bind',
+						description: 'Adresse sur laquelle le serveur Hugo écoute (ex: 0.0.0.0)',
+						type: 'text',
+						default: '127.0.0.1',
+					},
+					{
+						key: 'hugoPort',
+						label: 'Port',
+						description: 'Port du serveur Hugo (redémarrage requis)',
+						type: 'number',
+						default: 1313,
+						min: 1,
+						max: 65535,
+					},
+				],
+			},
+			{
+				label: 'Corbeille',
+				fields: [
+					{
+						key: 'trashDir',
+						label: 'Dossier corbeille',
+						description: 'Nom du dossier où les fichiers supprimés sont déplacés',
+						type: 'text',
+						default: '_trash',
+					},
+				],
+			},
 		],
 	},
 ];
