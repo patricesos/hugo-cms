@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fade, slide } from 'svelte/transition';
+	import { untrack } from 'svelte';
 	import { PenLine, Save, X, Trash2, Loader2 } from '@lucide/svelte';
 
 	let {
@@ -22,9 +23,9 @@
 
 	$effect(() => {
 		if (slug) {
-			if (dirty && !window.confirm('Des modifications non sauvegardées vont être perdues. Continuer ?')) return;
+			if (untrack(() => dirty) && !window.confirm('Des modifications non sauvegardées vont être perdues. Continuer ?')) return;
 			loadArchetype(slug);
-			dirty = false;
+			untrack(() => { dirty = false; });
 		}
 	});
 
