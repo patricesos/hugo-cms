@@ -145,9 +145,14 @@ export function renderArchetype(template: string, title: string, slug: string): 
 		/\{\{\s*replace\s+\.File\.ContentBaseName\s+"-"\s+"\s+"\s*\|\s*title\s*\}\}/g,
 		titleCaseSlug
 	);
+	result = result.replace(
+		/\{\{\s*replace\s+\.Name\s+"-"\s+"\s+"\s*\|\s*title\s*\}\}/g,
+		titleCaseSlug
+	);
 	result = result.replace(/\{\{\s*\.File\.ContentBaseName\s*\}\}/g, contentBaseName);
 	result = result.replace(/\{\{\s*\.Slug\s*\}\}/g, slug);
 	result = result.replace(/\{\{\s*\.Name\s*\}\}/g, slug);
+	result = result.replace(/\{\{\s*now\.Year\s*\}\}/g, String(new Date().getFullYear()));
 
 	result = result.replace(/\{\{-?\s*\}\}/g, '');
 
