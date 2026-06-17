@@ -22,6 +22,8 @@
 		autoSaveDelay?: number;
 		editorFont?: string;
 		editorFontSize?: string;
+		editorMaxWidth?: string;
+		editorMaxWidthCustom?: number;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
@@ -34,7 +36,7 @@
 	const SH_OPEN_SH = 'SH_OPEN_SH';
 	const SH_CLOSE_SH = 'SH_CLOSE_SH';
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -550,7 +552,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="editor-container" style="--editor-font: var(--font-{editorFont}); --editor-font-size: {editorFontSize === 'small' ? '14px' : editorFontSize === 'large' ? '18px' : '16px'}">
+<div class="editor-container" style="--editor-font: var(--font-{editorFont}); --editor-font-size: {editorFontSize === 'small' ? '14px' : editorFontSize === 'large' ? '18px' : '16px'}; --editor-max-width: {editorMaxWidth === 'custom' ? editorMaxWidthCustom + 'px' : editorMaxWidth}">
 	<div class="editor-toolbar">
 		<button onclick={rawMode ? rawUndo : () => editor?.commands.undo()} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
 		<button onclick={rawMode ? rawRedo : () => editor?.commands.redo()} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
@@ -663,7 +665,7 @@
 	.editor-content {
 		flex: 1;
 		padding: 32px 48px;
-		max-width: 740px;
+		max-width: var(--editor-max-width, 740px);
 		margin: 0 auto;
 		width: 100%;
 		outline: none;

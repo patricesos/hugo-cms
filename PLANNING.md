@@ -18,7 +18,7 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 - [x] Sélecteur de thèmes (Clair, Sombre, Système) — palettes : Gruvbox, Catppuccin, Monokai, Indigo
 - [x] Police éditeur (Open Sans, monospace, Georgia, system-ui)
 - [x] Taille de police éditeur (petite, normale, grande)
-- [ ] Largeur max du contenu éditeur (720px / 100% / custom)
+- [x] Largeur max du contenu éditeur (720px / 100% / custom)
 - [ ] Langue de l'interface (Français, English)
 
 ### Éditeur

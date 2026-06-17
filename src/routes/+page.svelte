@@ -66,6 +66,8 @@
 	let theme = $state('system');
 	let editorFont = $state('serif');
 	let editorFontSize = $state('normal');
+	let editorMaxWidth = $state('720px');
+	let editorMaxWidthCustom = $state(720);
 	let settingsKey = $state(0);
 	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
 	let gitLoading = $state(false);
@@ -122,7 +124,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -159,6 +161,8 @@
 					theme = state.settings.theme ?? 'system';
 					editorFont = state.settings.editorFont ?? 'serif';
 					editorFontSize = state.settings.editorFontSize ?? 'normal';
+					editorMaxWidth = state.settings.editorMaxWidth ?? '720px';
+					editorMaxWidthCustom = state.settings.editorMaxWidthCustom ?? 720;
 					autoSaveDelay = state.settings.autoSaveDelay ?? 2000;
 				}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
@@ -209,6 +213,8 @@
 				if (s.theme !== undefined) theme = s.theme as string;
 				if (s.editorFont !== undefined) editorFont = s.editorFont as string;
 				if (s.editorFontSize !== undefined) editorFontSize = s.editorFontSize as string;
+				if (s.editorMaxWidth !== undefined) editorMaxWidth = s.editorMaxWidth as string;
+				if (s.editorMaxWidthCustom !== undefined) editorMaxWidthCustom = s.editorMaxWidthCustom as number;
 				if (s.sidebarOpen !== undefined) sidebarOpen = s.sidebarOpen as boolean;
 				if (s.fmOpen !== undefined) fmOpen = s.fmOpen as boolean;
 				if (s.showConsole !== undefined) showConsole = s.showConsole as boolean;
@@ -238,6 +244,8 @@
 		theme;
 		editorFont;
 		editorFontSize;
+		editorMaxWidth;
+		editorMaxWidthCustom;
 		previewWidth;
 		saveAppState();
 	});
@@ -1034,6 +1042,8 @@
 											{autoSaveDelay}
 											{editorFont}
 											{editorFontSize}
+											{editorMaxWidth}
+											{editorMaxWidthCustom}
 											{saveRequest}
 											getContent={(fn) => { editorGetContent = fn; }}
 											onSetContent={(fn) => { editorSetContent = fn; }}
@@ -1130,9 +1140,9 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1146,6 +1156,8 @@
 			theme = s.theme;
 			editorFont = s.editorFont;
 			editorFontSize = s.editorFontSize;
+			editorMaxWidth = s.editorMaxWidth;
+			editorMaxWidthCustom = s.editorMaxWidthCustom;
 			sidebarOpen = s.sidebarOpen;
 			fmOpen = s.fmOpen;
 			showConsole = s.showConsole;

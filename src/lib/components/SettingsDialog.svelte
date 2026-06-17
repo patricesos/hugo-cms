@@ -11,6 +11,8 @@
 		theme: string;
 		editorFont: string;
 		editorFontSize: string;
+		editorMaxWidth: string;
+		editorMaxWidthCustom: number;
 		sidebarOpen: boolean;
 		fmOpen: boolean;
 		showConsole: boolean;
@@ -25,8 +27,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -92,6 +94,20 @@
 						<option value="large">Grande</option>
 					</select>
 				</label>
+				<label class="toggle-row">
+					<span>Largeur max éditeur</span>
+					<select value={local.editorMaxWidth} onchange={(e) => { const el = e.target as HTMLSelectElement; local.editorMaxWidth = el.value; emit(); }} class="select-input">
+						<option value="720px">720px</option>
+						<option value="100%">100%</option>
+						<option value="custom">Personnalisée</option>
+					</select>
+				</label>
+				{#if local.editorMaxWidth === 'custom'}
+				<label class="toggle-row">
+					<span>Largeur perso (px)</span>
+					<input type="number" min="400" max="2000" step="10" value={local.editorMaxWidthCustom} oninput={(e) => { const el = e.target as HTMLInputElement; local.editorMaxWidthCustom = parseInt(el.value, 10) || 720; emit(); }} class="number-input" />
+				</label>
+				{/if}
 			</div>
 			<div class="section">
 				<div class="section-title"><PenTool size={13} /> Éditeur</div>

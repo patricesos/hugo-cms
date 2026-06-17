@@ -6,6 +6,7 @@ import { stringify, parse } from '@iarna/toml';
 export type Theme = 'light' | 'dark' | 'system';
 export type EditorFont = 'sans' | 'mono' | 'serif' | 'system-ui';
 export type EditorFontSize = 'small' | 'normal' | 'large';
+export type EditorMaxWidth = '720px' | '100%' | 'custom';
 
 export interface UserSettings {
 	defaultRawMode: boolean;
@@ -16,6 +17,8 @@ export interface UserSettings {
 	theme: Theme;
 	editorFont: EditorFont;
 	editorFontSize: EditorFontSize;
+	editorMaxWidth: EditorMaxWidth;
+	editorMaxWidthCustom: number;
 	sidebarOpen: boolean;
 	fmOpen: boolean;
 	showConsole: boolean;
@@ -32,6 +35,8 @@ const defaults: UserSettings = {
 	theme: 'system',
 	editorFont: 'serif',
 	editorFontSize: 'normal',
+	editorMaxWidth: '720px',
+	editorMaxWidthCustom: 720,
 	sidebarOpen: true,
 	fmOpen: true,
 	showConsole: false,
@@ -60,6 +65,10 @@ export function loadUserSettings(): UserSettings {
 				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') result[key] = val;
 			} else if (key === 'editorFontSize') {
 				if (val === 'small' || val === 'normal' || val === 'large') result[key] = val;
+			} else if (key === 'editorMaxWidth') {
+				if (val === '720px' || val === '100%' || val === 'custom') result[key] = val;
+			} else if (key === 'editorMaxWidthCustom') {
+				if (typeof val === 'number' && val >= 400 && val <= 2000) result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -85,6 +94,10 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') obj[key] = val;
 			} else if (key === 'editorFontSize') {
 				if (val === 'small' || val === 'normal' || val === 'large') obj[key] = val;
+			} else if (key === 'editorMaxWidth') {
+				if (val === '720px' || val === '100%' || val === 'custom') obj[key] = val;
+			} else if (key === 'editorMaxWidthCustom') {
+				if (typeof val === 'number' && val >= 400 && val <= 2000) obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}
