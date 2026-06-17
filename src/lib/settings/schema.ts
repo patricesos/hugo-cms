@@ -1,4 +1,4 @@
-export type SettingType = 'select' | 'number' | 'text' | 'boolean';
+export type SettingType = 'select' | 'number' | 'text' | 'boolean' | 'folder';
 
 export interface SettingField {
 	key: string;
@@ -280,7 +280,7 @@ export const settingsSchema: SettingTab[] = [
 					{
 						key: 'hugoSitePathCustom',
 						label: 'Chemin personnalisé',
-						type: 'text',
+						type: 'folder',
 						default: '',
 					},
 				],

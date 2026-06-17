@@ -2,7 +2,14 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw } from '@lucide/svelte';
 
-	let { show, onClose, onStatusChange, style = '' }: { show: boolean; onClose: () => void; onStatusChange?: (status: 'loading' | 'running' | 'stopped' | 'error') => void; style?: string } = $props();
+	let { show, onClose, onStatusChange, onUrlChange, reloadKey, style = '' }: {
+		show: boolean;
+		onClose: () => void;
+		onStatusChange?: (status: 'loading' | 'running' | 'stopped' | 'error') => void;
+		onUrlChange?: (url: string | null) => void;
+		reloadKey?: number;
+		style?: string;
+	} = $props();
 
 	let status = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let url = $state<string | null>(null);
@@ -12,6 +19,11 @@
 
 	$effect(() => {
 		onStatusChange?.(status);
+		onUrlChange?.(url);
+	});
+
+	$effect(() => {
+		if (reloadKey) iframeKey = reloadKey;
 	});
 
 	onMount(() => {

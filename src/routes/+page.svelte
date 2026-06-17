@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings, ExternalLink, Play, Square } from '@lucide/svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -64,6 +64,56 @@
 	let savedPathConfig = $state({ useDotEnv: true, customPath: '' });
 	let showRestartBanner = $state(false);
 	let showSettings = $state(false);
+
+	let _hugoCheckInterval: ReturnType<typeof setInterval> | undefined;
+
+	async function startHugoServer() {
+		hugoStatus = 'loading';
+		try {
+			const res = await fetch('/api/hugo/start', { method: 'POST' });
+			const data = await res.json();
+			if (data.running && data.url) {
+				hugoStatus = 'running';
+				hugoUrl = data.url;
+				previewReloadKey++;
+			} else {
+				hugoStatus = 'error';
+			}
+		} catch {
+			hugoStatus = 'error';
+		}
+	}
+
+	async function stopHugoServer() {
+		try {
+			await fetch('/api/hugo/stop', { method: 'POST' });
+		} catch {}
+		hugoStatus = 'stopped';
+		hugoUrl = null;
+	}
+
+	async function checkHugoStatus() {
+		try {
+			const res = await fetch('/api/hugo/status');
+			const data = await res.json();
+			if (data.running && data.url) {
+				hugoStatus = 'running';
+				hugoUrl = data.url;
+			} else {
+				hugoStatus = 'stopped';
+				hugoUrl = null;
+			}
+		} catch {}
+	}
+
+	function reloadPreview() {
+		previewReloadKey++;
+		if (!showPreview) showPreview = true;
+	}
+
+	function openPreviewInTab() {
+		if (hugoUrl) window.open(hugoUrl, '_blank');
+	}
 	let defaultRawMode = $state(false);
 	let showBubbleMenu = $state(true);
 	let showSlashMenu = $state(true);
@@ -98,6 +148,8 @@
 	let conflictServerMtimeMs = $state(0);
 	let expandedSlugs = $state<Set<string>>(new Set());
 	let hugoStatus = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
+	let hugoUrl = $state<string | null>(null);
+	let previewReloadKey = $state(0);
 	let hydrated = $state(false);
 
 	$effect(() => {
@@ -454,6 +506,7 @@
 		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(async () => {
 			await restoreAppState();
 		});
+		checkHugoStatus();
 		// Lazy-load Editor on mount (not needed during SSR)
 		import('$lib/components/Editor.svelte').then(m => EditorComp = m.default);
 		function handleKeydown(e: KeyboardEvent) {
@@ -894,15 +947,29 @@
 			</button>
 		</div>
 		<div class="action-bar-right">
+			<div class="preview-header-actions">
+				{#if hugoStatus === 'running'}
+					<button class="icon-btn" onclick={openPreviewInTab} title="Ouvrir dans un onglet">
+						<ExternalLink size={14} />
+					</button>
+					<button class="icon-btn" onclick={reloadPreview} title="Recharger">
+						<RefreshCw size={14} />
+					</button>
+					<button class="icon-btn preview-stop" onclick={stopHugoServer} title="Arrêter le serveur">
+						<Square size={13} />
+					</button>
+				{:else if hugoStatus === 'stopped'}
+					<button class="icon-btn preview-start" onclick={startHugoServer} title="Démarrer le serveur">
+						<Play size={14} />
+					</button>
+				{:else if hugoStatus === 'loading'}
+					<button class="icon-btn" disabled title="Démarrage…">
+						<Loader2 size={14} class="spin" />
+					</button>
+				{/if}
+			</div>
 			<button class="icon-btn" onclick={() => showSettings = true} title="Paramètres">
 				<Settings size={16} />
-			</button>
-			<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
-				{#if fmOpen}
-					<PanelRightClose size={16} />
-				{:else}
-					<PanelRightOpen size={16} />
-				{/if}
 			</button>
 		</div>
 	</div>
@@ -1069,6 +1136,15 @@
 									{/if}
 								</button>
 							</div>
+							<div class="header-right">
+								<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
+									{#if fmOpen}
+										<PanelRightClose size={14} />
+									{:else}
+										<PanelRightOpen size={14} />
+									{/if}
+								</button>
+							</div>
 						</div>
 						<div class="editor-body" class:with-fm={fmOpen}>
 							<div class="editor-main">
@@ -1125,7 +1201,14 @@
 			{#if showPreview}
 				<div class="preview-resize-handle" role="presentation" onpointerdown={startPreviewResize}></div>
 				{#if HugoPreviewComp}
-					<HugoPreviewComp show={showPreview} onClose={() => showPreview = false} onStatusChange={(s) => hugoStatus = s} style="width:{previewWidth}px;min-width:{previewWidth}px" />
+				<HugoPreviewComp
+						show={showPreview}
+						onClose={() => showPreview = false}
+						onStatusChange={(s) => hugoStatus = s}
+						onUrlChange={(u) => hugoUrl = u}
+						reloadKey={previewReloadKey}
+						style="width:{previewWidth}px;min-width:{previewWidth}px"
+					/>
 				{/if}
 			{/if}
 		</div>
@@ -1353,6 +1436,25 @@
 		color: var(--c-text);
 	}
 
+	.preview-header-actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		margin-right: 4px;
+		padding-right: 4px;
+		border-right: 1px solid var(--c-border);
+	}
+
+	.action-bar .icon-btn.preview-stop:hover {
+		background: #fef2f2;
+		color: var(--c-danger);
+	}
+
+	.action-bar .icon-btn.preview-start:hover {
+		background: #f0fdf4;
+		color: #16a34a;
+	}
+
 	.editor-panel {
 		flex: 1;
 		display: flex;
@@ -1505,6 +1607,25 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
+	}
+
+	.header-right {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.header-right .icon-btn {
+		width: 26px;
+		height: 26px;
+		border: none;
+		background: transparent;
+		color: var(--c-text-muted);
+	}
+
+	.header-right .icon-btn:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
 	}
 
 	.filename {

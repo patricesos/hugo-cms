@@ -1,11 +1,14 @@
 <script lang="ts">
 	import type { SettingField } from './schema';
+	import FolderPicker from '$lib/components/FolderPicker.svelte';
 
 	let { field, value, onChange }: {
 		field: SettingField;
 		value: any;
 		onChange: (key: string, value: any) => void;
 	} = $props();
+
+	let showFolderPicker = $state(false);
 
 	function clampNumber(val: number): number {
 		if (field.min !== undefined) val = Math.max(field.min, val);
@@ -68,6 +71,27 @@
 				/>
 				{#if field.unit}<span class="unit">{field.unit}</span>{/if}
 			</div>
+
+		{:else if field.type === 'folder'}
+			<div class="folder-wrap">
+				<input
+					type="text"
+					value={String(value)}
+					oninput={(e) => onChange(field.key, (e.target as HTMLInputElement).value)}
+					class="text-input folder-input"
+				/>
+				<button
+					class="browse-btn"
+					onclick={() => showFolderPicker = true}
+					title="Parcourir"
+				>…</button>
+			</div>
+			<FolderPicker
+				show={showFolderPicker}
+				initialPath={String(value)}
+				onSelect={(path) => { onChange(field.key, path); showFolderPicker = false; }}
+				onClose={() => showFolderPicker = false}
+			/>
 
 		{:else if field.type === 'text'}
 			<input
@@ -201,5 +225,32 @@
 		font-size: 12px;
 		font-family: inherit;
 		width: 110px;
+	}
+
+	.folder-wrap {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.folder-input {
+		width: 220px;
+	}
+
+	.browse-btn {
+		padding: 4px 10px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text-secondary);
+		font-size: 14px;
+		font-family: inherit;
+		cursor: pointer;
+		line-height: 1;
+	}
+
+	.browse-btn:hover {
+		background: var(--c-bg-muted);
+		color: var(--c-text);
 	}
 </style>
