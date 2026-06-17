@@ -259,6 +259,25 @@ export const settingsSchema: SettingTab[] = [
 	{
 		id: 'advanced',
 		label: 'Avancé',
-		groups: [],
+		groups: [
+			{
+				label: 'Chemin du site Hugo',
+				fields: [
+					{
+						key: 'hugoSitePathUseDotEnv',
+						label: 'Utiliser le chemin depuis .env',
+						description: 'Décocher pour définir un chemin personnalisé',
+						type: 'boolean',
+						default: true,
+					},
+					{
+						key: 'hugoSitePathCustom',
+						label: 'Chemin personnalisé',
+						type: 'text',
+						default: '',
+					},
+				],
+			},
+		],
 	},
 ];

@@ -24,6 +24,19 @@
 
 	let filteredGroups = $derived.by(() => {
 		if (!currentTab) return [];
+		if (currentTab.id === 'advanced') {
+			return currentTab.groups
+				.map(group => ({
+					...group,
+					fields: group.fields.filter(f => {
+						if (f.key === 'hugoSitePathCustom') {
+							return values[f.key] !== undefined && !values.hugoSitePathUseDotEnv;
+						}
+						return true;
+					}),
+				}))
+				.filter(g => g.fields.length > 0);
+		}
 		const q = searchQuery.toLowerCase().trim();
 		return currentTab.groups
 			.map(group => ({
@@ -69,31 +82,34 @@
 	</div>
 
 	<div class="fields-scroll">
-		{#if activeTab === 'advanced' && serverConfig}
-			<div class="advanced-section">
-				{#each Object.entries(serverConfig) as [key, val]}
-					<div class="readonly-row">
-						<span class="readonly-key">{key}</span>
-						<span class="readonly-val">{String(val)}</span>
-					</div>
-				{/each}
-			</div>
-		{:else if activeTab === 'advanced' && !serverConfig}
-			<div class="empty-state">Aucune information serveur disponible.</div>
-		{:else if filteredGroups.length > 0}
+		{#if filteredGroups.length > 0 || activeTab === 'advanced'}
 			{#each filteredGroups as group}
 				{#if group.label && !isSearching}
 					<div class="group-label">{group.label}</div>
 				{/if}
 				{#each group.fields as field}
-					<SettingField
-						field={field as any}
-						value={values[field.key]}
-						onChange={handleFieldChange}
-					/>
+					{@const isDisabled = field.key === 'hugoSitePathCustom' && !!values.hugoSitePathUseDotEnv}
+					<div class="field-row" class:disabled={isDisabled}>
+						<SettingField
+							field={field as any}
+							value={values[field.key]}
+							onChange={handleFieldChange}
+						/>
+					</div>
 				{/each}
 			{/each}
-		{:else if isSearching}
+			{#if activeTab === 'advanced' && serverConfig}
+				<div class="group-label">Configuration serveur</div>
+				<div class="advanced-section">
+					{#each Object.entries(serverConfig) as [key, val]}
+						<div class="readonly-row">
+							<span class="readonly-key">{key}</span>
+							<span class="readonly-val">{String(val)}</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{:else if isSearching && filteredGroups.length === 0}
 			<div class="empty-state">Aucun résultat pour « {searchQuery} »</div>
 		{/if}
 	</div>
@@ -194,6 +210,11 @@
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 		padding: 10px 0 4px;
+	}
+
+	.field-row.disabled {
+		opacity: 0.4;
+		pointer-events: none;
 	}
 
 	.advanced-section {

@@ -31,6 +31,8 @@ export interface UserSettings {
 	showGit: boolean;
 	gitRemote: string;
 	gitBranch: string;
+	hugoSitePathUseDotEnv: boolean;
+	hugoSitePathCustom: string;
 }
 
 const defaults: UserSettings = {
@@ -56,6 +58,8 @@ const defaults: UserSettings = {
 	showGit: false,
 	gitRemote: 'origin',
 	gitBranch: 'main',
+	hugoSitePathUseDotEnv: true,
+	hugoSitePathCustom: '',
 };
 
 function configPath(): string {
@@ -92,6 +96,10 @@ export function loadUserSettings(): UserSettings {
 			} else if (key === 'sidebarView') {
 				if (val === 'content' || val === 'static' || val === 'archetypes' || val === 'config') result[key] = val;
 			} else if (key === 'gitRemote' || key === 'gitBranch') {
+				if (typeof val === 'string') result[key] = val;
+			} else if (key === 'hugoSitePathUseDotEnv') {
+				if (typeof val === 'boolean') result[key] = val;
+			} else if (key === 'hugoSitePathCustom') {
 				if (typeof val === 'string') result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
@@ -131,6 +139,10 @@ export function saveUserSettings(settings: UserSettings): void {
 			} else if (key === 'sidebarView') {
 				if (val === 'content' || val === 'static' || val === 'archetypes' || val === 'config') obj[key] = val;
 			} else if (key === 'gitRemote' || key === 'gitBranch') {
+				if (typeof val === 'string') obj[key] = val;
+			} else if (key === 'hugoSitePathUseDotEnv') {
+				if (typeof val === 'boolean') obj[key] = val;
+			} else if (key === 'hugoSitePathCustom') {
 				if (typeof val === 'string') obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;

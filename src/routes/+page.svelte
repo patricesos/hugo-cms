@@ -59,6 +59,10 @@
 	let showGit = $state(false);
 	let gitRemote = $state('origin');
 	let gitBranch = $state('main');
+	let hugoSitePathUseDotEnv = $state(true);
+	let hugoSitePathCustom = $state('');
+	let savedPathConfig = $state({ useDotEnv: true, customPath: '' });
+	let showRestartBanner = $state(false);
 	let showSettings = $state(false);
 	let defaultRawMode = $state(false);
 	let showBubbleMenu = $state(true);
@@ -95,6 +99,12 @@
 	let hugoStatus = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let hydrated = $state(false);
 
+	$effect(() => {
+		if (showSettings) {
+			savedPathConfig = { useDotEnv: hugoSitePathUseDotEnv, customPath: hugoSitePathCustom };
+		}
+	});
+
 	// Lazy-loaded component references
 	let EditorComp = $state<any>(null);
 	let CreateFileDialogComp = $state<any>(null);
@@ -128,7 +138,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -172,6 +182,8 @@
 					gitRemote = state.settings.gitRemote ?? 'origin';
 					gitBranch = state.settings.gitBranch ?? 'main';
 					fmRawMode = state.settings.fmRawMode ?? false;
+					hugoSitePathUseDotEnv = state.settings.hugoSitePathUseDotEnv ?? true;
+					hugoSitePathCustom = state.settings.hugoSitePathCustom ?? '';
 				}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 				if (state.tabs && state.currentSlug) {
@@ -232,6 +244,8 @@
 				if (s.showGit !== undefined) showGit = s.showGit as boolean;
 				if (s.gitRemote !== undefined) gitRemote = s.gitRemote as string;
 				if (s.gitBranch !== undefined) gitBranch = s.gitBranch as string;
+				if (s.hugoSitePathUseDotEnv !== undefined) hugoSitePathUseDotEnv = s.hugoSitePathUseDotEnv as boolean;
+				if (s.hugoSitePathCustom !== undefined) hugoSitePathCustom = s.hugoSitePathCustom as string;
 			}
 		} catch {}
 	}
@@ -262,6 +276,8 @@
 		editorMaxWidth;
 		editorMaxWidthCustom;
 		historyDepth;
+		hugoSitePathUseDotEnv;
+		hugoSitePathCustom;
 		previewWidth;
 		saveAppState();
 	});
@@ -832,6 +848,12 @@
 			</div>
 		</div>
 	</header>
+	{#if showRestartBanner}
+	<div class="restart-banner">
+		<span>Chemin du site modifié. Redémarrez le serveur pour appliquer.</span>
+		<button class="restart-banner-close" onclick={() => showRestartBanner = false}>✕</button>
+	</div>
+	{/if}
 	<div class="action-bar">
 		<div class="action-bar-left">
 			<button class="icon-btn" onclick={() => sidebarOpen = !sidebarOpen} title={sidebarOpen ? 'Réduire la sidebar' : 'Afficher la sidebar'}>
@@ -1160,10 +1182,15 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom }}
 		{serverConfig}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; gitRemote: string; gitBranch: string }) => {
+		onConfirm={() => {
+			if (hugoSitePathUseDotEnv !== savedPathConfig.useDotEnv || hugoSitePathCustom !== savedPathConfig.customPath) {
+				showRestartBanner = true;
+			}
+		}}
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; gitRemote: string; gitBranch: string; hugoSitePathUseDotEnv: boolean; hugoSitePathCustom: string }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1190,6 +1217,8 @@
 			showGit = s.showGit;
 			gitRemote = s.gitRemote;
 			gitBranch = s.gitBranch;
+			hugoSitePathUseDotEnv = s.hugoSitePathUseDotEnv;
+			hugoSitePathCustom = s.hugoSitePathCustom;
 		}}
 	/>
 {/if}
@@ -1652,5 +1681,31 @@
 	@keyframes shimmer {
 		0% { background-position: 200% 0; }
 		100% { background-position: -200% 0; }
+	}
+
+	.restart-banner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 16px;
+		background: #fff3cd;
+		color: #856404;
+		font-size: 13px;
+		border-bottom: 1px solid #ffc107;
+		flex-shrink: 0;
+	}
+
+	.restart-banner-close {
+		border: none;
+		background: transparent;
+		color: #856404;
+		cursor: pointer;
+		font-size: 14px;
+		padding: 2px 6px;
+		line-height: 1;
+	}
+
+	.restart-banner-close:hover {
+		opacity: 0.7;
 	}
 </style>

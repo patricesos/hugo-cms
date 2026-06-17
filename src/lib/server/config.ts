@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
+import { loadUserSettings } from './user-config';
 
 function loadDotenv(): void {
 	const envPath = resolve(process.cwd(), '.env');
@@ -79,17 +80,32 @@ function looksLikeHugoRoot(dir: string): boolean {
 
 function loadConfig(): CmsConfig {
 	loadDotenv();
-	const sitePath = env('HUGO_SITE_PATH', '');
-	console.log(`[config] HUGO_SITE_PATH = "${sitePath}"`);
-	if (!sitePath || !looksLikeHugoRoot(sitePath)) {
+	const envSitePath = env('HUGO_SITE_PATH', '');
+	console.log(`[config] HUGO_SITE_PATH = "${envSitePath}"`);
+	if (!envSitePath || !looksLikeHugoRoot(envSitePath)) {
 		throw new Error(
-			`HUGO_SITE_PATH "${sitePath}" is not a Hugo site root.\n`
+			`HUGO_SITE_PATH "${envSitePath}" is not a Hugo site root.\n`
 			+ 'Set HUGO_SITE_PATH in .env to your Hugo site (must contain a config file or config/ folder).'
 		);
 	}
+	const userSettings = loadUserSettings();
+	const sitePath = (!userSettings.hugoSitePathUseDotEnv && userSettings.hugoSitePathCustom)
+		? userSettings.hugoSitePathCustom
+		: envSitePath;
+	if (sitePath !== envSitePath) {
+		console.log(`[config] Overriding with custom path from user settings: "${sitePath}"`);
+		if (!looksLikeHugoRoot(sitePath)) {
+			console.warn(`[config] Custom path "${sitePath}" is not a valid Hugo root, falling back to .env`);
+			return buildConfig(envSitePath);
+		}
+	}
+	return buildConfig(sitePath);
+}
+
+function buildConfig(sitePath: string): CmsConfig {
 	const contentDir = resolve(sitePath, 'content');
 	const staticPath = resolve(sitePath, 'static');
-	const config: CmsConfig = {
+	return {
 		hugoSitePath: sitePath,
 		hugoContentPath: env('HUGO_CONTENT_PATH', contentDir),
 		hugoStaticPath: env('HUGO_STATIC_PATH', staticPath),
@@ -115,8 +131,6 @@ function loadConfig(): CmsConfig {
 		appTitle: env('APP_TITLE', 'Hugo CMS'),
 		defaultArchetype: env('DEFAULT_ARCHETYPE', 'default'),
 	};
-
-	return config;
 }
 
 export const cmsConfig = loadConfig();
