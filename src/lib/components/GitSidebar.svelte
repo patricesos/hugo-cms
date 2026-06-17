@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GitBranch, RefreshCw, GitCommit, ArrowUp, FileCode, Plus, Pencil, Trash2, HelpCircle, CheckCircle2 } from '@lucide/svelte';
+	import { GitBranch, RefreshCw, GitCommit, ArrowUp, History, FileCode, Plus, Pencil, Trash2, HelpCircle, CheckCircle2 } from '@lucide/svelte';
 
 	export interface GitStatus {
 		branch: string;
@@ -20,6 +20,7 @@
 		onCommit,
 		onPush,
 		onInit,
+		onLog,
 		onOpenFile,
 	}: {
 		status: GitStatus | null;
@@ -28,6 +29,7 @@
 		onCommit: () => void;
 		onPush: () => void;
 		onInit: () => void;
+		onLog: () => void;
 		onOpenFile?: (path: string) => void;
 	} = $props();
 
@@ -144,18 +146,24 @@
 		{/if}
 
 		<div class="git-footer">
-			{#if totalChanges > 0}
-				<button class="btn primary" onclick={onCommit}>
-					<GitCommit size={13} />
-					<span>Commit {totalChanges > 0 ? `(${totalChanges})` : ''}</span>
-				</button>
-			{/if}
-			{#if status && status.ahead > 0}
-				<button class="btn secondary" onclick={onPush}>
-					<ArrowUp size={13} />
-					<span>Push ({status.ahead})</span>
-				</button>
-			{/if}
+			<div class="git-footer-actions">
+				{#if totalChanges > 0}
+					<button class="btn primary" onclick={onCommit}>
+						<GitCommit size={13} />
+						<span>Commit {totalChanges > 0 ? `(${totalChanges})` : ''}</span>
+					</button>
+				{/if}
+				{#if status && status.ahead > 0}
+					<button class="btn secondary" onclick={onPush}>
+						<ArrowUp size={13} />
+						<span>Push ({status.ahead})</span>
+					</button>
+				{/if}
+			</div>
+			<button class="btn secondary log-btn" onclick={onLog}>
+				<History size={13} />
+				<span>Historique</span>
+			</button>
 		</div>
 	{/if}
 </div>
@@ -323,9 +331,19 @@
 	.git-footer {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 6px;
 		padding: 10px 12px;
 		border-top: 1px solid var(--c-border);
+	}
+
+	.git-footer-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.log-btn {
+		width: 100%;
 	}
 
 	.btn {
