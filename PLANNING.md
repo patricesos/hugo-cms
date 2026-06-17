@@ -9,9 +9,67 @@
 - [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
 
 
+## Menu Paramètres
+
+Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le header).
+
+### Apparence
+
+- [ ] Sélecteur de thèmes (Clair, Sombre, Système) — palettes : Gruvbox, Catppuccin, Monokai, Indigo
+- [ ] Police éditeur (Open Sans, monospace, Georgia, system-ui)
+- [ ] Taille de police éditeur (petite, normale, grande)
+- [ ] Largeur max du contenu éditeur (720px / 100% / custom)
+- [ ] Langue de l'interface (Français, English)
+
+### Éditeur
+
+- [ ] Mode éditeur par défaut (WYSIWYG / Markdown brut)
+- [ ] Délai auto-save (ms) — actuellement 2000ms via FM_SAVE_DELAY / AUTO_SAVE_DELAY
+- [ ] Activer/désactiver le bubble menu
+- [ ] Activer/désactiver le slash menu
+- [ ] Nombre max d'entrées dans l'historique undo/redo
+- [ ] Draft par défaut pour les nouveaux fichiers (oui/non)
+
+### Panneaux
+
+- [ ] Sidebar ouverte par défaut (oui/non)
+- [ ] Largeur sidebar par défaut (min 180, max 500)
+- [ ] Vue sidebar par défaut (Content / Static / Archetypes / Config)
+- [ ] Panneau Frontmatter ouvert par défaut (oui/non)
+- [ ] Largeur Frontmatter par défaut (min 200, max 500)
+- [ ] Mode Frontmatter par défaut (formulaire / raw)
+- [ ] Console Hugo ouverte par défaut (oui/non)
+- [ ] Aperçu Hugo ouvert par défaut (oui/non)
+
+### Git
+
+- [ ] Git intégré activé (oui/non)
+- [ ] Remote par défaut (origin / custom)
+- [ ] Branche par défaut (main / custom)
+- [ ] Afficher panneau Git par défaut (oui/non)
+
+### Avancé — visible dans la vue Config ou un sous-menu
+
+- [ ] Chemin Hugo site (read-only, depuis .env)
+- [ ] Port serveur Hugo (1313 par défaut)
+- [ ] Adresse bind Hugo (127.0.0.1 par défaut)
+- [ ] Timeout démarrage Hugo (15000ms)
+- [ ] Timeout arrêt Hugo (5000ms)
+- [ ] Intervalle polling changements externes (5000ms)
+- [ ] Dossier Corbeille (\_trash)
+- [ ] Auteur par défaut (patricesos)
+- [ ] Format de date (YYYY-MM-DD)
+- [ ] Archétype par défaut (default)
+- [ ] Slugify : conserver les caractères non-ASCII (oui/non) — actuellement strip tout sauf a-z0-9-
+
+
 ## Backlog
 
-- [ ] Sélecteur de thèmes (Gruvbox, Catppuccin, Monokai…)
+- [ ] Split view 50/50 éditeur + aperçu (auto-reload sur sauvegarde)
+- [ ] Multi-remote git dans l'UI
+- [ ] Version history (10 dernières versions dans /.cms-history/)
+- [ ] Drag-drop entre les vues sidebar
+- [ ] Recherche dans la vue Config
 
 
 ## Done
