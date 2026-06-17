@@ -6,7 +6,7 @@
 - [x] Persistance de l'état éditeur après refresh (onglets, dossiers ouverts…)
 - [x] Nouvelle vue Config : éditer tous les fichiers du dossier config/ (hugo.toml, params, menus…)
 - [x] Sidebar : position des icônes de vue (en bas) alignée avec le nombre total d'icônes à gauche (taille totale)
-- [ ] À peaufiner : améliorer le système de vues (config, search, drag-drop entre vues…)
+- [x] Refactoring settings : schema-driven avec onglets + recherche, composant SettingField générique, dialog élargi à 520px
 
 
 ## Menu Paramètres

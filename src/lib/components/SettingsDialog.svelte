@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
-	import { Settings, PenTool, X } from '@lucide/svelte';
+	import { Settings, X } from '@lucide/svelte';
+	import SettingsPanel from '$lib/settings/SettingsPanel.svelte';
+	import { settingsSchema } from '$lib/settings/schema';
 
 	interface SettingsState {
 		defaultRawMode: boolean;
@@ -62,6 +64,11 @@
 		onSave(snapshot);
 		onClose();
 	}
+
+	function handleFieldChange(key: string, val: any) {
+		(local as any)[key] = val;
+		emit();
+	}
 </script>
 
 {#if show}
@@ -84,141 +91,12 @@
 		</div>
 
 		<div class="dialog-body">
-			<div class="section">
-				<div class="section-title"><PenTool size={13} /> Apparence</div>
-				<label class="toggle-row">
-					<span>Thème</span>
-					<select value={local.theme} onchange={(e) => { const el = e.target as HTMLSelectElement; local.theme = el.value; emit(); }} class="select-input">
-						<option value="system">Système</option>
-						<option value="light">Clair</option>
-						<option value="dark">Sombre</option>
-					</select>
-				</label>
-				<label class="toggle-row">
-					<span>Taille police éditeur</span>
-					<select value={local.editorFontSize} onchange={(e) => { const el = e.target as HTMLSelectElement; local.editorFontSize = el.value; emit(); }} class="select-input">
-						<option value="small">Petite</option>
-						<option value="normal">Normale</option>
-						<option value="large">Grande</option>
-					</select>
-				</label>
-				<label class="toggle-row">
-					<span>Largeur max éditeur</span>
-					<select value={local.editorMaxWidth} onchange={(e) => { const el = e.target as HTMLSelectElement; local.editorMaxWidth = el.value; emit(); }} class="select-input">
-						<option value="720px">720px</option>
-						<option value="100%">100%</option>
-						<option value="custom">Personnalisée</option>
-					</select>
-				</label>
-				{#if local.editorMaxWidth === 'custom'}
-				<label class="toggle-row">
-					<span>Largeur perso (px)</span>
-					<input type="number" min="400" max="2000" step="10" value={local.editorMaxWidthCustom} oninput={(e) => { const el = e.target as HTMLInputElement; local.editorMaxWidthCustom = parseInt(el.value, 10) || 720; emit(); }} class="number-input" />
-				</label>
-				{/if}
-			</div>
-			<div class="section">
-				<div class="section-title"><PenTool size={13} /> Éditeur</div>
-				<label class="toggle-row">
-					<span>Mode brut par défaut</span>
-					<input type="checkbox" checked={local.defaultRawMode} onchange={(e) => { const el = e.target as HTMLInputElement; local.defaultRawMode = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Menu flottant (sélection)</span>
-					<input type="checkbox" checked={local.showBubbleMenu} onchange={(e) => { const el = e.target as HTMLInputElement; local.showBubbleMenu = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Menu slash (/)</span>
-					<input type="checkbox" checked={local.showSlashMenu} onchange={(e) => { const el = e.target as HTMLInputElement; local.showSlashMenu = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Brouillon par défaut</span>
-					<input type="checkbox" checked={local.draftByDefault} onchange={(e) => { const el = e.target as HTMLInputElement; local.draftByDefault = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Auto-save (ms)</span>
-					<input type="number" min="500" max="30000" step="100" value={local.autoSaveDelay} oninput={(e) => { const el = e.target as HTMLInputElement; local.autoSaveDelay = parseInt(el.value, 10) || 2000; emit(); }} class="number-input" />
-				</label>
-				<label class="toggle-row">
-					<span>Police éditeur</span>
-					<select value={local.editorFont} onchange={(e) => { const el = e.target as HTMLSelectElement; local.editorFont = el.value; emit(); }} class="select-input">
-						<option value="serif">Serif (Georgia)</option>
-						<option value="sans">Sans-serif (Open Sans)</option>
-						<option value="mono">Monospace</option>
-						<option value="system-ui">System UI</option>
-					</select>
-				</label>
-				<label class="toggle-row">
-					<span>Undo/redo max</span>
-					<input type="number" min="10" max="10000" step="10" value={local.historyDepth} oninput={(e) => { const el = e.target as HTMLInputElement; local.historyDepth = parseInt(el.value, 10) || 250; emit(); }} class="number-input" />
-				</label>
-			</div>
-			<div class="section">
-				<div class="section-title"><PenTool size={13} /> Panneaux</div>
-				<label class="toggle-row">
-					<span>Sidebar ouverte</span>
-					<input type="checkbox" checked={local.sidebarOpen} onchange={(e) => { const el = e.target as HTMLInputElement; local.sidebarOpen = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Largeur sidebar (px)</span>
-					<input type="number" min="180" max="500" step="5" value={local.sidebarWidth} oninput={(e) => { const el = e.target as HTMLInputElement; local.sidebarWidth = parseInt(el.value, 10) || 260; emit(); }} class="number-input" />
-				</label>
-				<label class="toggle-row">
-					<span>Vue sidebar par défaut</span>
-					<select value={local.sidebarView} onchange={(e) => { const el = e.target as HTMLSelectElement; local.sidebarView = el.value; emit(); }} class="select-input">
-						<option value="content">Content</option>
-						<option value="static">Static</option>
-						<option value="archetypes">Archetypes</option>
-						<option value="config">Config</option>
-					</select>
-				</label>
-				<label class="toggle-row">
-					<span>Frontmatter ouvert</span>
-					<input type="checkbox" checked={local.fmOpen} onchange={(e) => { const el = e.target as HTMLInputElement; local.fmOpen = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Largeur frontmatter (px)</span>
-					<input type="number" min="200" max="500" step="5" value={local.fmWidth} oninput={(e) => { const el = e.target as HTMLInputElement; local.fmWidth = parseInt(el.value, 10) || 280; emit(); }} class="number-input" />
-				</label>
-				<label class="toggle-row">
-					<span>Frontmatter mode brut</span>
-					<input type="checkbox" checked={local.fmRawMode} onchange={(e) => { const el = e.target as HTMLInputElement; local.fmRawMode = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Console Hugo</span>
-					<input type="checkbox" checked={local.showConsole} onchange={(e) => { const el = e.target as HTMLInputElement; local.showConsole = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Aperçu Hugo</span>
-					<input type="checkbox" checked={local.showPreview} onchange={(e) => { const el = e.target as HTMLInputElement; local.showPreview = el.checked; emit(); }} />
-				</label>
-			</div>
-			<div class="section">
-				<div class="section-title"><PenTool size={13} /> Git</div>
-				<label class="toggle-row">
-					<span>Git intégré activé</span>
-					<input type="checkbox" checked={local.showGit} onchange={(e) => { const el = e.target as HTMLInputElement; local.showGit = el.checked; emit(); }} />
-				</label>
-				<label class="toggle-row">
-					<span>Remote par défaut</span>
-					<input type="text" value={local.gitRemote} oninput={(e) => { const el = e.target as HTMLInputElement; local.gitRemote = el.value; emit(); }} class="text-input" />
-				</label>
-				<label class="toggle-row">
-					<span>Branche par défaut</span>
-					<input type="text" value={local.gitBranch} oninput={(e) => { const el = e.target as HTMLInputElement; local.gitBranch = el.value; emit(); }} class="text-input" />
-				</label>
-			</div>
-			{#if serverConfig}
-			<div class="section">
-				<div class="section-title"><PenTool size={13} /> Avancé (serveur)</div>
-				{#each Object.entries(serverConfig) as [key, val]}
-				<div class="readonly-row">
-					<span class="readonly-key">{key}</span>
-					<span class="readonly-val">{String(val)}</span>
-				</div>
-				{/each}
-			</div>
-			{/if}
+			<SettingsPanel
+				schema={settingsSchema}
+				values={local}
+				{serverConfig}
+				onChange={handleFieldChange}
+			/>
 		</div>
 
 		<div class="dialog-footer">
@@ -245,8 +123,9 @@
 		background: var(--c-bg);
 		border: 1px solid var(--c-border);
 		border-radius: 10px;
-		width: 380px;
+		width: 520px;
 		max-width: calc(100vw - 32px);
+		max-height: calc(100vh - 64px);
 		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 		display: flex;
 		flex-direction: column;
@@ -260,6 +139,7 @@
 		font-weight: 600;
 		font-size: 14px;
 		color: var(--c-text);
+		flex-shrink: 0;
 	}
 
 	.dialog-header h3 {
@@ -274,98 +154,12 @@
 	}
 
 	.dialog-body {
-		padding: 16px;
+		padding: 12px 16px;
+		flex: 1;
+		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-	}
-
-	.section {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.section-title {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 11px;
-		font-weight: 600;
-		color: var(--c-text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		padding-bottom: 4px;
-		border-bottom: 1px solid var(--c-border);
-	}
-
-	.readonly-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 3px 0;
-		font-size: 12px;
-		color: var(--c-text-muted);
-	}
-
-	.readonly-key {
-		font-size: 12px;
-	}
-
-	.readonly-val {
-		font-size: 12px;
-		font-family: monospace;
-		color: var(--c-text-secondary);
-	}
-
-	.toggle-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 6px 0;
-		font-size: 13px;
-		color: var(--c-text);
-		cursor: pointer;
-	}
-
-	.select-input {
-		padding: 3px 6px;
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius-sm);
-		background: var(--c-bg);
-		color: var(--c-text);
-		font-size: 12px;
-		font-family: inherit;
-	}
-
-	.text-input {
-		padding: 3px 8px;
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius-sm);
-		background: var(--c-bg);
-		color: var(--c-text);
-		font-size: 12px;
-		font-family: inherit;
-		width: 120px;
-	}
-
-	.number-input {
-		width: 80px;
-		padding: 3px 6px;
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius-sm);
-		background: var(--c-bg);
-		color: var(--c-text);
-		font-size: 12px;
-		font-family: inherit;
-		text-align: right;
-	}
-
-	.toggle-row input[type="checkbox"] {
-		width: 16px;
-		height: 16px;
-		cursor: pointer;
-		accent-color: var(--c-primary);
+		min-height: 0;
 	}
 
 	.dialog-footer {
@@ -373,6 +167,7 @@
 		gap: 8px;
 		padding: 0 16px 16px;
 		justify-content: flex-end;
+		flex-shrink: 0;
 	}
 
 	.icon-btn {
