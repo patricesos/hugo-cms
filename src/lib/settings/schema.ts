@@ -178,6 +178,13 @@ export const settingsSchema: SettingTab[] = [
 						],
 						default: 'content',
 					},
+					{
+						key: 'showFilenameInTabs',
+						label: 'Afficher le nom du fichier dans les tabs',
+						description: 'Afficher le slug au lieu du title front-matter',
+						type: 'boolean',
+						default: false,
+					},
 				],
 			},
 			{

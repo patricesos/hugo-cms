@@ -75,6 +75,7 @@
 	let editorMaxWidth = $state('720px');
 	let editorMaxWidthCustom = $state(720);
 	let historyDepth = $state(250);
+	let showFilenameInTabs = $state(false);
 	let settingsKey = $state(0);
 	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
 	let gitLoading = $state(false);
@@ -138,7 +139,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom, showFilenameInTabs },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -172,6 +173,7 @@
 					showBubbleMenu = state.settings.showBubbleMenu ?? true;
 					showSlashMenu = state.settings.showSlashMenu ?? true;
 					draftByDefault = state.settings.draftByDefault ?? true;
+					showFilenameInTabs = state.settings.showFilenameInTabs ?? false;
 					theme = state.settings.theme ?? 'system';
 					editorFont = state.settings.editorFont ?? 'serif';
 					editorFontSize = state.settings.editorFontSize ?? 'normal';
@@ -246,6 +248,7 @@
 				if (s.gitBranch !== undefined) gitBranch = s.gitBranch as string;
 				if (s.hugoSitePathUseDotEnv !== undefined) hugoSitePathUseDotEnv = s.hugoSitePathUseDotEnv as boolean;
 				if (s.hugoSitePathCustom !== undefined) hugoSitePathCustom = s.hugoSitePathCustom as string;
+				if (s.showFilenameInTabs !== undefined) showFilenameInTabs = s.showFilenameInTabs as boolean;
 			}
 		} catch {}
 	}
@@ -985,7 +988,7 @@
 
 	<main class="editor-panel">
 		{#if currentSlug || tabs.length > 0}
-			<TabBar {tabs} activeSlug={currentSlug ?? ''} onSelect={(slug) => { const t = tabs.find(tab => tab.slug === slug); if (t?.kind === 'content') loadFile(slug); else switchToTab(slug); }} onClose={handleCloseTab} />
+			<TabBar {tabs} activeSlug={currentSlug ?? ''} {showFilenameInTabs} onSelect={(slug) => { const t = tabs.find(tab => tab.slug === slug); if (t?.kind === 'content') loadFile(slug); else switchToTab(slug); }} onClose={handleCloseTab} />
 		{/if}
 		<div class="editor-panel-body">
 			<div class="editor-panel-content">
@@ -1182,7 +1185,7 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, fmRawMode, sidebarView, showConsole, showPreview, showGit, gitRemote, gitBranch, hugoSitePathUseDotEnv, hugoSitePathCustom, showFilenameInTabs }}
 		{serverConfig}
 		onClose={() => showSettings = false}
 		onConfirm={() => {
@@ -1190,7 +1193,7 @@
 				showRestartBanner = true;
 			}
 		}}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; gitRemote: string; gitBranch: string; hugoSitePathUseDotEnv: boolean; hugoSitePathCustom: string }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; showFilenameInTabs: boolean; gitRemote: string; gitBranch: string; hugoSitePathUseDotEnv: boolean; hugoSitePathCustom: string }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1215,6 +1218,7 @@
 			showConsole = s.showConsole;
 			showPreview = s.showPreview;
 			showGit = s.showGit;
+			showFilenameInTabs = s.showFilenameInTabs;
 			gitRemote = s.gitRemote;
 			gitBranch = s.gitBranch;
 			hugoSitePathUseDotEnv = s.hugoSitePathUseDotEnv;

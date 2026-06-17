@@ -11,11 +11,13 @@
 	let {
 		tabs = [] as Tab[],
 		activeSlug = '',
+		showFilenameInTabs = false,
 		onSelect,
 		onClose,
 	}: {
 		tabs: Tab[];
 		activeSlug: string;
+		showFilenameInTabs?: boolean;
 		onSelect: (slug: string) => void;
 		onClose: (slug: string) => void;
 	} = $props();
@@ -39,7 +41,7 @@
 			{:else}
 				<FileText size={12} />
 			{/if}
-			<span class="tab-title">{tab.title || tab.slug.split('/').pop()}</span>
+			<span class="tab-title">{showFilenameInTabs ? tab.slug.split('/').pop() + (tab.kind === 'content' ? '.md' : '') : (tab.title || tab.slug.split('/').pop())}</span>
 			<span
 				class="tab-close"
 				role="button"

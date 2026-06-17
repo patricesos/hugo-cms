@@ -29,6 +29,7 @@ export interface UserSettings {
 	showConsole: boolean;
 	showPreview: boolean;
 	showGit: boolean;
+	showFilenameInTabs: boolean;
 	gitRemote: string;
 	gitBranch: string;
 	hugoSitePathUseDotEnv: boolean;
@@ -56,6 +57,7 @@ const defaults: UserSettings = {
 	showConsole: false,
 	showPreview: false,
 	showGit: false,
+	showFilenameInTabs: false,
 	gitRemote: 'origin',
 	gitBranch: 'main',
 	hugoSitePathUseDotEnv: true,
