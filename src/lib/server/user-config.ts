@@ -23,6 +23,7 @@ export interface UserSettings {
 	sidebarOpen: boolean;
 	sidebarWidth: number;
 	fmOpen: boolean;
+	fmWidth: number;
 	showConsole: boolean;
 	showPreview: boolean;
 	showGit: boolean;
@@ -43,6 +44,7 @@ const defaults: UserSettings = {
 	sidebarOpen: true,
 	sidebarWidth: 260,
 	fmOpen: true,
+	fmWidth: 280,
 	showConsole: false,
 	showPreview: false,
 	showGit: false,
@@ -77,6 +79,8 @@ export function loadUserSettings(): UserSettings {
 				if (typeof val === 'number' && val >= 10 && val <= 10000) result[key] = val;
 			} else if (key === 'sidebarWidth') {
 				if (typeof val === 'number' && val >= 180 && val <= 500) result[key] = val;
+			} else if (key === 'fmWidth') {
+				if (typeof val === 'number' && val >= 200 && val <= 500) result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -110,6 +114,8 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (typeof val === 'number' && val >= 10 && val <= 10000) obj[key] = val;
 			} else if (key === 'sidebarWidth') {
 				if (typeof val === 'number' && val >= 180 && val <= 500) obj[key] = val;
+			} else if (key === 'fmWidth') {
+				if (typeof val === 'number' && val >= 200 && val <= 500) obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}

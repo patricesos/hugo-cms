@@ -125,7 +125,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, showConsole, showPreview, showGit },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, showConsole, showPreview, showGit },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -1145,9 +1145,9 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, showConsole, showPreview, showGit }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, editorFont, editorFontSize, editorMaxWidth, editorMaxWidthCustom, historyDepth, sidebarOpen, sidebarWidth, fmOpen, fmWidth, showConsole, showPreview, showGit }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1167,6 +1167,7 @@
 			sidebarOpen = s.sidebarOpen;
 			sidebarWidth = s.sidebarWidth;
 			fmOpen = s.fmOpen;
+			fmWidth = s.fmWidth;
 			showConsole = s.showConsole;
 			showPreview = s.showPreview;
 			showGit = s.showGit;
