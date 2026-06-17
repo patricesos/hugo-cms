@@ -8,6 +8,7 @@
 		showSlashMenu: boolean;
 		draftByDefault: boolean;
 		autoSaveDelay: number;
+		theme: string;
 		sidebarOpen: boolean;
 		fmOpen: boolean;
 		showConsole: boolean;
@@ -22,8 +23,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -71,6 +72,17 @@
 		</div>
 
 		<div class="dialog-body">
+			<div class="section">
+				<div class="section-title"><PenTool size={13} /> Apparence</div>
+				<label class="toggle-row">
+					<span>Thème</span>
+					<select value={local.theme} onchange={(e) => { const el = e.target as HTMLSelectElement; local.theme = el.value; emit(); }} class="select-input">
+						<option value="system">Système</option>
+						<option value="light">Clair</option>
+						<option value="dark">Sombre</option>
+					</select>
+				</label>
+			</div>
 			<div class="section">
 				<div class="section-title"><PenTool size={13} /> Éditeur</div>
 				<label class="toggle-row">
@@ -208,6 +220,16 @@
 		font-size: 13px;
 		color: var(--c-text);
 		cursor: pointer;
+	}
+
+	.select-input {
+		padding: 3px 6px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg);
+		color: var(--c-text);
+		font-size: 12px;
+		font-family: inherit;
 	}
 
 	.number-input {

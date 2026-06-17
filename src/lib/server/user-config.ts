@@ -3,12 +3,15 @@ import { resolve, dirname } from 'node:path';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { stringify, parse } from '@iarna/toml';
 
+export type Theme = 'light' | 'dark' | 'system';
+
 export interface UserSettings {
 	defaultRawMode: boolean;
 	showBubbleMenu: boolean;
 	showSlashMenu: boolean;
 	draftByDefault: boolean;
 	autoSaveDelay: number;
+	theme: Theme;
 	sidebarOpen: boolean;
 	fmOpen: boolean;
 	showConsole: boolean;
@@ -22,6 +25,7 @@ const defaults: UserSettings = {
 	showSlashMenu: true,
 	draftByDefault: true,
 	autoSaveDelay: 2000,
+	theme: 'system',
 	sidebarOpen: true,
 	fmOpen: true,
 	showConsole: false,
@@ -44,6 +48,8 @@ export function loadUserSettings(): UserSettings {
 			const val = parsed[key];
 			if (key === 'autoSaveDelay') {
 				if (typeof val === 'number' && val >= 500) result[key] = val;
+			} else if (key === 'theme') {
+				if (val === 'light' || val === 'dark' || val === 'system') result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -59,13 +65,15 @@ export function saveUserSettings(settings: UserSettings): void {
 	const dir = dirname(path);
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 	const obj: Record<string, unknown> = {};
-	for (const key of Object.keys(defaults) as (keyof UserSettings)[]) {
-		const val = settings[key];
-		if (key === 'autoSaveDelay') {
-			if (typeof val === 'number' && val >= 500) obj[key] = val;
-		} else if (typeof val === 'boolean') {
-			obj[key] = val;
+		for (const key of Object.keys(defaults) as (keyof UserSettings)[]) {
+			const val = settings[key];
+			if (key === 'autoSaveDelay') {
+				if (typeof val === 'number' && val >= 500) obj[key] = val;
+			} else if (key === 'theme') {
+				if (val === 'light' || val === 'dark' || val === 'system') obj[key] = val;
+			} else if (typeof val === 'boolean') {
+				obj[key] = val;
+			}
 		}
-	}
 	writeFileSync(path, stringify(obj as import('@iarna/toml').JsonMap), 'utf-8');
 }

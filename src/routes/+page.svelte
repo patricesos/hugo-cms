@@ -63,6 +63,7 @@
 	let showSlashMenu = $state(true);
 	let draftByDefault = $state(true);
 	let autoSaveDelay = $state(2000);
+	let theme = $state('system');
 	let settingsKey = $state(0);
 	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
 	let gitLoading = $state(false);
@@ -119,7 +120,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
-			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, sidebarOpen, fmOpen, showConsole, showPreview, showGit },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 		fetch('/api/user-settings', {
@@ -153,6 +154,7 @@
 					showBubbleMenu = state.settings.showBubbleMenu ?? true;
 					showSlashMenu = state.settings.showSlashMenu ?? true;
 					draftByDefault = state.settings.draftByDefault ?? true;
+					theme = state.settings.theme ?? 'system';
 					autoSaveDelay = state.settings.autoSaveDelay ?? 2000;
 				}
 				if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
@@ -200,6 +202,7 @@
 				if (s.showSlashMenu !== undefined) showSlashMenu = s.showSlashMenu as boolean;
 				if (s.draftByDefault !== undefined) draftByDefault = s.draftByDefault as boolean;
 				if (s.autoSaveDelay !== undefined) autoSaveDelay = s.autoSaveDelay as number;
+				if (s.theme !== undefined) theme = s.theme as string;
 				if (s.sidebarOpen !== undefined) sidebarOpen = s.sidebarOpen as boolean;
 				if (s.fmOpen !== undefined) fmOpen = s.fmOpen as boolean;
 				if (s.showConsole !== undefined) showConsole = s.showConsole as boolean;
@@ -226,6 +229,7 @@
 		showSlashMenu;
 		draftByDefault;
 		autoSaveDelay;
+		theme;
 		previewWidth;
 		saveAppState();
 	});
@@ -441,6 +445,18 @@
 	$effect(() => { if (currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
 	$effect(() => { if (showGit && !GitSidebarComp) import('$lib/components/GitSidebar.svelte').then(m => GitSidebarComp = m.default); });
 	$effect(() => { if (showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
+
+	$effect(() => {
+		const mq = window.matchMedia('(prefers-color-scheme: dark)');
+		function apply() {
+			if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
+			else if (theme === 'light') document.documentElement.dataset.theme = 'light';
+			else document.documentElement.dataset.theme = mq.matches ? 'dark' : 'light';
+		}
+		apply();
+		mq.addEventListener('change', apply);
+		return () => mq.removeEventListener('change', apply);
+	});
 
 	function handleVisibilityChange() {
 		if (document.visibilityState === 'visible' && currentSlug) {
@@ -1104,9 +1120,9 @@
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={showSettings}
-		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault, autoSaveDelay, theme, sidebarOpen, fmOpen, showConsole, showPreview, showGit }}
 		onClose={() => showSettings = false}
-		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; sidebarOpen: boolean; fmOpen: boolean; showConsole: boolean; showPreview: boolean; showGit: boolean }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu) {
 				const captured = editorGetContent?.();
 				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
@@ -1117,6 +1133,7 @@
 			showSlashMenu = s.showSlashMenu;
 			draftByDefault = s.draftByDefault;
 			autoSaveDelay = s.autoSaveDelay;
+			theme = s.theme;
 			sidebarOpen = s.sidebarOpen;
 			fmOpen = s.fmOpen;
 			showConsole = s.showConsole;
