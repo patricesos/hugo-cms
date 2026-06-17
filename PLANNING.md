@@ -1,68 +1,9 @@
 # Planning — Prochaines fonctionnalités
 
-## Sprint 6
+## À faire
 
-- [x] Git intégré (commit/push depuis le CMS)
-- [x] Persistance de l'état éditeur après refresh (onglets, dossiers ouverts…)
-- [x] Nouvelle vue Config : éditer tous les fichiers du dossier config/ (hugo.toml, params, menus…)
-- [x] Sidebar : position des icônes de vue (en bas) alignée avec le nombre total d'icônes à gauche (taille totale)
-- [x] Refactoring settings : schema-driven avec onglets + recherche, composant SettingField générique, dialog élargi à 520px
-
-
-## Menu Paramètres
-
-Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le header).
-
-### Apparence
-
-- [x] Sélecteur de thèmes (Clair, Sombre, Système) — palettes : Gruvbox, Catppuccin, Monokai, Indigo
-- [x] Police éditeur (Open Sans, monospace, Georgia, system-ui)
-- [x] Taille de police éditeur (petite, normale, grande)
-- [x] Largeur max du contenu éditeur (720px / 100% / custom)
 - [ ] Langue de l'interface (Français, English) *(Nice to have)*
-
-### Éditeur
-
-- [x] Mode éditeur par défaut (WYSIWYG / Markdown brut)
-- [x] Délai auto-save (ms) — actuellement 2000ms via FM_SAVE_DELAY / AUTO_SAVE_DELAY
-- [x] Activer/désactiver le bubble menu
-- [x] Activer/désactiver le slash menu
-- [x] Nombre max d'entrées dans l'historique undo/redo
-- [x] Draft par défaut pour les nouveaux fichiers (oui/non)
-
-### Panneaux
-
-- [x] Sidebar ouverte par défaut (oui/non)
-- [x] Largeur sidebar par défaut (min 180, max 500)
-- [x] Vue sidebar par défaut (Content / Static / Archetypes / Config)
-- [x] Panneau Frontmatter ouvert par défaut (oui/non)
-- [x] Largeur Frontmatter par défaut (min 200, max 500)
-- [x] Mode Frontmatter par défaut (formulaire / raw)
-- [x] Console Hugo ouverte par défaut (oui/non)
-- [x] Aperçu Hugo ouvert par défaut (oui/non)
-
-### Git
-
-- [x] Git intégré activé (oui/non)
-- [x] Remote par défaut (origin / custom)
-- [x] Branche par défaut (main / custom)
-- [x] Afficher panneau Git par défaut (oui/non)
-
-### Avancé — visible dans les Paramètres (lecture seule)
-
-- [x] Chemin Hugo site (read-only, depuis .env)
-- [x] Port serveur Hugo (1313 par défaut)
-- [x] Adresse bind Hugo (127.0.0.1 par défaut)
-- [x] Timeout démarrage Hugo (15000ms)
-- [x] Timeout arrêt Hugo (5000ms)
-- [x] Intervalle polling changements externes (5000ms)
-- [x] Dossier Corbeille (\_trash)
-- [x] Port CMS (1703 par défaut, redémarrage requis)
-- [x] Auteur par défaut (patricesos)
-- [x] Format de date (YYYY-MM-DD)
-- [x] Archétype par défaut (default)
 - [ ] Slugify : conserver les caractères non-ASCII (oui/non) — actuellement strip tout sauf a-z0-9-
-
 
 ## Backlog
 
@@ -72,19 +13,26 @@ Menu de paramètres accessible depuis l'interface (icône ⚙ ou gear dans le he
 - [ ] Drag-drop entre les vues sidebar
 - [ ] Recherche dans la vue Config
 
-
 ## Done
 
+- [x] Port CMS (1703 par défaut, redémarrage requis)
+- [x] Git intégré (commit/push depuis le CMS)
+- [x] Persistance de l'état éditeur après refresh (onglets, dossiers ouverts…)
+- [x] Nouvelle vue Config : éditer tous les fichiers du dossier config/ (hugo.toml, params, menus…)
+- [x] Sidebar : position des icônes de vue (en bas) alignée avec le nombre total d'icônes à gauche (taille totale)
+- [x] Refactoring settings : schema-driven avec onglets + recherche, composant SettingField générique, dialog élargi à 520px
+- [x] Menu Paramètres — Apparence : Sélecteur de thèmes, Police/Taille/ Largeur éditeur
+- [x] Menu Paramètres — Éditeur : mode brut, auto-save, bubble/slash menu, historique, draft
+- [x] Menu Paramètres — Panneaux : sidebar/FM/console/aperçu ouverts par défaut + largeurs
+- [x] Menu Paramètres — Git : activé, remote, branche, affichage panneau
+- [x] Menu Paramètres — Avancé : site path, ports Hugo, bind address, timeouts, corbeille, port CMS, auteur, date, archétype
 - [x] Bouton Aperçu déplacé dans la barre d'actions ; bouton Supprimer retiré de l'en-tête éditeur
 - [x] ImageView : prévisualisation des images dans l'éditeur
 - [x] Barre d'actions sous le header (sidebar toggle + fm toggle aux extrémités, boutons d'action centrés)
 - [x] FM header : déplacer le titre au-dessus des actions
-
 - [x] Champs personnalisés dans le frontmatter (clé/valeur)
-
 - [x] Boutons Image et Shortcode dans la barre d'outils de l'éditeur
 - [x] Afficher / éditer le frontmatter en mode raw (éditeur YAML/TOML brut)
-
 - [x] Déplacer un fichier entre sections (drag & drop)
 - [x] Renommer un fichier
 - [x] Draft/Publish toggle dans le frontmatter
