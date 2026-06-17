@@ -18,6 +18,8 @@
 		frontmatter?: Record<string, unknown>;
 		frontmatterFormat?: 'yaml' | 'toml';
 		rawMode?: boolean;
+		showBubbleMenu?: boolean;
+		showSlashMenu?: boolean;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
@@ -30,7 +32,7 @@
 	const SH_OPEN_SH = 'SH_OPEN_SH';
 	const SH_CLOSE_SH = 'SH_CLOSE_SH';
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -152,6 +154,57 @@
 		return sel.getRangeAt(0).getBoundingClientRect();
 	}
 
+	function buildEditor(initContent: string) {
+		clearAutoSave();
+		if (editor) editor.destroy();
+		editor = new TiptapEditor({
+			element: editorEl,
+			extensions: [
+				StarterKit.configure({
+					heading: { levels: [1, 2, 3] },
+					history: { depth: 250 },
+				}),
+				Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
+				Markdown.configure({
+					html: true,
+					linkify: true,
+					breaks: true,
+				}),
+				Image,
+				...(showSlashMenu ? [SlashCommands] : []),
+			],
+			content: protectShortcodes(initContent),
+			onUpdate: markUnsaved,
+			onSelectionUpdate: () => {
+				if (!editor || !bubbleEl || !showBubbleMenu) return;
+				const { empty } = editor.state.selection;
+				const { from: selFrom, to: selTo } = editor.state.selection;
+				const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
+				if (hasText) {
+					const rect = getSelectionRect();
+					if (rect) {
+						bubbleEl.style.display = 'flex';
+						bubbleEl.style.top = `${rect.top - bubbleEl.offsetHeight - 8}px`;
+						bubbleEl.style.left = `${rect.left + (rect.width - bubbleEl.offsetWidth) / 2}px`;
+					}
+				} else {
+					bubbleEl.style.display = 'none';
+				}
+			},
+			onBlur: () => {
+				if (bubbleEl) bubbleEl.style.display = 'none';
+			},
+			onFocus: () => {
+				if (!editor || !bubbleEl || !showBubbleMenu) return;
+				const { empty } = editor.state.selection;
+				const { from: selFrom, to: selTo } = editor.state.selection;
+				const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
+				if (!hasText) bubbleEl.style.display = 'none';
+			},
+		});
+		updateStats();
+	}
+
 	onMount(() => {
 		function onSlashImage(e: Event) {
 			const detail = (e as CustomEvent).detail as { editor: TiptapEditor; range: import('@tiptap/core').Range };
@@ -160,65 +213,14 @@
 		}
 		window.addEventListener('slash:image', onSlashImage);
 
-		function createEditor(initContent: string) {
-			clearAutoSave();
-			if (editor) editor.destroy();
-			editor = new TiptapEditor({
-				element: editorEl,
-				extensions: [
-					StarterKit.configure({
-						heading: { levels: [1, 2, 3] },
-						history: { depth: 250 },
-					}),
-					Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
-					Markdown.configure({
-						html: true,
-						linkify: true,
-						breaks: true,
-					}),
-					Image,
-					SlashCommands,
-				],
-				content: protectShortcodes(initContent),
-				onUpdate: markUnsaved,
-				onSelectionUpdate: () => {
-					if (!editor || !bubbleEl) return;
-					const { empty } = editor.state.selection;
-					const { from: selFrom, to: selTo } = editor.state.selection;
-					const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
-					if (hasText) {
-						const rect = getSelectionRect();
-						if (rect) {
-							bubbleEl.style.display = 'flex';
-							bubbleEl.style.top = `${rect.top - bubbleEl.offsetHeight - 8}px`;
-							bubbleEl.style.left = `${rect.left + (rect.width - bubbleEl.offsetWidth) / 2}px`;
-						}
-					} else {
-						bubbleEl.style.display = 'none';
-					}
-				},
-				onBlur: () => {
-					if (bubbleEl) bubbleEl.style.display = 'none';
-				},
-				onFocus: () => {
-					if (!editor || !bubbleEl) return;
-					const { empty } = editor.state.selection;
-					const { from: selFrom, to: selTo } = editor.state.selection;
-					const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
-					if (!hasText) bubbleEl.style.display = 'none';
-				},
-			});
-			updateStats();
-		}
-
-		createEditor(content);
+		buildEditor(content);
 		onSaveState?.('saved');
 		getContent?.(() => rawMode ? rawContent : getMarkdown());
 		onSetContent?.((c: string) => {
 			if (rawMode) {
 				rawContent = c;
 			} else {
-				createEditor(c);
+				buildEditor(c);
 			}
 		});
 
@@ -254,6 +256,12 @@
 			}
 		}
 		prevRawMode = rawMode;
+	});
+
+	$effect(() => {
+		if (bubbleEl) {
+			bubbleEl.style.display = showBubbleMenu && !rawMode ? '' : 'none';
+		}
 	});
 
 	$effect(() => {

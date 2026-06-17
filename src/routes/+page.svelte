@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings } from '@lucide/svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -57,6 +57,12 @@
 	let sidebarOpen = $state(true);
 	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
 	let showGit = $state(false);
+	let showSettings = $state(false);
+	let defaultRawMode = $state(false);
+	let showBubbleMenu = $state(true);
+	let showSlashMenu = $state(true);
+	let draftByDefault = $state(true);
+	let settingsKey = $state(0);
 	let gitStatus = $state<{ branch: string; modified: string[]; added: string[]; deleted: string[]; renamed: string[]; staged: string[]; untracked: string[]; ahead: number; behind: number } | null>(null);
 	let gitLoading = $state(false);
 	let showCommitDialog = $state(false);
@@ -90,6 +96,7 @@
 	let ArchetypeViewComp = $state<any>(null);
 	let ConfigViewComp = $state<any>(null);
 	let ImageViewComp = $state<any>(null);
+	let SettingsDialogComp = $state<any>(null);
 
 	import { getClientConfig } from '$lib/client-config';
 
@@ -111,6 +118,7 @@
 			fmWidth,
 			previewWidth,
 			expandedSlugs: [...expandedSlugs],
+			settings: { defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault },
 		};
 		try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 	}
@@ -134,6 +142,12 @@
 			consoleHeight = state.consoleHeight ?? 200;
 			fmWidth = state.fmWidth ?? 280;
 			previewWidth = state.previewWidth ?? 480;
+			if (state.settings) {
+				defaultRawMode = state.settings.defaultRawMode ?? false;
+				showBubbleMenu = state.settings.showBubbleMenu ?? true;
+				showSlashMenu = state.settings.showSlashMenu ?? true;
+				draftByDefault = state.settings.draftByDefault ?? true;
+			}
 			if (state.expandedSlugs) expandedSlugs = new Set(state.expandedSlugs);
 			if (state.tabs && state.currentSlug) {
 				const restored: Tab[] = state.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; kind?: TabKind; isImage?: boolean }) => {
@@ -182,6 +196,10 @@
 		showConsole;
 		showGit;
 		consoleHeight;
+		defaultRawMode;
+		showBubbleMenu;
+		showSlashMenu;
+		draftByDefault;
 		previewWidth;
 		saveAppState();
 	});
@@ -391,6 +409,7 @@
 	$effect(() => { if (showShortcuts && !ShortcutsHelpComp) import('$lib/components/ShortcutsHelp.svelte').then(m => ShortcutsHelpComp = m.default); });
 	$effect(() => { if (showPreview && !HugoPreviewComp) import('$lib/components/HugoPreview.svelte').then(m => HugoPreviewComp = m.default); });
 	$effect(() => { if (showConsole && !HugoConsoleComp) import('$lib/components/HugoConsole.svelte').then(m => HugoConsoleComp = m.default); });
+	$effect(() => { if (showSettings && !SettingsDialogComp) import('$lib/components/SettingsDialog.svelte').then(m => SettingsDialogComp = m.default); });
 	$effect(() => { if (currentTab?.kind === 'archetype' && !ArchetypeViewComp) import('$lib/components/ArchetypeView.svelte').then(m => ArchetypeViewComp = m.default); });
 	$effect(() => { if (currentTab?.kind === 'config' && !ConfigViewComp) import('$lib/components/ConfigView.svelte').then(m => ConfigViewComp = m.default); });
 	$effect(() => { if (currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
@@ -544,7 +563,8 @@
 	async function handleCreate(title: string, section: string, archetype?: string) {
 		const slug = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 		const fullSlug = section ? `${section}/${slug}` : slug;
-		const frontmatter = { title, date: new Date().toISOString().split('T')[0] };
+		const frontmatter: Record<string, unknown> = { title, date: new Date().toISOString().split('T')[0] };
+		if (draftByDefault) frontmatter.draft = true;
 		const body: string = await fetch(`/api/content/${fullSlug}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -773,6 +793,9 @@
 			</button>
 		</div>
 		<div class="action-bar-right">
+			<button class="icon-btn" onclick={() => showSettings = true} title="Paramètres">
+				<Settings size={16} />
+			</button>
 			<button class="icon-btn fm-toggle" onclick={() => fmOpen = !fmOpen} title={fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
 				{#if fmOpen}
 					<PanelRightClose size={16} />
@@ -949,11 +972,15 @@
 						<div class="editor-body" class:with-fm={fmOpen}>
 							<div class="editor-main">
 								<div class="editor-area">
+									{#key settingsKey}
 									{#if EditorComp}
 										<EditorComp
 											content={editorContent}
 											frontmatter={currentFrontmatter}
 											frontmatterFormat={currentFmFormat}
+											rawMode={defaultRawMode}
+											{showBubbleMenu}
+											{showSlashMenu}
 											{saveRequest}
 											getContent={(fn) => { editorGetContent = fn; }}
 											onSetContent={(fn) => { editorSetContent = fn; }}
@@ -969,6 +996,7 @@
 											<div class="skeleton-block"></div>
 										</div>
 									{/if}
+									{/key}
 								</div>
 								{#if fmOpen}
 									<div class="fm-resize-handle" role="presentation" onmousedown={startFmResize}></div>
@@ -1043,6 +1071,23 @@
 		status={gitStatus}
 		onClose={() => showCommitDialog = false}
 		onCommit={handleGitCommit}
+	/>
+{/if}
+
+{#if SettingsDialogComp}
+	<SettingsDialogComp
+		show={showSettings}
+		settings={{ defaultRawMode, showBubbleMenu, showSlashMenu, draftByDefault }}
+		onClose={() => showSettings = false}
+		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean }) => {
+			const captured = editorGetContent?.();
+			if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
+			defaultRawMode = s.defaultRawMode;
+			showBubbleMenu = s.showBubbleMenu;
+			showSlashMenu = s.showSlashMenu;
+			draftByDefault = s.draftByDefault;
+			settingsKey++;
+		}}
 	/>
 {/if}
 
