@@ -5,6 +5,7 @@ import { stringify, parse } from '@iarna/toml';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type EditorFont = 'sans' | 'mono' | 'serif' | 'system-ui';
+export type EditorFontSize = 'small' | 'normal' | 'large';
 
 export interface UserSettings {
 	defaultRawMode: boolean;
@@ -14,6 +15,7 @@ export interface UserSettings {
 	autoSaveDelay: number;
 	theme: Theme;
 	editorFont: EditorFont;
+	editorFontSize: EditorFontSize;
 	sidebarOpen: boolean;
 	fmOpen: boolean;
 	showConsole: boolean;
@@ -29,6 +31,7 @@ const defaults: UserSettings = {
 	autoSaveDelay: 2000,
 	theme: 'system',
 	editorFont: 'serif',
+	editorFontSize: 'normal',
 	sidebarOpen: true,
 	fmOpen: true,
 	showConsole: false,
@@ -55,6 +58,8 @@ export function loadUserSettings(): UserSettings {
 				if (val === 'light' || val === 'dark' || val === 'system') result[key] = val;
 			} else if (key === 'editorFont') {
 				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') result[key] = val;
+			} else if (key === 'editorFontSize') {
+				if (val === 'small' || val === 'normal' || val === 'large') result[key] = val;
 			} else if (typeof val === 'boolean') {
 				result[key] = val;
 			}
@@ -78,6 +83,8 @@ export function saveUserSettings(settings: UserSettings): void {
 				if (val === 'light' || val === 'dark' || val === 'system') obj[key] = val;
 			} else if (key === 'editorFont') {
 				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') obj[key] = val;
+			} else if (key === 'editorFontSize') {
+				if (val === 'small' || val === 'normal' || val === 'large') obj[key] = val;
 			} else if (typeof val === 'boolean') {
 				obj[key] = val;
 			}

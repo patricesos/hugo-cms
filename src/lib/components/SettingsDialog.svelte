@@ -10,6 +10,7 @@
 		autoSaveDelay: number;
 		theme: string;
 		editorFont: string;
+		editorFontSize: string;
 		sidebarOpen: boolean;
 		fmOpen: boolean;
 		showConsole: boolean;
@@ -24,8 +25,8 @@
 		onSave: (s: SettingsState) => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', sidebarOpen: true, fmOpen: true, showConsole: false, showPreview: false, showGit: false });
 
 	$effect(() => {
 		if (show) {
@@ -81,6 +82,14 @@
 						<option value="system">Système</option>
 						<option value="light">Clair</option>
 						<option value="dark">Sombre</option>
+					</select>
+				</label>
+				<label class="toggle-row">
+					<span>Taille police éditeur</span>
+					<select value={local.editorFontSize} onchange={(e) => { const el = e.target as HTMLSelectElement; local.editorFontSize = el.value; emit(); }} class="select-input">
+						<option value="small">Petite</option>
+						<option value="normal">Normale</option>
+						<option value="large">Grande</option>
 					</select>
 				</label>
 			</div>
