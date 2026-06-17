@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fade, slide } from 'svelte/transition';
+	import { fade, slide, fly } from 'svelte/transition';
 	import { GitBranch, RefreshCw, GitCommit, ArrowUp, History, FileCode, Plus, Pencil, Trash2, HelpCircle, CheckCircle2, Loader2, Undo2, Clock, User, Copy, ArrowLeft } from '@lucide/svelte';
 
 	export interface GitStatus {
@@ -70,8 +70,14 @@
 		setTimeout(() => { copied = null; }, 1500);
 	}
 
+	let confirmHash = $state<string | null>(null);
+
+	function requestReset(hash: string) {
+		confirmHash = hash;
+	}
+
 	async function handleReset(hash: string) {
-		if (!window.confirm('Annuler ce commit et garder les modifications ?')) return;
+		confirmHash = null;
 		reseting = hash;
 		try {
 			await fetch('/api/git/reset', {
@@ -156,39 +162,37 @@
 					<span>Aucun commit</span>
 				</div>
 			{:else}
-				{#each logEntries as entry, i}
+					{#each logEntries as entry, i}
 					<div class="log-entry" class:is-head={i === 0}>
-						<div class="entry-hash">
-							<button class="hash-btn" title="Copier le hash" onclick={() => copyHash(entry.hash)}>
-								{#if copied === entry.hash}
-									<CheckCircle2 size={10} />
+						<div class="entry-top-row">
+							<div class="entry-hash">
+								<button class="hash-btn" title="Copier le hash" onclick={() => copyHash(entry.hash)}>
+									{#if copied === entry.hash}
+										<CheckCircle2 size={10} />
+									{:else}
+										<Copy size={10} />
+									{/if}
+									<code>{shortHash(entry.hash)}</code>
+								</button>
+							</div>
+							<button
+								class="reset-btn"
+								title="Reset — annule ce commit et garde les modifs"
+								onclick={() => requestReset(entry.hash)}
+								disabled={reseting === entry.hash}
+							>
+								{#if reseting === entry.hash}
+									<Loader2 size={12} class="spin" />
 								{:else}
-									<Copy size={10} />
+									<Undo2 size={12} />
 								{/if}
-								<code>{shortHash(entry.hash)}</code>
 							</button>
 						</div>
-						<div class="entry-body">
-							<div class="entry-msg">{entry.message}</div>
-							<div class="entry-meta">
-								<User size={10} />
-								{entry.authorName}
-								<Clock size={10} />
-								{formatDate(entry.date)}
-							</div>
+						<div class="entry-msg">{entry.message}</div>
+						<div class="entry-meta-row">
+							<span class="meta-author"><User size={10} />{entry.authorName}</span>
+							<span class="meta-date"><Clock size={10} />{formatDate(entry.date)}</span>
 						</div>
-						<button
-							class="reset-btn"
-							title="Reset — annule ce commit et garde les modifs"
-							onclick={() => handleReset(entry.hash)}
-							disabled={reseting === entry.hash}
-						>
-							{#if reseting === entry.hash}
-								<Loader2 size={12} class="spin" />
-							{:else}
-								<Undo2 size={12} />
-							{/if}
-						</button>
 					</div>
 				{/each}
 			{/if}
@@ -262,6 +266,30 @@
 				{/if}
 			</div>
 		{/if}
+	{/if}
+
+	{#if confirmHash}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div class="overlay" role="presentation" transition:fade={{ duration: 120 }} onclick={() => confirmHash = null}></div>
+		<div
+			class="confirm-dialog"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Confirmer le reset"
+			tabindex="-1"
+			transition:fly={{ duration: 160, y: 16 }}
+			onclick={(e) => e.stopPropagation()}
+		>
+			<div class="confirm-icon"><Undo2 size={18} /></div>
+			<p class="confirm-msg">Annuler ce commit et garder les modifications ?</p>
+			<div class="confirm-actions">
+				<button class="btn secondary" onclick={() => confirmHash = null}>Annuler</button>
+				<button class="btn danger" onclick={() => handleReset(confirmHash!)}>
+					<Undo2 size={13} />
+					<span>Reset</span>
+				</button>
+			</div>
+		</div>
 	{/if}
 
 	<div class="git-footer">
@@ -477,9 +505,9 @@
 
 	.log-entry {
 		display: flex;
-		gap: 8px;
-		padding: 8px 12px;
-		align-items: flex-start;
+		flex-direction: column;
+		gap: 4px;
+		padding: 10px 12px;
 		border-bottom: 1px solid var(--c-border);
 	}
 
@@ -487,9 +515,26 @@
 		border-bottom: none;
 	}
 
-	.entry-hash {
-		flex-shrink: 0;
-		padding-top: 1px;
+	.entry-top-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.entry-meta-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		color: var(--c-text-muted);
+		font-size: 10px;
+	}
+
+	.meta-author,
+	.meta-date {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		white-space: nowrap;
 	}
 
 	.hash-btn {
@@ -517,11 +562,6 @@
 		font-size: 10px;
 	}
 
-	.entry-body {
-		flex: 1;
-		min-width: 0;
-	}
-
 	.entry-msg {
 		font-size: 12px;
 		font-weight: 500;
@@ -530,29 +570,19 @@
 		word-break: break-word;
 	}
 
-	.entry-meta {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-top: 3px;
-		color: var(--c-text-muted);
-		font-size: 10px;
-	}
-
 	.reset-btn {
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 24px;
-		height: 24px;
+		width: 20px;
+		height: 20px;
 		border: 1px solid transparent;
 		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--c-text-muted);
 		cursor: pointer;
 		transition: all 0.1s;
-		margin-top: -1px;
 	}
 
 	.reset-btn:hover:not(:disabled) {
@@ -617,6 +647,70 @@
 
 	.btn.secondary:hover {
 		background: var(--c-bg-muted);
+	}
+
+	.btn.danger {
+		background: var(--c-danger);
+		color: #fff;
+		border-color: var(--c-danger);
+	}
+
+	.btn.danger:hover {
+		background: #dc2626;
+	}
+
+	.overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.35);
+		z-index: 100;
+	}
+
+	.confirm-dialog {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 101;
+		background: var(--c-bg);
+		border: 1px solid var(--c-border);
+		border-radius: 10px;
+		padding: 24px;
+		width: 300px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		text-align: center;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+	}
+
+	.confirm-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background: #fef2f2;
+		color: var(--c-danger);
+	}
+
+	.confirm-msg {
+		margin: 0;
+		font-size: 13px;
+		color: var(--c-text);
+		line-height: 1.5;
+	}
+
+	.confirm-actions {
+		display: flex;
+		gap: 8px;
+		width: 100%;
+	}
+
+	.confirm-actions .btn {
+		width: 100%;
 	}
 
 	:global(.spin) {
