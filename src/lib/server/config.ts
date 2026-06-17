@@ -1,10 +1,23 @@
-import { resolve } from 'node:path';
+import { resolve, dirname, isAbsolute } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import { loadUserSettings } from './user-config';
 
+function findEnvFile(): string | null {
+	let dir = process.cwd();
+	for (let i = 0; i < 20; i++) {
+		const candidate = resolve(dir, '.env');
+		if (existsSync(candidate)) return candidate;
+		const parent = dirname(dir);
+		if (parent === dir) return null;
+		dir = parent;
+	}
+	return null;
+}
+
 function loadDotenv(): void {
-	const envPath = resolve(process.cwd(), '.env');
-	if (!existsSync(envPath)) return;
+	const envPath = findEnvFile();
+	if (!envPath) return;
+	const envDir = dirname(envPath);
 	const content = readFileSync(envPath, 'utf-8');
 	for (const line of content.split('\n')) {
 		const trimmed = line.trim();
@@ -19,6 +32,9 @@ function loadDotenv(): void {
 		if (key && !process.env[key]) {
 			process.env[key] = val;
 		}
+	}
+	if (process.env['HUGO_SITE_PATH'] && !isAbsolute(process.env['HUGO_SITE_PATH'])) {
+		process.env['HUGO_SITE_PATH'] = resolve(envDir, process.env['HUGO_SITE_PATH']);
 	}
 }
 

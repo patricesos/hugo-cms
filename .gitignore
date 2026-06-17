@@ -29,3 +29,6 @@ my-hugo/
 
 # Graphics / design files
 /graphics/
+
+scripts/*.ps1
+scripts/esbuild-*

@@ -1,39 +1,45 @@
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path "$PSScriptRoot/.."
-$version = "v0.1.0"
-$distDir = "$root/dist/hugo-cms-$version"
+$distDir = "$root/dist"
+$iconDir = "$distDir/icon"
 
-Write-Host "=== Build ===" -ForegroundColor Cyan
+Write-Host "=== 1. Build SvelteKit app ===" -ForegroundColor Cyan
 Set-Location $root
 npm run build
 
-Write-Host "=== Creating dist folder ===" -ForegroundColor Cyan
-if (Test-Path $distDir) { Remove-Item -Recurse -Force $distDir }
-New-Item -ItemType Directory -Path $distDir -Force | Out-Null
-
-Write-Host "=== Copying files ===" -ForegroundColor Cyan
-Copy-Item -Recurse "$root/build" "$distDir/build" -Force
-Copy-Item "$root/package.json" "$distDir/" -Force
-if (Test-Path "$root/package-lock.json") {
-    Copy-Item "$root/package-lock.json" "$distDir/" -Force
+Write-Host "=== 2. Generate icon PNGs from SVG ===" -ForegroundColor Cyan
+if (-not (Test-Path "$iconDir/icon-16.png")) {
+    New-Item -ItemType Directory -Path $iconDir -Force | Out-Null
+    inkscape --export-filename="$iconDir/icon-16.png" -w 16 -h 16 "$root/static/favicon.svg"
+    inkscape --export-filename="$iconDir/icon-32.png" -w 32 -h 32 "$root/static/favicon.svg"
+    inkscape --export-filename="$iconDir/icon-48.png" -w 48 -h 48 "$root/static/favicon.svg"
+    inkscape --export-filename="$iconDir/icon-256.png" -w 256 -h 256 "$root/static/favicon.svg"
 }
-Copy-Item "$root/.env.example" "$distDir/" -Force
-Copy-Item "$root/start.bat" "$distDir/" -Force
-Copy-Item "$root/start.sh" "$distDir/" -Force
 
-Write-Host "=== Installing production dependencies ===" -ForegroundColor Cyan
-Set-Location $distDir
-npm install --production --ignore-scripts 2>&1 | Out-Null
+Write-Host "=== 3. Build .ico file ===" -ForegroundColor Cyan
+python "$root/scripts/make-ico.py"
 
-Set-Location $root
+Write-Host "=== 4. Bundle server with esbuild ===" -ForegroundColor Cyan
+npx esbuild build/index.js --bundle --platform=node --format=esm --outfile=$distDir/bundle.mjs --external:stream --external:fs --external:path --external:os --external:crypto --external:child_process --external:module --external:url --external:util --external:assert --external:events --external:tty --banner:js="import { createRequire } from 'module'; var require = createRequire(import.meta.url);"
 
-Write-Host "=== Creating ZIP archive ===" -ForegroundColor Cyan
-$zipPath = "$root/dist/hugo-cms-$version.zip"
-if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-7z a -tzip $zipPath "$distDir\*" -mmt -mx=5 2>&1 | Out-Null
+Write-Host "=== 5. Copy client assets ===" -ForegroundColor Cyan
+if (Test-Path "$root/build/client") {
+    Remove-Item -Recurse -Force "$distDir/client" -ErrorAction SilentlyContinue
+    Copy-Item -Recurse "$root/build/client" "$distDir/client" -Force
+}
 
-$size = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
-Write-Host "Done: $zipPath (${size} MB)" -ForegroundColor Green
+Write-Host "=== 6. Copy icon to dist root ===" -ForegroundColor Cyan
+Copy-Item "$iconDir/hugo-cms.ico" "$distDir/hugo-cms.ico" -Force
 
-Write-Host "dist contents:" -ForegroundColor Green
-Get-ChildItem "$distDir" -Name
+Write-Host "=== 7. Compile C# tray launcher ===" -ForegroundColor Cyan
+$csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+& $csc /target:exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $root/scripts/tray-launcher.cs 2>&1 | Out-Null
+
+Write-Host "=== Done ===" -ForegroundColor Green
+Write-Host "Distribution folder: $distDir" -ForegroundColor Green
+Get-ChildItem $distDir -Name | ForEach-Object { "  $_" }
+
+$size = [math]::Round(((Get-Item "$distDir/bundle.mjs").Length + (Get-Item "$distDir/hugo-cms.exe").Length + (Get-Item "$distDir/hugo-cms.ico").Length + (Get-ChildItem -Recurse "$distDir/client" | Measure-Object -Property Length -Sum).Sum) / 1MB, 1)
+Write-Host "Total size: ~${size} MB (plus Node.js runtime)" -ForegroundColor Green
+Write-Host ""
+Write-Host "NOTE: Requires Node.js installed (or copy node.exe to $distDir)" -ForegroundColor Yellow
