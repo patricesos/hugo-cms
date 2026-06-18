@@ -104,10 +104,14 @@ async function scanCustomShortcodes(): Promise<ShortcodeDef[]> {
 		return [];
 	}
 
-	const results: ShortcodeDef[] = [];
-	for (const f of files) {
-		const name = f.replace(/\.html$/, '');
-		const content = await readFile(join(shortcodesDir, f), 'utf-8');
+	const fileContents = await Promise.all(
+		files.map(async (f) => ({
+			name: f.replace(/\.html$/, ''),
+			content: await readFile(join(shortcodesDir, f), 'utf-8'),
+		}))
+	);
+
+	return fileContents.map(({ name, content }) => {
 
 		// Extract .Get calls for named params and positional params
 		const namedParamRe = /\$?\.Get\s*\(\s*"([^"]+)"\s*\)/g;
@@ -174,16 +178,15 @@ async function scanCustomShortcodes(): Promise<ShortcodeDef[]> {
 			? `{{< ${name} ${allParts.join(' ')} >}}\n...\n{{< /${name} >}}`
 			: `{{< ${name} ${allParts.join(' ')} >}}`;
 
-		results.push({
+		return {
 			name,
-			source: 'custom',
+			source: 'custom' as const,
 			description,
 			params,
 			body: hasBody,
 			example,
-		});
-	}
-	return results;
+		};
+	});
 }
 
 export async function getAllShortcodes(): Promise<ShortcodeDef[]> {
