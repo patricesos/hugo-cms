@@ -299,6 +299,26 @@ function create() {
 				}
 			} catch { /* ignore */ }
 		},
+
+		snapshot() {
+			return {
+				tabs: get(tabs),
+				currentSlug: get(currentSlug),
+				editorContent: get(editorContent),
+				currentFrontmatter: get(currentFrontmatter),
+				currentFmFormat: get(currentFmFormat),
+				wordCount: get(wordCount),
+				charCount: get(charCount),
+				saveState: get(saveState),
+				saveRequest: get(saveRequest),
+				loading: get(loading),
+				currentArchetype: get(currentArchetype),
+				currentConfigSlug: get(currentConfigSlug),
+				conflictSlug: get(conflictSlug),
+				conflictServerMtimeMs: get(conflictServerMtimeMs),
+				currentTab: get(currentTab),
+			};
+		},
 	};
 }
 

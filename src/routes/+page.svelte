@@ -10,6 +10,8 @@
 	import type { TreeNode } from '$lib/server/types';
 	import { hugoStore } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
+	import { editorStore } from '$lib/stores/editor.svelte';
+	import type { Tab as EditorTab } from '$lib/stores/editor.svelte';
 	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 
 	type TabKind = 'content' | 'static' | 'archetype' | 'config';
@@ -32,8 +34,6 @@
 	let currentFrontmatter = $state<Record<string, unknown>>({});
 	let currentFmFormat = $state<'yaml' | 'toml'>('yaml');
 	let editorContent = $state('');
-	let editorGetContent = $state<(() => string) | null>(null);
-	let editorSetContent = $state<((content: string) => void) | null>(null);
 	let wordCount = $state(0);
 	let charCount = $state(0);
 	let saveState = $state<'saved' | 'unsaved' | 'saving'>('saved');
@@ -271,7 +271,7 @@
 							editorContent = active.content;
 							currentFrontmatter = { ...active.frontmatter };
 							currentFmFormat = active.frontmatterLanguage ?? 'yaml';
-							editorSetContent?.(active.content);
+							editorStore.setEditorSetContent?.(active.content);
 						}
 						switchToTab(state.currentSlug);
 					}
@@ -401,34 +401,34 @@
 		}
 	}
 
+	function syncEditor() {
+		const s = editorStore.snapshot();
+		tabs = s.tabs;
+		currentSlug = s.currentSlug;
+		editorContent = s.editorContent;
+		currentFrontmatter = s.currentFrontmatter;
+		currentFmFormat = s.currentFmFormat;
+		wordCount = s.wordCount;
+		charCount = s.charCount;
+		saveState = s.saveState;
+		saveRequest = s.saveRequest;
+		loading = s.loading;
+		currentArchetype = s.currentArchetype;
+		currentConfigSlug = s.currentConfigSlug;
+		conflictSlug = s.conflictSlug;
+		conflictServerMtimeMs = s.conflictServerMtimeMs;
+		currentTab = s.currentTab;
+	}
+
 	function resolveConflict(action: 'reload' | 'overwrite') {
 		if (!conflictSlug) return;
 		const tab = tabs.find(t => t.slug === conflictSlug);
-		if (!tab) { conflictSlug = null; return; }
+		if (!tab) { editorStore.conflictSlug.set(null); conflictSlug = null; return; }
 		if (action === 'reload') {
-			reloadFileFromDisk(tab);
+			editorStore.reloadFileFromDisk(tab).then(syncEditor);
 		}
+		editorStore.conflictSlug.set(null);
 		conflictSlug = null;
-	}
-
-	async function reloadFileFromDisk(tab: Tab) {
-		try {
-			const res = await fetch(`/api/content/${tab.slug}`);
-			const data = await res.json();
-			tab.content = data.body || '';
-			tab.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
-			tab.mtimeMs = data.mtimeMs;
-			tab.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
-			tab.title = (data.frontmatter?.title as string) || tab.slug.split('/').pop() || '';
-			if (currentSlug === tab.slug) {
-				editorContent = tab.content;
-				currentFrontmatter = { ...tab.frontmatter };
-				currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
-				editorSetContent?.(tab.content);
-			}
-		} catch {
-			// ignore
-		}
 	}
 
 	const startResize = startSidebarResize(() => sidebarWidth, (w) => { sidebarWidth = w; });
@@ -440,21 +440,12 @@
 	);
 
 	let searchEntries = $derived(
-		flattenTree(tree).map((n) => ({
+		editorStore.flattenTree(tree).map((n) => ({
 			slug: n.slug,
 			title: (n.frontmatter?.title as string) || n.name.replace(/\.md$/, ''),
 			type: n.type as 'file' | 'directory',
 		}))
 	);
-
-	function flattenTree(nodes: TreeNode[]): TreeNode[] {
-		const result: TreeNode[] = [];
-		for (const n of nodes) {
-			if (n.type === 'file') result.push(n);
-			if (n.children) result.push(...flattenTree(n.children));
-		}
-		return result;
-	}
 
 	onMount(() => {
 		getClientConfig().then(cfg => { clientCfg = cfg; });
@@ -567,106 +558,43 @@
 	}
 
 	async function loadFile(slug: string) {
-		const existing = tabs.find(t => t.slug === slug);
-		if (existing) {
-			await switchToTab(slug);
-			return;
+		await editorStore.loadFile(slug, loadTree);
+		syncEditor();
+		if (editorStore.snapshot().currentSlug === slug) {
+			sidebarView = 'content';
 		}
-		loading = true;
-		const res = await fetch(`/api/content/${slug}`);
-		const data = await res.json();
-		const tab: Tab = {
-			slug,
-			title: (data.frontmatter?.title as string) || slug.split('/').pop() || '',
-			content: data.body || '',
-			frontmatter: (data.frontmatter as Record<string, unknown>) || {},
-			mtimeMs: data.mtimeMs ?? 0,
-			frontmatterLanguage: data.frontmatterLanguage ?? 'yaml',
-			kind: 'content',
-		};
-		tabs = [...tabs, tab];
-		await switchToTab(slug);
-		loading = false;
 	}
 
 	async function switchToTab(slug: string) {
+		await editorStore.switchToTab(slug);
+		syncEditor();
 		const tab = tabs.find(t => t.slug === slug);
-		if (!tab) return;
-		if (tab.kind === 'content') {
-			if (editorGetContent && currentSlug) {
-				const currentTab = tabs.find(t => t.slug === currentSlug);
-				if (currentTab && currentTab.kind === 'content') {
-					currentTab.content = editorGetContent();
-					currentTab.frontmatter = { ...currentFrontmatter };
-				}
-			}
-			currentSlug = tab.slug;
-			editorContent = tab.content;
-			currentFrontmatter = { ...tab.frontmatter };
-			currentFmFormat = tab.frontmatterLanguage ?? 'yaml';
-			editorSetContent?.(tab.content);
-		} else if (tab.kind === 'archetype') {
-			currentArchetype = tab.slug;
-		} else if (tab.kind === 'config') {
-			currentConfigSlug = tab.slug;
+		if (tab) {
+			if (tab.kind === 'archetype') sidebarView = 'archetypes';
+			else if (tab.kind === 'config') sidebarView = 'config';
+			else if (tab.kind === 'static') sidebarView = 'static';
+			else sidebarView = 'content';
 		}
-		currentSlug = tab.slug;
-		if (tab.kind === 'archetype') sidebarView = 'archetypes';
-		else if (tab.kind === 'config') sidebarView = 'config';
-		else if (tab.kind === 'static') sidebarView = 'static';
-		else sidebarView = 'content';
 	}
 
 	async function handleSave(markdown: string) {
-		if (!currentSlug) return;
-		const tab = tabs.find(t => t.slug === currentSlug);
-		if (!tab) return;
-		const expectedMtimeMs = tab.mtimeMs;
-		tab.content = markdown;
-		tab.frontmatter = { ...currentFrontmatter };
-		const res = await fetch(`/api/content/${currentSlug}`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ body: markdown, frontmatter: currentFrontmatter, expectedMtimeMs, frontmatterLanguage: tab.frontmatterLanguage ?? 'yaml' }),
-		});
-		if (res.status === 409) {
-			const { serverMtimeMs } = await res.json();
-			conflictSlug = currentSlug;
-			conflictServerMtimeMs = serverMtimeMs;
-			return;
-		}
-		if (res.ok) {
-			const data = await res.json();
-			tab.mtimeMs = data.mtimeMs ?? tab.mtimeMs;
-		}
+		await editorStore.handleSave(markdown);
+		syncEditor();
 	}
 
 	function handleFrontmatterChange(fm: Record<string, unknown>) {
 		currentFrontmatter = fm;
+		editorStore.currentFrontmatter.set(fm);
 		saveState = 'unsaved';
+		editorStore.saveState.set('unsaved');
 		if (currentSlug) {
 			const tab = tabs.find(t => t.slug === currentSlug);
 			if (tab) tab.frontmatter = fm;
-			updateTreeFrontmatter(currentSlug, fm);
+			tree = editorStore.updateTreeFrontmatter(tree, currentSlug, fm);
 		}
 		if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		const delay = clientCfg?.fmSaveDelay ?? 2000;
-		fmSaveTimeout = setTimeout(() => saveRequest++, delay);
-	}
-
-	function updateTreeFrontmatter(slug: string, fm: Record<string, unknown>) {
-		function walk(nodes: TreeNode[]): boolean {
-			for (const n of nodes) {
-				if (n.slug === slug) {
-					n.frontmatter = fm;
-					return true;
-				}
-				if (n.children && walk(n.children)) return true;
-			}
-			return false;
-		}
-		walk(tree);
-		tree = tree.map(n => ({ ...n }));
+		fmSaveTimeout = setTimeout(() => { saveRequest++; editorStore.saveRequest.update(r => r + 1); }, delay);
 	}
 
 	async function handleCreate(title: string, section: string, archetype?: string) {
@@ -674,11 +602,11 @@
 		const fullSlug = section ? `${section}/${slug}` : slug;
 		const frontmatter: Record<string, unknown> = { title, date: new Date().toISOString().split('T')[0] };
 		if (draftByDefault) frontmatter.draft = true;
-		const body: string = await fetch(`/api/content/${fullSlug}`, {
+		await fetch(`/api/content/${fullSlug}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ body: '', frontmatter, archetype: archetype || 'default' }),
-		}).then(r => r.json()).then(d => d.body || '');
+		});
 		showCreateDialog = false;
 		await loadTree();
 		await loadFile(fullSlug);
@@ -686,125 +614,34 @@
 
 	async function handleDeleteFolder(slug: string) {
 		const trashDirName = clientCfg?.trashDir ?? '_trash';
-		if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDirName}/.`)) return;
-		await fetch(`/api/directory/${slug}`, { method: 'DELETE' });
-		tabs = tabs.filter(t => t.slug !== slug && !t.slug.startsWith(slug + '/'));
-		if (tabs.length === 0) {
-			currentSlug = null;
-			editorContent = '';
-		} else if (!tabs.find(t => t.slug === currentSlug)) {
-			currentSlug = tabs[tabs.length - 1].slug;
-			const tab = tabs.find(t => t.slug === currentSlug)!;
-			editorContent = tab.content;
-		}
-		await loadTree();
+		await editorStore.handleDeleteFolder(slug, trashDirName, loadTree);
+		syncEditor();
 	}
 
 	async function handleCreateFolder(folderName: string, parent: string) {
-		const fullSlug = parent ? `${parent}/${folderName}` : folderName;
-		await fetch(`/api/directory/${fullSlug}`, { method: 'POST' });
+		await editorStore.handleCreateFolder(folderName, parent, loadTree);
 		showCreateFolderDialog = false;
-		await loadTree();
 	}
 
 	async function handleDelete(slug?: string) {
-		const target = slug || currentSlug;
-		if (!target) return;
-		if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans ${clientCfg?.trashDir ?? '_trash'}/.`)) return;
-		await fetch(`/api/content/${target}`, { method: 'DELETE' });
-		tabs = tabs.filter(t => t.slug !== target);
-		if (slug || currentSlug === target) {
-			currentSlug = tabs.length > 0 ? tabs[tabs.length - 1].slug : null;
-			if (currentSlug) {
-				const tab = tabs.find(t => t.slug === currentSlug)!;
-				editorContent = tab.content;
-				currentFrontmatter = { ...tab.frontmatter };
-			} else {
-				editorContent = '';
-				currentFrontmatter = {};
-			}
-		}
-		await loadTree();
+		const trashDirName = clientCfg?.trashDir ?? '_trash';
+		await editorStore.handleDelete(slug, trashDirName, loadTree);
+		syncEditor();
 	}
 
 	async function handleRename(oldSlug: string, newSlug: string) {
-		const res = await fetch(`/api/content/${oldSlug}`, {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ newSlug }),
-		});
-		if (!res.ok) return;
-		tabs = tabs.map(t => t.slug === oldSlug ? { ...t, slug: newSlug, title: newSlug.split('/').pop() || newSlug } : t);
-		if (currentSlug === oldSlug) {
-			currentSlug = newSlug;
-		}
-		await loadTree();
+		await editorStore.handleRename(oldSlug, newSlug, loadTree);
+		syncEditor();
 	}
 
 	async function handleDuplicate(slug: string) {
-		let content: string;
-		let frontmatter: Record<string, unknown>;
-
-		const existingTab = tabs.find(t => t.slug === slug);
-		if (existingTab) {
-			content = existingTab.content;
-			frontmatter = { ...existingTab.frontmatter };
-		} else {
-			const res = await fetch(`/api/content/${slug}`);
-			const data = await res.json();
-			content = data.body || '';
-			frontmatter = (data.frontmatter as Record<string, unknown>) || {};
-		}
-
-		const allSlugs = new Set([
-			...tabs.map(t => t.slug),
-			...flattenTree(tree).map(n => n.slug),
-		]);
-
-		const baseSlug = slug.replace(/\.md$/, '') + '-copy';
-		let newSlug = baseSlug;
-		let counter = 0;
-
-		while (allSlugs.has(newSlug)) {
-			counter++;
-			newSlug = `${baseSlug}-${counter + 1}`;
-		}
-
-		const newTitle = (frontmatter.title as string) ? `${frontmatter.title} (copie)` : slug.split('/').pop() || '';
-		const newFrontmatter = { ...frontmatter, title: newTitle, date: new Date().toISOString().split('T')[0] };
-
-		await fetch(`/api/content/${newSlug}`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ body: content, frontmatter: newFrontmatter }),
-		});
-
-		await loadTree();
-		await loadFile(newSlug);
+		await editorStore.handleDuplicate(slug, tree, loadTree);
+		syncEditor();
 	}
 
 	function handleCloseTab(slug: string) {
-		const idx = tabs.findIndex(t => t.slug === slug);
-		if (idx === -1) return;
-		const closed = tabs[idx];
-		tabs = tabs.filter(t => t.slug !== slug);
-		if (currentArchetype === slug) currentArchetype = null;
-		if (currentConfigSlug === slug) currentConfigSlug = null;
-		if (currentSlug === slug) {
-			const nextTab = tabs[Math.min(idx, tabs.length - 1)];
-			if (nextTab) {
-				currentSlug = nextTab.slug;
-				if (nextTab.kind === 'content') {
-					editorContent = nextTab.content;
-					currentFrontmatter = { ...nextTab.frontmatter };
-					editorSetContent?.(nextTab.content);
-				}
-			} else {
-				currentSlug = null;
-				editorContent = '';
-				currentFrontmatter = {};
-			}
-		}
+		editorStore.handleCloseTab(slug);
+		syncEditor();
 	}
 
 	async function refreshGitStatus() {
@@ -1153,8 +990,8 @@
 											{editorMaxWidthCustom}
 											{historyDepth}
 											{saveRequest}
-											getContent={(fn: () => string) => { editorGetContent = fn; }}
-											onSetContent={(fn: (content: string) => void) => { editorSetContent = fn; }}
+											getContent={(fn: () => string) => { editorStore.setEditorGetContent(fn); }}
+											onSetContent={(fn: (content: string) => void) => { editorStore.setEditorSetContent(fn); }}
 											onSave={handleSave}
 											onFrontmatterChange={(fm: Record<string, unknown>) => { currentFrontmatter = fm; if (currentSlug) { const tab = tabs.find(t => t.slug === currentSlug); if (tab) tab.frontmatter = fm; updateTreeFrontmatter(currentSlug, fm); } }}
 											onStats={(s: { words: number; chars: number }) => { wordCount = s.words; charCount = s.chars; }}
@@ -1271,8 +1108,8 @@
 		}}
 		onSave={(s: { defaultRawMode: boolean; showBubbleMenu: boolean; showSlashMenu: boolean; draftByDefault: boolean; autoSaveDelay: number; theme: string; editorFont: string; editorFontSize: string; editorMaxWidth: string; editorMaxWidthCustom: number; historyDepth: number; sidebarOpen: boolean; sidebarWidth: number; fmOpen: boolean; fmWidth: number; fmRawMode: boolean; sidebarView: 'content' | 'static' | 'archetypes' | 'config'; showConsole: boolean; showPreview: boolean; showGit: boolean; showFilenameInTabs: boolean; gitRemote: string; gitBranch: string; hugoSitePathUseDotEnv: boolean; hugoSitePathCustom: string; hugoBindAddress: string; hugoPort: number; cmsBindAddress: string; cmsPort: number; trashDir: string }) => {
 			if (s.defaultRawMode !== defaultRawMode || s.showBubbleMenu !== showBubbleMenu || s.showSlashMenu !== showSlashMenu || s.historyDepth !== historyDepth) {
-				const captured = editorGetContent?.();
-				if (captured) editorContent = captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, '');
+				const captured = editorStore.snapshot().editorContent;
+				if (captured) editorStore.editorContent.set(captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, ''));
 				settingsKey++;
 			}
 			defaultRawMode = s.defaultRawMode;
