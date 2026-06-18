@@ -94,14 +94,6 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 		}
 	});
 
-	$effect(() => {
-		$tabs;
-		$currentSlug;
-		$layout;
-		$settings;
-		settingsStore.persist(hydrated);
-	});
-
 	// --- Conflit : polling modifications externes ---
 	$effect(() => {
 		if ($currentSlug) {
@@ -288,6 +280,7 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 			await refreshGitStatus();
 		}
 		hydrated = true;
+		settingsStore.setHydrated();
 	}
 </script>
 

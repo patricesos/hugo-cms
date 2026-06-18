@@ -1,4 +1,5 @@
 import { writable, derived, get } from "svelte/store";
+import { editorStore } from './editor.svelte';
 
 export interface SettingsData {
 	defaultRawMode: boolean;
@@ -119,6 +120,45 @@ const LAYOUT_DEFAULTS: LayoutState = {
 function createSettingsStore() {
   const settings = writable<SettingsState>({ ...SETTINGS_DEFAULTS });
   const layout = writable<LayoutState>({ ...LAYOUT_DEFAULTS });
+  let _hydrated = false;
+
+  function persist() {
+    if (!_hydrated) return;
+    const s = get(settings);
+    const l = get(layout);
+    const eTabs = get(editorStore.tabs);
+    const eSlug = get(editorStore.currentSlug);
+    const state = {
+      tabs: eTabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, kind: t.kind })),
+      currentSlug: eSlug,
+      settings: s,
+      sidebarOpen: l.sidebarOpen,
+      sidebarView: l.sidebarView,
+      sidebarWidth: l.sidebarWidth,
+      fmOpen: l.fmOpen,
+      fmWidth: l.fmWidth,
+      fmRawMode: l.fmRawMode,
+      showPreview: l.showPreview,
+      showConsole: l.showConsole,
+      showGit: l.showGit,
+      consoleHeight: l.consoleHeight,
+      previewWidth: l.previewWidth,
+      expandedSlugs: l.expandedSlugs,
+    };
+    try {
+      localStorage.setItem("hugo-cms-state", JSON.stringify(state));
+    } catch {}
+    fetch("/api/user-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(s),
+    }).catch(() => {});
+  }
+
+  settings.subscribe(persist);
+  layout.subscribe(persist);
+  editorStore.tabs.subscribe(persist);
+  editorStore.currentSlug.subscribe(persist);
 
   return {
     settings,
@@ -149,34 +189,9 @@ function createSettingsStore() {
       });
     },
 
-    /** Sauvegarde dans localStorage + API user-settings */
-    persist(hydrated: boolean) {
-      if (!hydrated) return;
-      const s = get(settings);
-      const l = get(layout);
-      const state = {
-        settings: s,
-        sidebarOpen: l.sidebarOpen,
-        sidebarView: l.sidebarView,
-        sidebarWidth: l.sidebarWidth,
-        fmOpen: l.fmOpen,
-        fmWidth: l.fmWidth,
-        fmRawMode: l.fmRawMode,
-        showPreview: l.showPreview,
-        showConsole: l.showConsole,
-        showGit: l.showGit,
-        consoleHeight: l.consoleHeight,
-        previewWidth: l.previewWidth,
-        expandedSlugs: l.expandedSlugs,
-      };
-      try {
-        localStorage.setItem("hugo-cms-state", JSON.stringify(state));
-      } catch {}
-      fetch("/api/user-settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(s),
-      }).catch(() => {});
+    setHydrated() {
+      _hydrated = true;
+      persist();
     },
 
     /** Restaure depuis localStorage */
