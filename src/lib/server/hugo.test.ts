@@ -46,6 +46,7 @@ beforeEach(async () => {
 		hugoContentPath: '/tmp/test-hugo-site/content',
 		hugoStaticPath: '/tmp/test-hugo-site/static',
 		cmsPort: 3000,
+		cmsBindAddress: '127.0.0.1',
 		hugoServerPort: 1313,
 		hugoBindAddress: '127.0.0.1',
 		defaultAuthor: 'test',

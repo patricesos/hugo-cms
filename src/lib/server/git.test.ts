@@ -16,6 +16,7 @@ beforeEach(async () => {
 		hugoContentPath: join(testDir, 'content'),
 		hugoStaticPath: join(testDir, 'static'),
 		cmsPort: 3000,
+		cmsBindAddress: '127.0.0.1',
 		hugoServerPort: 1313,
 		hugoBindAddress: '127.0.0.1',
 		defaultAuthor: 'test',

@@ -20,6 +20,7 @@ beforeAll(() => {
 		hugoContentPath: contentDir,
 		hugoStaticPath: staticDir,
 		cmsPort: 3000,
+		cmsBindAddress: '127.0.0.1',
 		hugoServerPort: 1313,
 		hugoBindAddress: '127.0.0.1',
 		defaultAuthor: 'test',

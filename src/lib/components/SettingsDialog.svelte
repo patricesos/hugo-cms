@@ -31,8 +31,9 @@
 		hugoSitePathCustom: string;
 		hugoBindAddress: string;
 		hugoPort: number;
-		cmsPort: number;
-		trashDir: string;
+	cmsBindAddress: string;
+	cmsPort: number;
+	trashDir: string;
 	}
 
 	let { show = false, settings = {} as SettingsState, serverConfig = null, onClose, onSave, onConfirm }: {
@@ -44,8 +45,8 @@
 		onConfirm?: () => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsPort: 1703, trashDir: '_trash' });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsPort: 1703, trashDir: '_trash' });
+	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsBindAddress: '127.0.0.1', cmsPort: 1703, trashDir: '_trash' });
+	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsBindAddress: '127.0.0.1', cmsPort: 1703, trashDir: '_trash' });
 
 	$effect(() => {
 		if (show) {

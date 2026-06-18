@@ -31,6 +31,7 @@ const defaults: UserSettings = {
 	hugoBindAddress: '127.0.0.1',
 	hugoPort: 1313,
 	cmsPort: 1703,
+	cmsBindAddress: '127.0.0.1',
 	trashDir: '_trash',
 };
 

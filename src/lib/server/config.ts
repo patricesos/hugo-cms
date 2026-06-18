@@ -78,6 +78,7 @@ export interface CmsConfig {
 	hugoContentPath: string;
 	hugoStaticPath: string;
 	cmsPort: number;
+	cmsBindAddress: string;
 	hugoServerPort: number;
 	hugoBindAddress: string;
 	defaultAuthor: string;
@@ -134,6 +135,7 @@ export function buildConfig(sitePath: string, userSettings: UserSettings): CmsCo
 		hugoContentPath: env('HUGO_CONTENT_PATH', contentDir),
 		hugoStaticPath: env('HUGO_STATIC_PATH', staticPath),
 		cmsPort,
+		cmsBindAddress: env('CMS_BIND_ADDRESS', userSettings.cmsBindAddress),
 		hugoServerPort: envInt('HUGO_SERVER_PORT', userSettings.hugoPort),
 		hugoBindAddress: env('HUGO_BIND_ADDRESS', userSettings.hugoBindAddress),
 		defaultAuthor: env('DEFAULT_AUTHOR', 'patricesos'),

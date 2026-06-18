@@ -307,10 +307,17 @@ export const settingsSchema: SettingTab[] = [
 				],
 			},
 			{
-				label: 'Serveur CMS',
-				fields: [
-					{
-						key: 'cmsPort',
+			label: 'Serveur CMS',
+			fields: [
+				{
+					key: 'cmsBindAddress',
+					label: 'Adresse de bind CMS',
+					description: "Adresse d'écoute du CMS (ex: 0.0.0.0). Nécessite un redémarrage complet.",
+					type: 'text',
+					default: '127.0.0.1',
+				},
+				{
+					key: 'cmsPort',
 						label: 'Port CMS',
 						description: "Port du serveur hugo-cms (utilisé par le lanceur système ; redémarrage requis)",
 						type: 'number',

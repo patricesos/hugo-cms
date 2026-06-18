@@ -69,7 +69,7 @@ describe('validateSettingValue', () => {
 	});
 
 	describe('text fields', () => {
-		const textKeys = ['gitRemote', 'gitBranch', 'hugoBindAddress', 'trashDir'];
+		const textKeys = ['gitRemote', 'gitBranch', 'hugoBindAddress', 'cmsBindAddress', 'trashDir'];
 
 		for (const key of textKeys) {
 			it(`accepts string for "${key}"`, () => {
@@ -114,7 +114,7 @@ describe('allSettingKeys', () => {
 		expect(keys).toContain('cmsPort');
 	});
 
-	it('returns 29 keys matching UserSettings interface', () => {
-		expect(allSettingKeys()).toHaveLength(29);
+	it('returns 30 keys matching UserSettings interface', () => {
+		expect(allSettingKeys()).toHaveLength(30);
 	});
 });

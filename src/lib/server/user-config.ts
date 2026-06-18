@@ -37,6 +37,7 @@ export interface UserSettings {
 	hugoSitePathCustom: string;
 	hugoBindAddress: string;
 	hugoPort: number;
+	cmsBindAddress: string;
 	cmsPort: number;
 	trashDir: string;
 }
@@ -69,6 +70,7 @@ const defaults: UserSettings = {
 	hugoSitePathCustom: '',
 	hugoBindAddress: '127.0.0.1',
 	hugoPort: 1313,
+	cmsBindAddress: '127.0.0.1',
 	cmsPort: 1703,
 	trashDir: '_trash',
 };
