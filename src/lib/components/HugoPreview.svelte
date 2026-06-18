@@ -248,16 +248,6 @@
 		color: var(--c-danger);
 	}
 
-	.preview-btn.active {
-		background: var(--c-success-bg);
-		color: var(--c-success);
-		border-color: var(--c-success-border);
-	}
-
-	.preview-btn.active:hover {
-		background: var(--c-success-border);
-	}
-
 	.preview-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;

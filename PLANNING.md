@@ -70,9 +70,9 @@
 
 ### EPIC A — Création d'un nouveau site Hugo depuis la web app
 
-- [ ] **US-080** — Détection de l'absence de site Hugo valide au démarrage (ne plus throw dans `getCmsConfig()`, flag `siteValid`, gardes explicites dans les appelants)
-- [ ] **US-081** — Endpoint `POST /api/hugo/new-site` (spawn `hugo new site`, validation dossier existant non-vide, mise à jour config)
-- [ ] **US-082** — UI `NewSiteDialog.svelte` (modal cohérent avec Settings/ImagePicker, appel POST, loading/error/success)
+- [x] **US-080** — Détection de l'absence de site Hugo valide au démarrage (ne plus throw dans `getCmsConfig()`, flag `siteValid`, gardes explicites dans les appelants)
+- [x] **US-081** — Endpoint `POST /api/hugo/new-site` (spawn `hugo new site`, validation dossier existant non-vide, mise à jour config)
+- [x] **US-082** — UI `NewSiteDialog.svelte` (modal cohérent avec Settings/ImagePicker, appel POST, loading/error/success)
 
 ---
 
@@ -84,9 +84,9 @@
 
 ### EPIC C — Folder picker custom (remplacer le dialogue natif Windows)
 
-- [ ] **US-084** — Endpoint `GET /api/fs/browse` (liste sous-dossiers, sécurité navigation, Windows drives)
-- [ ] **US-085** — Composant `FolderPicker.svelte` (modal style ImagePicker, fil d'ariane, sélection, champ saisie manuelle)
-- [ ] **US-086** — Brancher FolderPicker dans SettingsDialog (remplace picker natif pour `hugoSitePathCustom`) + réutilisé dans NewSiteDialog
+- [x] **US-084** — Endpoint `GET /api/browse-dir` (liste sous-dossiers, sécurité navigation, Windows drives)
+- [x] **US-085** — Composant `FolderPicker.svelte` (modal, fil d'ariane, sélection, champ saisie manuelle)
+- [x] **US-086** — Brancher FolderPicker dans SettingsDialog via SettingField (type: 'folder')
 
 ---
 

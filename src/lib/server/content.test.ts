@@ -38,6 +38,7 @@ beforeAll(() => {
 		fmSaveDelay: 2000,
 		appTitle: 'Test',
 		defaultArchetype: 'default',
+		siteValid: true,
 	});
 
 	writeFileSync(join(contentDir, 'hello.md'), `---

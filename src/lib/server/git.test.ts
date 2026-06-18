@@ -34,6 +34,7 @@ beforeEach(async () => {
 		fmSaveDelay: 2000,
 		appTitle: 'Test',
 		defaultArchetype: 'default',
+		siteValid: true,
 	});
 });
 

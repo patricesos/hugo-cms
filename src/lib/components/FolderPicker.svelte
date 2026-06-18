@@ -13,6 +13,8 @@
 		onClose: () => void;
 	} = $props();
 
+	// svelte-ignore state_referenced_locally — volontaire : currentPath est réinitialisé
+	// par loadDir() dans $effect() à chaque ouverture du dialog
 	let currentPath = $state(initialPath);
 	let directories = $state<string[]>([]);
 	let parentPath = $state<string | null>(null);

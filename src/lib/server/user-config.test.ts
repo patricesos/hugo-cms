@@ -154,7 +154,7 @@ describe('saveUserSettings', () => {
 		const bad = { ...defaults } as Record<string, unknown>;
 		bad.theme = 'ocean';
 		bad.nonexistent = 'value';
-		saveUserSettings(bad as UserSettings);
+		saveUserSettings(bad as unknown as UserSettings);
 		const content = mockFs.files.get(configPath())!;
 		expect(content).not.toContain('nonexistent');
 	});

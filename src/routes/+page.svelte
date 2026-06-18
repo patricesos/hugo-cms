@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings, ExternalLink, Play, Square, Globe, Lock } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings, ExternalLink, Play, Square, Globe, Lock, FolderOpen, Plus } from '@lucide/svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -189,6 +189,9 @@
 	let hugoTogglingLive = $state(false);
 	let previewReloadKey = $state(0);
 	let hydrated = $state(false);
+	let siteValid = $state(true);
+	let showNewSiteDialog = $state(false);
+	let NewSiteDialogComp = $state<any>(null);
 
 	let savedTrashDir = $state('_trash');
 	let savedCmsPort = $state(1703);
@@ -398,7 +401,7 @@
 	let currentTab = $derived(tabs.find(t => t.slug === currentSlug));
 
 	let clientCfg = $state<{ externalPollInterval: number; fmSaveDelay: number; appTitle: string; trashDir: string } | null>(null);
-	let serverConfig = $state<Record<string, string | number | boolean> | null>(null);
+	let serverConfig = $state<import('$lib/client-config').ServerConfig | null>(null);
 	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 
 	function startConflictPoll() {
@@ -560,11 +563,15 @@
 
 	onMount(() => {
 		getClientConfig().then(cfg => { clientCfg = cfg; });
-		getServerConfig().then(cfg => { serverConfig = cfg; });
-		Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]).then(async () => {
-			await restoreAppState();
+		getServerConfig().then(async cfg => {
+			serverConfig = cfg;
+			siteValid = cfg.siteValid;
+			if (cfg.siteValid) {
+				await Promise.all([loadTree(), loadAssetTree(), loadArchetypes(), loadConfigTree()]);
+				await restoreAppState();
+				checkHugoStatus();
+			}
 		});
-		checkHugoStatus();
 		// Lazy-load Editor on mount (not needed during SSR)
 		import('$lib/components/Editor.svelte').then(m => EditorComp = m.default);
 		function handleKeydown(e: KeyboardEvent) {
@@ -609,6 +616,7 @@
 	$effect(() => { if (currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
 	$effect(() => { if (showGit && !GitSidebarComp) import('$lib/components/GitSidebar.svelte').then(m => GitSidebarComp = m.default); });
 	$effect(() => { if (showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
+	$effect(() => { if (showNewSiteDialog && !NewSiteDialogComp) import('$lib/components/NewSiteDialog.svelte').then(m => NewSiteDialogComp = m.default); });
 
 	$effect(() => {
 		const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -968,6 +976,25 @@
 		<button class="restart-banner-close" onclick={() => showRestartBanner = false}>✕</button>
 	</div>
 	{/if}
+	{#if !siteValid}
+	<div class="setup-overlay">
+		<div class="setup-card">
+			<img src="/favicon.svg" alt="Hugo" class="setup-logo" />
+			<h2>Bienvenue dans Hugo CMS</h2>
+			<p class="setup-desc">Aucun site Hugo configuré. Choisissez un dossier existant ou créez-en un nouveau.</p>
+			<div class="setup-actions">
+				<button class="btn-primary" onclick={() => showSettings = true}>
+					<FolderOpen size={16} />
+					Ouvrir un dossier existant
+				</button>
+				<button class="btn-secondary" onclick={() => showNewSiteDialog = true}>
+					<Plus size={16} />
+					Créer un nouveau site
+				</button>
+			</div>
+		</div>
+	</div>
+	{/if}
 	<div class="action-bar">
 		<div class="action-bar-left">
 			<button class="icon-btn" onclick={() => sidebarOpen = !sidebarOpen} title={sidebarOpen ? 'Réduire la sidebar' : 'Afficher la sidebar'}>
@@ -1139,7 +1166,7 @@
 						<ArchetypeViewComp
 							slug={currentArchetype}
 							onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentArchetype = null; currentSlug = null; }}
-							onDelete={(s) => { loadArchetypes(); tabs = tabs.filter(t => t.slug !== s); currentArchetype = null; currentSlug = null; }}
+							onDelete={(s: string) => { loadArchetypes(); tabs = tabs.filter(t => t.slug !== s); currentArchetype = null; currentSlug = null; }}
 						/>
 					{/if}
 				{:else if currentTab?.kind === 'config'}
@@ -1147,7 +1174,7 @@
 						<ConfigViewComp
 							slug={currentConfigSlug}
 							onClose={() => { tabs = tabs.filter(t => t.slug !== currentSlug); currentConfigSlug = null; currentSlug = null; }}
-							onDelete={(s) => { loadConfigTree(); tabs = tabs.filter(t => t.slug !== s); currentConfigSlug = null; currentSlug = null; }}
+							onDelete={(s: string) => { loadConfigTree(); tabs = tabs.filter(t => t.slug !== s); currentConfigSlug = null; currentSlug = null; }}
 						/>
 					{/if}
 				{:else if showSitemap && !currentSlug}
@@ -1240,12 +1267,12 @@
 											{editorMaxWidthCustom}
 											{historyDepth}
 											{saveRequest}
-											getContent={(fn) => { editorGetContent = fn; }}
-											onSetContent={(fn) => { editorSetContent = fn; }}
+											getContent={(fn: () => string) => { editorGetContent = fn; }}
+											onSetContent={(fn: (content: string) => void) => { editorSetContent = fn; }}
 											onSave={handleSave}
-											onFrontmatterChange={(fm) => { currentFrontmatter = fm; if (currentSlug) { const tab = tabs.find(t => t.slug === currentSlug); if (tab) tab.frontmatter = fm; updateTreeFrontmatter(currentSlug, fm); } }}
-											onStats={(s) => { wordCount = s.words; charCount = s.chars; }}
-											onSaveState={(s) => { saveState = s; }}
+											onFrontmatterChange={(fm: Record<string, unknown>) => { currentFrontmatter = fm; if (currentSlug) { const tab = tabs.find(t => t.slug === currentSlug); if (tab) tab.frontmatter = fm; updateTreeFrontmatter(currentSlug, fm); } }}
+											onStats={(s: { words: number; chars: number }) => { wordCount = s.words; charCount = s.chars; }}
+											onSaveState={(s: 'saved' | 'unsaved' | 'saving') => { saveState = s; }}
 										/>
 									{:else}
 										<div class="editor-loading">
@@ -1279,9 +1306,9 @@
 				<HugoPreviewComp
 						show={showPreview}
 						onClose={() => showPreview = false}
-						onStatusChange={(s) => hugoStatus = s}
-						onUrlChange={(u) => hugoUrl = u}
-						onLiveChange={(v) => hugoLive = v}
+						onStatusChange={(s: 'loading' | 'running' | 'stopped' | 'error') => hugoStatus = s}
+						onUrlChange={(u: string | null) => hugoUrl = u}
+						onLiveChange={(v: boolean) => hugoLive = v}
 						reloadKey={previewReloadKey}
 						style="width:{previewWidth}px;min-width:{previewWidth}px"
 					/>
@@ -1348,6 +1375,10 @@
 		{serverConfig}
 		onClose={() => showSettings = false}
 		onConfirm={() => {
+			if (!siteValid) {
+				setTimeout(() => window.location.reload(), 200);
+				return;
+			}
 			if (hugoSitePathUseDotEnv !== savedPathConfig.useDotEnv || hugoSitePathCustom !== savedPathConfig.customPath || trashDir !== savedTrashDir || cmsPort !== savedCmsPort) {
 				showRestartBanner = true;
 			}
@@ -1391,7 +1422,16 @@
 	/>
 {/if}
 
-
+{#if NewSiteDialogComp}
+	<NewSiteDialogComp
+		show={showNewSiteDialog}
+		onClose={() => showNewSiteDialog = false}
+		onSiteCreated={() => {
+			showNewSiteDialog = false;
+			window.location.reload();
+		}}
+	/>
+{/if}
 
 <style>
 	.app-shell {
@@ -1941,4 +1981,59 @@
 	.restart-banner-close:hover {
 		opacity: 0.7;
 	}
+
+	.setup-overlay {
+		position: fixed;
+		inset: 0;
+		background: var(--c-bg);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 100;
+	}
+	.setup-card {
+		text-align: center;
+		max-width: 400px;
+		padding: 32px;
+	}
+	.setup-logo {
+		width: 80px;
+		margin-bottom: 16px;
+		opacity: 0.9;
+	}
+	.setup-card h2 {
+		margin: 0 0 8px;
+		font-size: 20px;
+		color: var(--c-text);
+	}
+	.setup-desc {
+		margin: 0 0 28px;
+		font-size: 14px;
+		color: var(--c-text-secondary);
+		line-height: 1.5;
+	}
+	.setup-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.btn-secondary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 10px 20px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-md);
+		background: var(--c-bg);
+		color: var(--c-text);
+		font-size: 14px;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+	.btn-secondary:hover {
+		background: var(--c-bg-muted);
+	}
 </style>
+

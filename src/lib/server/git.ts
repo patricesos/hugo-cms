@@ -56,7 +56,7 @@ export async function getStatus(): Promise<GitStatus | null> {
 	}
 }
 
-export async function commit(message: string, files?: string[]): Promise<{ hash: string; summary: string }> {
+export async function commit(message: string, files?: string[]): Promise<{ hash: string; summary: { changes: number; insertions: number; deletions: number } }> {
 	const g = getGit();
 	if (files && files.length > 0) {
 		await g.add(files);
@@ -64,7 +64,7 @@ export async function commit(message: string, files?: string[]): Promise<{ hash:
 		await g.add('.');
 	}
 	const result = await g.commit(message);
-	return { hash: result.commit ?? '', summary: result.summary ?? '' };
+	return { hash: result.commit ?? '', summary: result.summary ?? { changes: 0, insertions: 0, deletions: 0 } };
 }
 
 export async function getLog(file?: string, maxCount = 20): Promise<GitLogEntry[]> {

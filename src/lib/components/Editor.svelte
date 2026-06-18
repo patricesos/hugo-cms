@@ -155,7 +155,7 @@
 			extensions: [
 				StarterKit.configure({
 					heading: { levels: [1, 2, 3] },
-					history: { depth: historyDepth },
+					undoRedo: { depth: historyDepth },
 				}),
 				Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
 				Markdown.configure({
@@ -296,7 +296,7 @@
 
 	function serializeFm(fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
 		if (format === 'toml') {
-			return `+++\n${stringify(fm as Record<string, unknown>)}+++`;
+			return `+++\n${stringify(fm as unknown as import('@iarna/toml').JsonMap)}+++`;
 		}
 		return `---\n${yaml.dump(fm, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim()}\n---`;
 	}

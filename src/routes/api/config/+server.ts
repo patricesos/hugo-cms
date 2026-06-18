@@ -7,22 +7,24 @@ export async function GET({ url }) {
 	if (tree) {
 		return json(await listConfigTree());
 	}
+	const cfg = getCmsConfig();
 	return json({
-		hugoSitePath: getCmsConfig().hugoSitePath,
-		hugoServerPort: getCmsConfig().hugoServerPort,
-		hugoBindAddress: getCmsConfig().hugoBindAddress,
-		hugoStartupTimeout: getCmsConfig().hugoStartupTimeout,
-		hugoStopTimeout: getCmsConfig().hugoStopTimeout,
-		externalPollInterval: getCmsConfig().externalPollInterval,
-		autoSaveDelay: getCmsConfig().autoSaveDelay,
-		fmSaveDelay: getCmsConfig().fmSaveDelay,
-		appTitle: getCmsConfig().appTitle,
-		defaultAuthor: getCmsConfig().defaultAuthor,
-		defaultArchetype: getCmsConfig().defaultArchetype,
-		dateFormat: getCmsConfig().dateFormat,
-		trashDir: getCmsConfig().trashDir,
-		gitEnabled: getCmsConfig().git.enabled,
-		defaultRemote: getCmsConfig().git.remote,
-		defaultBranch: getCmsConfig().git.branch,
+		hugoSitePath: cfg.hugoSitePath,
+		hugoServerPort: cfg.hugoServerPort,
+		hugoBindAddress: cfg.hugoBindAddress,
+		hugoStartupTimeout: cfg.hugoStartupTimeout,
+		hugoStopTimeout: cfg.hugoStopTimeout,
+		externalPollInterval: cfg.externalPollInterval,
+		autoSaveDelay: cfg.autoSaveDelay,
+		fmSaveDelay: cfg.fmSaveDelay,
+		appTitle: cfg.appTitle,
+		defaultAuthor: cfg.defaultAuthor,
+		defaultArchetype: cfg.defaultArchetype,
+		dateFormat: cfg.dateFormat,
+		trashDir: cfg.trashDir,
+		gitEnabled: cfg.git.enabled,
+		defaultRemote: cfg.git.remote,
+		defaultBranch: cfg.git.branch,
+		siteValid: cfg.siteValid,
 	});
 }

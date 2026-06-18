@@ -36,6 +36,6 @@ export async function PUT({ request }) {
 		}
 	}
 
-	saveUserSettings(data as UserSettings);
+	saveUserSettings(data as unknown as UserSettings);
 	return json({ ok: true });
 }

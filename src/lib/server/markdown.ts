@@ -47,7 +47,7 @@ export function parseFrontmatter(raw: string): ParsedMarkdown {
 }
 
 function tomlSerialize(body: string, frontmatter: Record<string, unknown>): string {
-	const tomlStr = stringify(frontmatter as Record<string, unknown>);
+	const tomlStr = stringify(frontmatter as unknown as import('@iarna/toml').JsonMap);
 	return `+++\n${tomlStr}+++\n\n${body}`;
 }
 

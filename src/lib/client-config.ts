@@ -5,6 +5,7 @@ export interface ClientConfig {
 	fmSaveDelay: number;
 	appTitle: string;
 	defaultArchetype: string;
+	trashDir: string;
 }
 
 export interface ServerConfig {
@@ -24,6 +25,7 @@ export interface ServerConfig {
 	gitEnabled: boolean;
 	defaultRemote: string;
 	defaultBranch: string;
+	siteValid: boolean;
 }
 
 let cached: ClientConfig | null = null;

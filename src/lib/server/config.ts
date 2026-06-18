@@ -96,9 +96,12 @@ export interface CmsConfig {
 	fmSaveDelay: number;
 	appTitle: string;
 	defaultArchetype: string;
+	/** false quand HUGO_SITE_PATH est manquant ou n'est pas une racine Hugo valide */
+	siteValid: boolean;
 }
 
-function looksLikeHugoRoot(dir: string): boolean {
+	function looksLikeHugoRoot(dir: string): boolean {
+	if (!dir) return false;
 	if (!existsSync(dir)) return false;
 	const rootConfigs = ['config.toml', 'config.yaml', 'config.yml', 'hugo.toml', 'hugo.yaml', 'hugo.yml'];
 	for (const name of rootConfigs) {
@@ -117,18 +120,17 @@ function loadConfig(): CmsConfig {
 		? userSettings.hugoSitePathCustom
 		: envSitePath;
 	console.log(`[config] Using site path: "${sitePath}"`);
-	if (!sitePath || !looksLikeHugoRoot(sitePath)) {
-		throw new Error(
-			`HUGO_SITE_PATH "${sitePath}" is not a Hugo site root.\n`
-			+ 'Set HUGO_SITE_PATH in .env or provide a valid custom path in Settings.'
-		);
+	const config = buildConfig(sitePath, userSettings);
+	config.siteValid = Boolean(sitePath) && looksLikeHugoRoot(sitePath);
+	if (!config.siteValid) {
+		console.warn(`[config] "${sitePath}" n'est pas une racine Hugo valide.`);
 	}
-	return buildConfig(sitePath, userSettings);
+	return config;
 }
 
 export function buildConfig(sitePath: string, userSettings: UserSettings): CmsConfig {
-	const contentDir = resolve(sitePath, 'content');
-	const staticPath = resolve(sitePath, 'static');
+	const contentDir = sitePath ? resolve(sitePath, 'content') : '';
+	const staticPath = sitePath ? resolve(sitePath, 'static') : '';
 	const cmsPort = envInt('PORT', userSettings.cmsPort);
 	return {
 		hugoSitePath: sitePath,
@@ -157,6 +159,7 @@ export function buildConfig(sitePath: string, userSettings: UserSettings): CmsCo
 		fmSaveDelay: envInt('FM_SAVE_DELAY', 2000),
 		appTitle: env('APP_TITLE', 'Hugo CMS'),
 		defaultArchetype: env('DEFAULT_ARCHETYPE', 'default'),
+		siteValid: false,
 	};
 }
 
@@ -164,14 +167,20 @@ let _cmsConfig: CmsConfig | null = null;
 
 export function getCmsConfig(): CmsConfig {
 	if (_cmsConfig) return _cmsConfig;
-	try {
-		_cmsConfig = loadConfig();
-		return _cmsConfig;
-	} catch (e) {
-		const msg = e instanceof Error ? e.message : String(e);
-		console.error(`[config] ${msg}`);
-		throw new Error(msg.split('\n')[0]);
-	}
+	_cmsConfig = loadConfig();
+	return _cmsConfig;
+}
+
+/** Invalide le cache pour forcer un rechargement au prochain appel. */
+export function resetCmsConfig(): void {
+	_cmsConfig = null;
+}
+
+/** Retourne la config si le site est valide, sinon lève une 400. */
+export function requireValidSite(): CmsConfig {
+	const cfg = getCmsConfig();
+	if (!cfg.siteValid) throw new Error('Site non configuré.');
+	return cfg;
 }
 
 /** Pour les tests uniquement : permet d'injecter une config sans passer par loadConfig(). */

@@ -106,7 +106,7 @@ export function saveUserSettings(settings: UserSettings): void {
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 	const obj: Record<string, unknown> = {};
 	for (const key of allSettingKeys()) {
-		const val = (settings as Record<string, unknown>)[key];
+		const val = (settings as unknown as Record<string, unknown>)[key];
 		const validation = validateSettingValue(key, val);
 		if (validation.valid) {
 			obj[key] = validation.parsed;

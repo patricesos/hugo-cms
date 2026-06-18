@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { __setCmsConfigForTests } from './config';
 import { __resetHugoStateForTests, MAX_LOG_ENTRIES } from './hugo';
-import type { Mock } from 'vitest';
 
 interface MockProcess {
 	stdout: EventEmitter;
 	stderr: EventEmitter;
-	on: ReturnType<typeof vi.fn>;
+	on: (event: string | symbol, listener: (...args: any[]) => void) => EventEmitter;
 	kill: ReturnType<typeof vi.fn>;
 	emit: (event: string, ...args: unknown[]) => boolean;
 	exitCode: number | null;
@@ -64,6 +63,7 @@ beforeEach(async () => {
 		fmSaveDelay: 2000,
 		appTitle: 'Test',
 		defaultArchetype: 'default',
+		siteValid: true,
 	});
 });
 

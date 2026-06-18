@@ -133,7 +133,7 @@
 
 	function serializeFmForEdit(fm: FrontMatter, fmt: 'yaml' | 'toml'): string {
 		if (fmt === 'toml') {
-			const result = stringify(fm as Record<string, unknown>);
+			const result = stringify(fm as unknown as import('@iarna/toml').JsonMap);
 			return result;
 		}
 		return yaml.dump(fm, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim();
