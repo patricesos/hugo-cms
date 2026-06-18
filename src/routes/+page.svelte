@@ -214,16 +214,8 @@ import { settingsStore } from '$lib/stores/settings.svelte';
 	}
 
 	function handleFrontmatterChange(fm: Record<string, unknown>) {
-		editorStore.currentFrontmatter.set(fm);
-		editorStore.saveState.set('unsaved');
-		if ($currentSlug) {
-			const tab = $tabs.find(t => t.slug === $currentSlug);
-			if (tab) tab.frontmatter = fm;
-			fileTreeStore.updateTreeFrontmatter($currentSlug, fm);
-		}
-	}
-
-	async function handleCreate(title: string, section: string, archetype?: string) {
+		editorStore.handleFrontmatterChange(fm);
+		if ($currentSlug) fileTreeStore.updateTreeFrontmatter($currentSlug, fm);
 		if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		const delay = clientCfg?.fmSaveDelay ?? 2000;
 		fmSaveTimeout = setTimeout(() => { editorStore.saveRequest.update(r => r + 1); }, delay);
@@ -604,7 +596,7 @@ import { settingsStore } from '$lib/stores/settings.svelte';
 											getContent={(fn: () => string) => { editorStore.setEditorGetContent(fn); }}
 											onSetContent={(fn: (content: string) => void) => { editorStore.setEditorSetContent(fn); }}
 											onSave={handleSave}
-											onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.currentFrontmatter.set(fm); if ($currentSlug) { const tab = $tabs.find(t => t.slug === $currentSlug); if (tab) tab.frontmatter = fm; fileTreeStore.updateTreeFrontmatter($currentSlug, fm); } }}
+											onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.handleFrontmatterChange(fm); if ($currentSlug) fileTreeStore.updateTreeFrontmatter($currentSlug, fm); }}
 											onStats={(s: { words: number; chars: number }) => { $wordCount = s.words; $charCount = s.chars; }}
 											onSaveState={(s: 'saved' | 'unsaved' | 'saving') => { editorStore.saveState.set(s); }}
 										/>

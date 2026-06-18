@@ -56,6 +56,17 @@ function create() {
 		setEditorGetContent(fn: (() => string) | null) { _editorGetContent = fn; },
 		setEditorSetContent(fn: ((content: string) => void) | null) { _editorSetContent = fn; },
 
+		handleFrontmatterChange(fm: Record<string, unknown>) {
+			currentFrontmatter.set(fm);
+			saveState.set('unsaved');
+			const slug = get(currentSlug);
+			if (slug) {
+				const tabsArr = get(tabs);
+				const tab = tabsArr.find(t => t.slug === slug);
+				if (tab) tab.frontmatter = fm;
+			}
+		},
+
 		flattenTree,
 
 		updateTreeFrontmatter(tree: TreeNode[], slug: string, fm: Record<string, unknown>): TreeNode[] {
