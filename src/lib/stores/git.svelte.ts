@@ -63,6 +63,10 @@ function create() {
 				this.refresh();
 			}
 		},
+
+		snapshot() {
+			return { status: get(status), loading: get(loading), initialized: get(initialized) };
+		},
 	};
 }
 

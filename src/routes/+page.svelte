@@ -8,8 +8,9 @@
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { TreeNode } from '$lib/server/types';
-
-
+	import { hugoStore } from '$lib/stores/hugo.svelte';
+	import { gitStore } from '$lib/stores/git.svelte';
+	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 
 	type TabKind = 'content' | 'static' | 'archetype' | 'config';
 
@@ -45,7 +46,6 @@
 	let createFolderParent = $state('');
 	let showSearch = $state(false);
 	let showShortcuts = $state(false);
-	let resizeCleanupFns: (() => void)[] = [];
 	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let sidebarOpen = $state(true);
 	let sidebarView = $state<'content' | 'static' | 'archetypes' | 'config'>('content');
@@ -63,85 +63,48 @@
 	let showRestartBanner = $state(false);
 	let showSettings = $state(false);
 
-	let _hugoCheckInterval: ReturnType<typeof setInterval> | undefined;
-
-	async function startHugoServer() {
-		hugoStatus = 'loading';
-		try {
-			const res = await fetch('/api/hugo/start', { method: 'POST' });
-			const data = await res.json();
-			if (data.running && data.url) {
-				hugoStatus = 'running';
-				hugoUrl = data.url;
-				hugoLive = data.live ?? hugoLive;
-				previewReloadKey++;
-			} else {
-				hugoStatus = 'error';
-			}
-		} catch {
-			hugoStatus = 'error';
-		}
-	}
-
-	async function stopHugoServer() {
-		try {
-			const res = await fetch('/api/hugo/stop', { method: 'POST' });
-			const data = await res.json();
-			hugoLive = data.live ?? hugoLive;
-		} catch {}
-		hugoStatus = 'stopped';
-		hugoUrl = null;
-	}
-
-	async function checkHugoStatus() {
-		try {
-			const res = await fetch('/api/hugo/status');
-			const data = await res.json();
-			if (data.running && data.url) {
-				hugoStatus = 'running';
-				hugoUrl = data.url;
-				hugoLive = data.live ?? hugoLive;
-			} else {
-				hugoStatus = 'stopped';
-				hugoUrl = null;
-				hugoLive = data.live ?? hugoLive;
-			}
-		} catch {}
-	}
-
-	async function toggleHugoLive() {
-		hugoTogglingLive = true;
-		const newBind = hugoLive ? '127.0.0.1' : '0.0.0.0';
-		try {
-			const res = await fetch('/api/hugo/bind', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ bindAddress: newBind }),
-			});
-			const data = await res.json();
-			hugoLive = data.live ?? false;
-			if (data.running && data.url) {
-				hugoStatus = 'running';
-				hugoUrl = data.url;
-				previewReloadKey++;
-			} else {
-				hugoStatus = data.error ? 'error' : 'stopped';
-				hugoUrl = data.running ? data.url : null;
-			}
-		} catch {
-			hugoStatus = 'error';
-		} finally {
-			hugoTogglingLive = false;
-		}
-	}
-
 	function reloadPreview() {
-		previewReloadKey++;
+		hugoStore.reloadPreview();
 		if (!showPreview) showPreview = true;
 	}
 
+	async function startHugoServer() {
+		await hugoStore.start();
+		const s = hugoStore.snapshot();
+		hugoStatus = s.status;
+		hugoUrl = s.url;
+		hugoLive = s.live;
+		previewReloadKey = s.previewReloadKey;
+	}
+
+	async function stopHugoServer() {
+		await hugoStore.stop();
+		const s = hugoStore.snapshot();
+		hugoStatus = s.status;
+		hugoUrl = s.url;
+		hugoLive = s.live;
+	}
+
+	async function checkHugoStatus() {
+		await hugoStore.check();
+		const s = hugoStore.snapshot();
+		hugoStatus = s.status;
+		hugoUrl = s.url;
+		hugoLive = s.live;
+	}
+
+	async function toggleHugoLive() {
+		await hugoStore.toggleLive();
+		const s = hugoStore.snapshot();
+		hugoStatus = s.status;
+		hugoUrl = s.url;
+		hugoLive = s.live;
+		hugoTogglingLive = s.togglingLive;
+		previewReloadKey = s.previewReloadKey;
+	}
+
 	function openPreviewInTab() {
-		if (hugoUrl) window.open(hugoUrl, '_blank');
+		hugoStore.openPreviewInTab();
 	}
 	let defaultRawMode = $state(false);
 	let showBubbleMenu = $state(true);
@@ -468,70 +431,9 @@
 		}
 	}
 
-	function startResize(e: MouseEvent) {
-		e.preventDefault();
-		const startX = e.clientX;
-		const startWidth = sidebarWidth;
-		function onMove(ev: MouseEvent) {
-			const newWidth = Math.max(180, Math.min(500, startWidth + ev.clientX - startX));
-			sidebarWidth = newWidth;
-		}
-		function onUp() {
-			document.removeEventListener('mousemove', onMove);
-			document.removeEventListener('mouseup', onUp);
-			document.body.style.cursor = '';
-			document.body.style.userSelect = '';
-		}
-		const cleanup = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
-		resizeCleanupFns = [...resizeCleanupFns, cleanup];
-		document.addEventListener('mousemove', onMove);
-		document.addEventListener('mouseup', onUp);
-		document.body.style.cursor = 'col-resize';
-		document.body.style.userSelect = 'none';
-	}
-
-	function startFmResize(e: MouseEvent) {
-		e.preventDefault();
-		const startX = e.clientX;
-		const startWidth = fmWidth;
-		function onMove(ev: MouseEvent) {
-			const newWidth = Math.max(200, Math.min(500, startWidth - (ev.clientX - startX)));
-			fmWidth = newWidth;
-		}
-		function onUp() {
-			document.removeEventListener('mousemove', onMove);
-			document.removeEventListener('mouseup', onUp);
-			document.body.style.cursor = '';
-			document.body.style.userSelect = '';
-		}
-		const cleanup = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
-		resizeCleanupFns = [...resizeCleanupFns, cleanup];
-		document.addEventListener('mousemove', onMove);
-		document.addEventListener('mouseup', onUp);
-		document.body.style.cursor = 'col-resize';
-		document.body.style.userSelect = 'none';
-	}
-
-	function startPreviewResize(e: PointerEvent) {
-		e.preventDefault();
-		const handle = e.currentTarget as HTMLElement;
-		const startX = e.clientX;
-		const startWidth = previewWidth;
-		handle.setPointerCapture(e.pointerId);
-		document.body.style.cursor = 'col-resize';
-		document.body.style.userSelect = 'none';
-		function onMove(ev: PointerEvent) {
-			previewWidth = Math.max(320, Math.min(1024, startWidth - (ev.clientX - startX)));
-		}
-		function onUp() {
-			handle.removeEventListener('pointermove', onMove);
-			handle.removeEventListener('pointerup', onUp);
-			document.body.style.cursor = '';
-			document.body.style.userSelect = '';
-		}
-		handle.addEventListener('pointermove', onMove);
-		handle.addEventListener('pointerup', onUp);
-	}
+	const startResize = startSidebarResize(() => sidebarWidth, (w) => { sidebarWidth = w; });
+	const startFmResizeHandler = startFmResize(() => fmWidth, (w) => { fmWidth = w; });
+	const startPreviewResizeHandler = startPreviewResize(() => previewWidth, (w) => { previewWidth = w; });
 
 	let directories = $derived(
 		tree.filter((n) => n.type === 'directory').map((n) => ({ slug: n.slug, name: n.name }))
@@ -591,7 +493,7 @@
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			stopConflictPoll();
-			for (const fn of resizeCleanupFns) fn();
+			cleanupAllResize();
 			if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		};
 	});
@@ -906,39 +808,32 @@
 	}
 
 	async function refreshGitStatus() {
-		gitLoading = true;
-		try {
-			const res = await fetch('/api/git/status');
-			if (res.ok) {
-				gitStatus = await res.json();
-			} else {
-				gitStatus = null;
-			}
-		} catch {
-			gitStatus = null;
-		}
-		gitLoading = false;
+		await gitStore.refresh();
+		const s = gitStore.snapshot();
+		gitStatus = s.status;
+		gitLoading = s.loading;
 	}
 
 	async function handleGitInit() {
-		await fetch('/api/git/init', { method: 'POST' });
-		await refreshGitStatus();
+		await gitStore.init();
+		const s = gitStore.snapshot();
+		gitStatus = s.status;
+		gitLoading = s.loading;
+		gitInitialized = s.initialized;
 	}
 
 	async function handleGitCommit(message: string, files: string[]) {
-		const res = await fetch('/api/git/commit', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ message, files }),
-		});
-		if (res.ok) {
-			await refreshGitStatus();
-		}
+		await gitStore.commit(message, files);
+		const s = gitStore.snapshot();
+		gitStatus = s.status;
+		gitLoading = s.loading;
 	}
 
 	async function handleGitPush() {
-		await fetch('/api/git/push', { method: 'POST' });
-		await refreshGitStatus();
+		await gitStore.push();
+		const s = gitStore.snapshot();
+		gitStatus = s.status;
+		gitLoading = s.loading;
 	}
 
 	let gitInitialized = $state(false);
@@ -1275,7 +1170,7 @@
 									{/key}
 								</div>
 								{#if fmOpen}
-									<div class="fm-resize-handle" role="presentation" onmousedown={startFmResize}></div>
+									<div class="fm-resize-handle" role="presentation" onmousedown={startFmResizeHandler}></div>
 									<aside class="fm-sidebar" style="width: {fmWidth}px; min-width: {fmWidth}px;" transition:slide={{ duration: 200, axis: 'x' }}>
 										<FrontMatterEditor
 											frontmatter={currentFrontmatter}
@@ -1292,7 +1187,7 @@
 				{/if}
 			</div>
 			{#if showPreview}
-				<div class="preview-resize-handle" role="presentation" onpointerdown={startPreviewResize}></div>
+				<div class="preview-resize-handle" role="presentation" onpointerdown={startPreviewResizeHandler}></div>
 				{#if HugoPreviewComp}
 				<HugoPreviewComp
 						show={showPreview}

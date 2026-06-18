@@ -94,6 +94,10 @@ function create() {
 			const snap = get(hugoStore);
 			if (snap.url) window.open(snap.url, '_blank');
 		},
+
+		snapshot(): HugoState {
+			return get(hugoStore);
+		},
 	};
 }
 
