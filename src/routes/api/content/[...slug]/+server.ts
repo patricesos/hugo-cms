@@ -1,20 +1,11 @@
 import { error, json } from '@sveltejs/kit';
-import { readContent, createContent, updateContent, deleteContent, renameContent } from '$lib/server/content';
+import { readContent, createContent, updateContent, deleteContent, renameContent, safeResolveIn } from '$lib/server/content';
 import { listArchetypes, renderArchetype } from '$lib/server/archetypes';
 import { writeFile, mkdir, stat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getCmsConfig } from '$lib/server/config';
 import { parseFrontmatter } from '$lib/server/markdown';
-
-function safeResolveBase(...segments: string[]): string {
-	const base = getCmsConfig().hugoContentPath;
-	const resolved = resolve(base, ...segments);
-	if (!resolved.startsWith(resolve(base))) {
-		throw new Error('Path traversal detected');
-	}
-	return resolved;
-}
 
 export async function GET({ params }) {
 	const slug = params.slug;
@@ -38,7 +29,7 @@ export async function POST({ params, request }) {
 			const match = archetypes.find(a => a.name === archetype);
 			if (match) {
 				const rendered = renderArchetype(match.source, (frontmatter?.title as string) || slug, slug);
-				const filePath = safeResolveBase(slug + '.md');
+				const filePath = safeResolveIn(getCmsConfig().hugoContentPath, slug + '.md');
 				const dir = dirname(filePath);
 				if (!existsSync(dir)) {
 					await mkdir(dir, { recursive: true });

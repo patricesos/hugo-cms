@@ -98,6 +98,122 @@
 
 ---
 
+## Backlog — Audit Pattern Violations (18 Jun 2026)
+
+> Branche : `audit/pattern-violations`
+> Statut : 47 issues identifiées — 3 critiques, 25 moyennes, 19 basses
+> Fixes appliqués : 15/47 (3 critiques, 8 moyennes, 4 basses)
+
+---
+
+### EPIC E — Architecture SvelteKit (CRITIQUE)
+
+#### God Component `+page.svelte`
+
+- [ ] **E-001** — 🔴 `+page.svelte` = 2064 lignes, 60+ variables d'état, 40+ fonctions — **violation SRP**. Découper en modules : `tabs`, `sidebar`, `git`, `hugo`, `settings`, `editor`, `search`, `create-delete`
+- [ ] **E-002** — 🔴 Aucun store Svelte — 60+ `let xxx = $state(...)` au lieu de stores dédiés (`settingsStore`, `tabsStore`, `hugoStore`, `gitStore`)
+- [ ] **E-003** — 🟡 `saveAppState()` reconstruit un objet de 30+ champs manuellement — duplication du schema entre `saveAppState`, `restoreAppState`, et le callback `onSave`
+- [ ] **E-004** — 🟡 `restoreAppState()` fait 40+ `if (s.xxx !== undefined) xxx = s.xxx as type` — devrait être un `Object.assign()` avec un type safely
+- [ ] **E-005** — 🟡 Composants lazy-loaded typés `$state<any>(null)` — 12 composants sans type safety
+- [ ] **E-006** — 🟡 `onSave` du SettingsDialog reçoit un objet inline de 30+ champs — le type est écrit en dur dans le template
+- [ ] **E-007** — 🟡 `$effect` pour `saveAppState` avec 35+ dépendances listées manuellement — risque d'oubli
+
+#### Duplications de Types
+
+- [x] **E-008** — 🟡 `TreeNode` défini dans `types.ts` ET re-défini dans `+page.svelte:12-19` — devrait import depuis `$lib/server/types`
+- [x] **E-009** — 🟡 `safeResolveBase()` duplique `safeResolveIn()` — `api/content/[...slug]/+server.ts:10-17` vs `content.ts:18-25`
+- [ ] **E-010** — 🟢 `TabKind` et `Tab` interface redéfinis localement — devraient être dans un fichier partagé
+
+---
+
+### EPIC F — Patterns Serveur & API
+
+#### I/O Synchrone vs Asynchrone
+
+- [x] **F-001** — 🟡 `existsSync()` mélangé avec des fonctions async dans `content.ts` (7 occurrences) — bloquer l'event loop
+- [ ] **F-002** — 🟡 `readFileSync` dans `config.ts:33` — bloque le thread principal
+- [ ] **F-003** — 🟢 `shortcodes.ts:108-110` — `for...of` avec `await readFile()` séquentiel au lieu de `Promise.all()`
+
+#### Patterns de Cache & État Global
+
+- [ ] **F-004** — 🟡 `let _cmsConfig` — cache module-level sans invalidation automatique
+- [ ] **F-005** — 🟢 `let _git` — cache lazy sans TTL ni invalidation
+- [ ] **F-006** — 🟡 `let hugoProcess`, `let hugoUrl`, `let logBuffer` — 7 variables globales mutable dans `hugo.ts`
+- [ ] **F-007** — 🟢 3 exports `__reset*ForTests()` exposés en production — pattern anti-test
+
+#### Gestion d'Erreurs API
+
+- [ ] **F-008** — 🟡 Pas de validation du body JSON dans `api/git/commit` et `api/hugo/bind`
+- [ ] **F-009** — 🟢 Routes Hugo retournent toujours 200 même en cas d'erreur
+- [ ] **F-010** — 🟢 Incohérence : `error()` vs `json({ error })` entre les routes
+
+---
+
+### EPIC G — Hugo Site : Configuration & CSS
+
+#### Configuration Conflits
+
+- [x] **G-001** — 🔴 **Deux `params.toml` avec des valeurs DIFFÉRENTES** — `config/params.toml` (vert `#6b8f71`) vs `config/_default/params.toml` (bleu `#7ec8e3`) — comportement imprévisible
+- [ ] **G-002** — 🟡 `menus.toml` définit 4 menus, `params.toml` en définit 3 (sans Blog)
+- [x] **G-003** — 🟡 `buildFuture = true` dans la config de PRODUCTION — devrait être uniquement dans `config/development/`
+
+#### CSS : Dead Code & Incohérences
+
+- [x] **G-004** — 🟡 **~90 lignes de CSS mort** dans `content.css:34-125` — classes `.home-hero*` d'un ancien layout homepage
+- [x] **G-005** — 🟡 **Couleur accent erronée** dans `taxonomy.css:28` — `rgba(126,200,227,0.2)` (bleu) au lieu du vert `#6b8f71`
+- [ ] **G-006** — 🟡 **Hardcoded colors** dans 15+ endroits — `#888`, `#555`, `#999`, `#e0e0dd`, `#e2e8f0` au lieu de CSS variables
+- [x] **G-007** — 🟡 **Deux breakpoints responsive** — 768px (`responsive.css`) vs 700px (`layout.css`)
+- [ ] **G-008** — 🟢 **border-radius incohérent** — 3px, 4px, 6px, 8px, 10px sans tokens
+
+---
+
+### EPIC H — Hugo Site : Templates & JavaScript
+
+- [ ] **H-001** — 🟡 URL hardcodée dans `single.html:5` — `{{ if eq .RelPermalink "/a-propos/" }}` devrait utiliser un paramètre
+- [ ] **H-002** — 🟢 Cursor elements rendus inconditionnellement sur mobile — `baseof.html:38-39`
+- [x] **H-003** — 🟢 Pas de `prefers-reduced-motion` dans `main.js`
+- [ ] **H-004** — 🟢 Cursor hover targets hardcodés dans `main.js:30`
+- [ ] **H-005** — 🟡 `markup.toml` : `unsafe = true` — risque sécurité
+
+---
+
+### EPIC I — Contenu & Frontmatter
+
+- [x] **I-001** — 🟡 Mix de formats frontmatter — TOML (89%) vs YAML (11%)
+- [ ] **I-002** — 🟡 `_hey/` staging dans `content/` — Hugo traite potentiellement ces fichiers
+- [x] **I-003** — 🟢 Fields orphelins dans `blog/c.md` — `custom`, `custom_1`, `custom_2`
+- [ ] **I-004** — 🟢 Taxonomies configurées mais quasi jamais utilisées (valeurs placeholder)
+- [ ] **I-005** — 🟢 Archetypes vs usage réel — champs définis mais jamais utilisés
+- [ ] **I-006** — 🟢 `demo-content/` déconnecté du site Hugo
+- [ ] **I-007** — 🟡 `index.md` vs `_index.md` dans `projets/` — comportement Hugo différent
+- [ ] **I-008** — 🟢 Quote style inconsistent dans TOML
+
+---
+
+### EPIC J — Infra & DevOps
+
+- [ ] **J-001** — 🟡 Pas de CI/CD (aucun `.github/workflows/`)
+- [ ] **J-002** — 🟡 Pas de git hooks (pre-commit, lint-staged)
+- [ ] **J-003** — 🟡 Pas de linter/formatter configuré (ESLint, Prettier)
+- [ ] **J-004** — 🟢 Pas de `.env.test` pour les tests
+- [x] **J-005** — 🟢 `$lib/index.ts` barrel vide
+
+---
+
+### EPIC K — Bugs Connus (DEBUG.md, 9 restants)
+
+- [ ] **K-001** — 🟡 Renommer clé FM peut en écraser une autre — `FrontMatterEditor.svelte:71-77`
+- [ ] **K-002** — 🟡 Changement FM seul ne trigger pas auto-save — `+page.svelte:445-453`
+- [ ] **K-003** — 🟢 `tree = tree` hack pour réactivité — `+page.svelte:467`
+- [ ] **K-004** — 🟢 Racine Hugo limitée à 2 niveaux — `hugo.ts:17-35`
+- [x] **K-005** — 🟢 Imports inutilisés (`RotateCcw` dans ConfigView)
+- [ ] **K-006** — 🟡 `readdirSync`/`readFileSync` bloquent l'event loop — `shortcodes.ts:97-106`
+- [ ] **K-007** — 🟢 Switch raw↔WYSIWYG re-parse la FM inutilement — `Editor.svelte:230-255`
+- [ ] **K-008** — 🟢 10 résultats max dans SearchDialog — `SearchDialog.svelte:50-56`
+- [ ] **K-009** — 🟢 `draft: true` dur dans `handleCreate` — `+page.svelte:473`
+
+---
+
 ## Backlog — Sélecteur de thème Hugo simplifié
 
 **Hypothèses (à valider avec l'utilisateur avant de coder) :**
@@ -108,7 +224,7 @@
 
 ---
 
-### EPIC A — Installation de thème en un clic (liste fixe pré-testée)
+### EPIC THEME — Installation de thème en un clic (liste fixe pré-testée)
 
 - [ ] **US-100** — Catalogue de thèmes pré-testés (`src/lib/server/theme-catalog.ts`, liste statique, test manuel obligatoire de chaque thème avec les shortcodes custom réels avant ajout)
 - [ ] **US-101** — Détection de conflit shortcodes avant installation (`detectShortcodeConflicts()` dans `theme-install.ts`, liste `providedShortcodes` maintenue à la main par thème)
@@ -173,4 +289,3 @@
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
 - [x] Détection modification externe (mtime + polling + bannière conflit)
 - [x] Sitemap visuel
-

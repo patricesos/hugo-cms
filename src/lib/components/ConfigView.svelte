@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { PenLine, Save, X, Trash2, RotateCcw, Loader2, Settings } from '@lucide/svelte';
+	import { PenLine, Save, X, Trash2, Loader2, Settings } from '@lucide/svelte';
 
 	let {
 		slug,

@@ -1,6 +1,5 @@
-import { readFile, writeFile, readdir, mkdir, rename, stat, rm } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, rename, stat, rm, access } from 'node:fs/promises';
 import { join, relative, resolve, dirname, isAbsolute } from 'node:path';
-import { existsSync } from 'node:fs';
 import { getCmsConfig } from './config';
 import { parseFrontmatter, serializeFrontmatter, detectFrontmatterLanguage } from './markdown';
 import type { ContentMeta, ContentItem, TreeNode } from './types';
@@ -79,7 +78,9 @@ export async function createContent(
 ): Promise<ContentItem> {
 	const filePath = safeResolve(slug + '.md');
 	const dir = dirname(filePath);
-	if (!existsSync(dir)) {
+	try {
+		await access(dir);
+	} catch {
 		await mkdir(dir, { recursive: true });
 	}
 	const full = serializeFrontmatter(body, frontmatter || { title: 'Untitled', date: new Date().toISOString().split('T')[0], draft: true }, language);
@@ -148,7 +149,9 @@ export async function updateContent(
 export async function deleteContent(slug: string): Promise<void> {
 	const filePath = safeResolve(slug + '.md');
 	const trashDir = getTrashDir();
-	if (!existsSync(trashDir)) {
+	try {
+		await access(trashDir);
+	} catch {
 		await mkdir(trashDir, { recursive: true });
 	}
 	const trashPath = join(trashDir, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}.md`);
@@ -165,19 +168,26 @@ export async function renameContent(slug: string, newSlug: string): Promise<Cont
 
 export async function createDirectory(slug: string): Promise<void> {
 	const dirPath = safeResolve(slug);
-	if (existsSync(dirPath)) {
+	try {
+		await access(dirPath);
 		throw new Error(`Directory "${slug}" already exists`);
+	} catch (e) {
+		if ((e as Error).message.includes('already exists')) throw e;
 	}
 	await mkdir(dirPath, { recursive: true });
 }
 
 export async function deleteDirectory(slug: string): Promise<void> {
 	const dirPath = safeResolve(slug);
-	if (!existsSync(dirPath)) {
+	try {
+		await access(dirPath);
+	} catch {
 		throw new Error(`Directory "${slug}" not found`);
 	}
 	const trashDir = getTrashDir();
-	if (!existsSync(trashDir)) {
+	try {
+		await access(trashDir);
+	} catch {
 		await mkdir(trashDir, { recursive: true });
 	}
 	const trashPath = join(trashDir, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}`);
@@ -186,7 +196,11 @@ export async function deleteDirectory(slug: string): Promise<void> {
 
 export async function listAssets(): Promise<string[]> {
 	const staticDir = getCmsConfig().hugoStaticPath;
-	if (!existsSync(staticDir)) return [];
+	try {
+		await access(staticDir);
+	} catch {
+		return [];
+	}
 	const images: string[] = [];
 
 	async function walk(dir: string) {
@@ -208,7 +222,11 @@ export async function listAssets(): Promise<string[]> {
 export async function listAssetTree(dir: string = ''): Promise<TreeNode[]> {
 	const staticDir = getCmsConfig().hugoStaticPath;
 	const target = dir ? join(staticDir, dir) : staticDir;
-	if (!existsSync(target)) return [];
+	try {
+		await access(target);
+	} catch {
+		return [];
+	}
 	const entries = await readdir(target, { withFileTypes: true });
 	const results: TreeNode[] = [];
 

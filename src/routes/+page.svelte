@@ -7,16 +7,9 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import type { TreeNode } from '$lib/server/types';
 
 
-	interface TreeNode {
-		type: 'file' | 'directory';
-		name: string;
-		slug: string;
-		path: string;
-		children?: TreeNode[];
-		frontmatter?: Record<string, unknown>;
-	}
 
 	type TabKind = 'content' | 'static' | 'archetype' | 'config';
 
