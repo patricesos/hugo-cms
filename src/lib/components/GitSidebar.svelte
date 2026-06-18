@@ -545,7 +545,7 @@
 		gap: 3px;
 		padding: 1px 5px;
 		border: 1px solid var(--c-border);
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-bg-muted);
 		color: var(--c-text-muted);
 		font-size: 10px;
@@ -676,7 +676,7 @@
 		z-index: 101;
 		background: var(--c-bg);
 		border: 1px solid var(--c-border);
-		border-radius: 10px;
+		border-radius: var(--radius-xl);
 		padding: 24px;
 		width: 300px;
 		display: flex;

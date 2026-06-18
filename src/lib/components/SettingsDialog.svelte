@@ -131,7 +131,7 @@
 		z-index: 201;
 		background: var(--c-bg);
 		border: 1px solid var(--c-border);
-		border-radius: 10px;
+		border-radius: var(--radius-xl);
 		width: 680px;
 		max-width: calc(100vw - 32px);
 		height: 640px;

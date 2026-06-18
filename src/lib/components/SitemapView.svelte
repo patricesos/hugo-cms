@@ -259,7 +259,7 @@
 		color: var(--c-text-muted);
 		background: var(--c-bg);
 		padding: 1px 8px;
-		border-radius: 10px;
+		border-radius: var(--radius-xl);
 	}
 
 	.section-children {

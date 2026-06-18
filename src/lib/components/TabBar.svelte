@@ -120,7 +120,7 @@
 		height: 24px;
 		padding: 0;
 		border: none;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
 		color: var(--c-text-muted);

@@ -157,7 +157,7 @@
 		max-height: 70vh;
 		padding: 0;
 		border: 1px solid var(--c-border);
-		border-radius: 10px;
+		border-radius: var(--radius-xl);
 		background: var(--c-bg);
 		color: var(--c-text);
 		box-shadow: 0 8px 32px rgba(0,0,0,0.3);
@@ -184,7 +184,7 @@
 		width: 28px;
 		height: 28px;
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--c-text-secondary);
 		cursor: pointer;
@@ -245,7 +245,7 @@
 	.select-btn {
 		padding: 2px 10px;
 		border: 1px solid var(--c-border);
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--c-primary);
 		font-size: 11px;
@@ -272,7 +272,7 @@
 	.btn-cancel {
 		padding: 6px 16px;
 		border: 1px solid var(--c-border);
-		border-radius: 6px;
+		border-radius: var(--radius-md);
 		background: transparent;
 		color: var(--c-text);
 		font-size: 12px;
@@ -283,7 +283,7 @@
 	.btn-select {
 		padding: 6px 16px;
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-md);
 		background: var(--c-primary);
 		color: #fff;
 		font-size: 12px;

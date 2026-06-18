@@ -321,7 +321,7 @@
 		font-size: 9px;
 		font-weight: 700;
 		padding: 1px 5px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-warning-bg);
 		color: var(--c-warning);
 		text-transform: uppercase;

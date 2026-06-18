@@ -212,7 +212,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 		padding: 1px 5px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-success-bg);
 		color: var(--c-success);
 	}

@@ -149,7 +149,7 @@
 		position: relative;
 		width: 36px;
 		height: 20px;
-		border-radius: 10px;
+		border-radius: var(--radius-xl);
 		border: none;
 		background: var(--c-border);
 		cursor: pointer;

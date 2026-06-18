@@ -168,7 +168,7 @@
 	.search-hint {
 		font-size: 11px;
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		background: var(--c-bg-muted);
 		color: var(--c-text-muted);
 		border: 1px solid var(--c-border);
@@ -249,7 +249,7 @@
 	.search-footer kbd {
 		font-size: 10px;
 		padding: 1px 5px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-bg-muted);
 		border: 1px solid var(--c-border);
 		font-family: inherit;

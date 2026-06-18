@@ -147,7 +147,7 @@
 	.sh-keys kbd {
 		font-size: 11px;
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		background: var(--c-bg-muted);
 		border: 1px solid var(--c-border);
 		font-family: inherit;

@@ -146,7 +146,7 @@
 		font-size: 9px;
 		font-weight: 700;
 		padding: 2px 6px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-warning-bg);
 		color: var(--c-warning);
 		text-transform: uppercase;
@@ -158,7 +158,7 @@
 		font-size: 9px;
 		font-weight: 700;
 		padding: 2px 6px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-success-bg);
 		color: var(--c-success);
 		text-transform: uppercase;

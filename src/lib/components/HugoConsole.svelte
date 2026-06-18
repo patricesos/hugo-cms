@@ -197,7 +197,7 @@
 		width: 24px;
 		height: 24px;
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
 		color: #666;

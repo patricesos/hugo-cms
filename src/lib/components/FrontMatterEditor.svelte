@@ -412,7 +412,7 @@
 		font-size: 10px;
 		font-weight: 600;
 		padding: 2px 6px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-warning-bg);
 		color: var(--c-warning);
 		text-transform: uppercase;
@@ -552,7 +552,7 @@
 		font-size: 10px;
 		font-weight: 600;
 		padding: 1px 5px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--c-primary-light);
 		color: var(--c-primary);
 		margin-left: auto;

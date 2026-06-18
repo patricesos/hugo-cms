@@ -146,7 +146,7 @@
 	.hint code {
 		background: var(--c-bg-muted);
 		padding: 1px 5px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		font-size: 11px;
 	}
 

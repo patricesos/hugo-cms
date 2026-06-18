@@ -328,7 +328,7 @@
 		justify-content: center;
 		width: 20px;
 		height: 20px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		font-size: 11px;
 		font-weight: 700;
 		flex-shrink: 0;
