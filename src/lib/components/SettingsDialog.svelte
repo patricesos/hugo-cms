@@ -110,7 +110,7 @@
 
 		<div class="dialog-footer">
 			<button class="btn secondary" onclick={handleCancel}>Annuler</button>
-			<button class="btn primary" onclick={handleSave}>Enregistrer</button>
+			<button class="btn-primary" onclick={handleSave}>Enregistrer</button>
 		</div>
 	</div>
 {/if}
@@ -213,15 +213,6 @@
 		cursor: pointer;
 		transition: all 0.12s;
 		border: 1px solid transparent;
-	}
-
-	.btn.primary {
-		background: var(--c-primary);
-		color: #fff;
-	}
-
-	.btn.primary:hover {
-		background: var(--c-primary-hover);
 	}
 
 	.btn.secondary {

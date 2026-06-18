@@ -298,7 +298,7 @@
 		{#if view === 'changes'}
 			<div class="git-footer-actions">
 				{#if totalChanges > 0}
-					<button class="btn primary" onclick={onCommit}>
+					<button class="btn-primary" onclick={onCommit}>
 						<GitCommit size={13} />
 						<span>Commit {totalChanges > 0 ? `(${totalChanges})` : ''}</span>
 					</button>
@@ -632,15 +632,9 @@
 		width: 100%;
 	}
 
-	.btn.primary {
-		background: var(--c-primary);
-		color: #fff;
+	:global(.btn-primary) {
+		width: 100%;
 	}
-
-	.btn.primary:hover {
-		background: var(--c-primary-hover);
-	}
-
 	.btn.secondary {
 		background: var(--c-bg);
 		color: var(--c-text-secondary);

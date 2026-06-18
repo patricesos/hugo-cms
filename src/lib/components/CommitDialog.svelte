@@ -156,7 +156,7 @@
 				<button class="btn secondary" onclick={onClose} disabled={committing}>Annuler</button>
 				{#if !done}
 					<button
-						class="btn primary"
+						class="btn-primary"
 						onclick={handleSubmit}
 						disabled={!message.trim() || committing || selectedFiles.length === 0}
 					>
@@ -370,16 +370,6 @@
 		cursor: pointer;
 		transition: all 0.12s;
 		border: 1px solid transparent;
-	}
-
-	.btn.primary {
-		background: var(--c-primary);
-		color: #fff;
-		border-color: var(--c-primary);
-	}
-
-	.btn.primary:hover:not(:disabled) {
-		background: var(--c-primary-hover);
 	}
 
 	.btn.secondary {

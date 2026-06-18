@@ -204,3 +204,28 @@ button {
 .tippy-box[data-theme~='slash'] .tippy-content {
 	padding: 0;
 }
+
+/* Bouton principal — une seule définition centralisée */
+:global(.btn-primary) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 8px 16px;
+	border-radius: var(--radius-md);
+	font-size: 13px;
+	font-weight: 500;
+	font-family: inherit;
+	cursor: pointer;
+	border: 1px solid var(--c-primary);
+	background: var(--c-primary);
+	color: #fff;
+	transition: all 0.12s;
+}
+:global(.btn-primary:hover) {
+	background: var(--c-primary-hover);
+}
+:global(.btn-primary:disabled) {
+	opacity: 0.5;
+	cursor: default;
+}

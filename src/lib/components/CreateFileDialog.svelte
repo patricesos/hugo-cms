@@ -115,7 +115,7 @@
 
 			<div class="dialog-footer">
 				<button class="btn secondary" onclick={onClose}>Annuler</button>
-				<button class="btn primary" onclick={handleSubmit} disabled={!title.trim()}>Créer</button>
+				<button class="btn-primary" onclick={handleSubmit} disabled={!title.trim()}>Créer</button>
 			</div>
 		</div>
 	</div>
@@ -226,21 +226,6 @@
 		cursor: pointer;
 		border: 1px solid var(--c-border);
 		transition: all 0.12s;
-	}
-
-	.btn.primary {
-		background: var(--c-primary);
-		color: #fff;
-		border-color: var(--c-primary);
-	}
-
-	.btn.primary:hover {
-		background: var(--c-primary-hover);
-	}
-
-	.btn.primary:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 
 	.btn.secondary {

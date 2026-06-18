@@ -59,7 +59,7 @@
 		</div>
 		<div class="dialog-footer">
 			<button class="btn btn-secondary" onclick={onClose}>Annuler</button>
-			<button class="btn btn-primary" onclick={handleSubmit} disabled={!folderName.trim()}>Créer</button>
+			<button class="btn-primary" onclick={handleSubmit} disabled={!folderName.trim()}>Créer</button>
 		</div>
 	</div>
 {/if}
@@ -175,21 +175,6 @@
 
 	.btn-secondary:hover {
 		background: var(--c-bg-muted);
-	}
-
-	.btn-primary {
-		background: var(--c-primary);
-		color: #fff;
-		border-color: var(--c-primary);
-	}
-
-	.btn-primary:hover {
-		filter: brightness(1.1);
-	}
-
-	.btn-primary:disabled {
-		opacity: 0.5;
-		cursor: default;
 	}
 
 	.icon-btn {
