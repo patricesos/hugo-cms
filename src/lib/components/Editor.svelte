@@ -60,7 +60,10 @@
 	}
 
 	function protectShortcodes(text: string): string {
-		return text.replace(/\{\{</g, SH_OPEN_SH).replace(/\{\{%/g, SH_OPEN_SH).replace(/>\}\}/g, SH_CLOSE_SH).replace(/%\}\}/g, SH_CLOSE_SH);
+		let result = text.replace(/\{\{</g, SH_OPEN_SH).replace(/\{\{%/g, SH_OPEN_SH).replace(/>\}\}/g, SH_CLOSE_SH).replace(/%\}\}/g, SH_CLOSE_SH);
+		// Chaque shortcode dans son propre paragraphe pour markdown-it
+		result = result.replace(new RegExp(`(${SH_CLOSE_SH})\\s*\\n(?!\\n)(\\s*)(${SH_OPEN_SH})`, 'g'), '$1\n\n$2$3');
+		return result;
 	}
 
 	function restoreShortcodes(text: string): string {
@@ -69,7 +72,9 @@
 
 	function getMarkdown(): string {
 		const md = ((editor?.storage as unknown) as Record<string, Record<string, () => string>>).markdown?.getMarkdown() ?? '';
-		return restoreShortcodes(md);
+		// Rétablir les sauts de ligne entre shortcodes consécutifs
+		// que markdown-it a fusionnés en une seule ligne (soft break → espace)
+		return restoreShortcodes(md).replace(/(\}\})\s+(?=\{\{<)/g, '}}\n');
 	}
 
 	function handleImageSelect(url: string) {
@@ -171,7 +176,7 @@
 				Markdown.configure({
 					html: true,
 					linkify: true,
-					breaks: true,
+					breaks: false,
 				}),
 				Image,
 				...(showSlashMenu ? [SlashCommands] : []),
