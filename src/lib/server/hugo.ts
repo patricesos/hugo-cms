@@ -3,12 +3,6 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getCmsConfig } from './config';
 
-/**
- * Override runtime pour l'adresse de bind sans toucher à la config persistante.
- * `null` = on utilise la valeur de la config (getCmsConfig().hugoBindAddress).
- */
-let runtimeBindAddress: string | null = null;
-
 export interface HugoStatus {
 	running: boolean;
 	url: string | null;
@@ -24,40 +18,51 @@ export interface LogEntry {
 }
 
 export const MAX_LOG_ENTRIES = 2000;
-let logBuffer: LogEntry[] = [];
+
+/** État mutable du module — encapsulé pour éviter les variables globales éparses. */
+const state = {
+	/** Override runtime pour l'adresse de bind (null = valeur de config). */
+	runtimeBindAddress: null as string | null,
+	/** Buffer circulaire des logs Hugo. */
+	logBuffer: [] as LogEntry[],
+	/** Processus Hugo en cours d'exécution. */
+	hugoProcess: null as ChildProcess | null,
+	/** URL du serveur Hugo une fois démarré. */
+	hugoUrl: null as string | null,
+	/** Dernière erreur Hugo. */
+	hugoError: null as string | null,
+	/** Mutex anti-concurrence pour le démarrage. */
+	startPromise: null as Promise<HugoStatus> | null,
+};
 
 export function getLogs(): LogEntry[] {
-	return logBuffer;
+	return state.logBuffer;
 }
 
 export function clearLogs(): void {
-	logBuffer = [];
+	state.logBuffer = [];
 }
 
 function pushLog(stream: 'stdout' | 'stderr', text: string): void {
-	logBuffer.push({ stream, text, timestamp: Date.now() });
-	if (logBuffer.length > MAX_LOG_ENTRIES) {
-		logBuffer = logBuffer.slice(-MAX_LOG_ENTRIES);
+	state.logBuffer.push({ stream, text, timestamp: Date.now() });
+	if (state.logBuffer.length > MAX_LOG_ENTRIES) {
+		state.logBuffer = state.logBuffer.slice(-MAX_LOG_ENTRIES);
 	}
 }
 
-let hugoProcess: ChildProcess | null = null;
-let hugoUrl: string | null = null;
-let hugoError: string | null = null;
-
 /** Renvoie l'adresse de bind effective (runtime override ou config persistante). */
 export function getEffectiveBindAddress(): string {
-	return runtimeBindAddress ?? getCmsConfig().hugoBindAddress;
+	return state.runtimeBindAddress ?? getCmsConfig().hugoBindAddress;
 }
 
 /** Surcharge l'adresse de bind pour le prochain démarrage (runtime uniquement). */
 export function setRuntimeBindAddress(address: string): void {
-	runtimeBindAddress = address;
+	state.runtimeBindAddress = address;
 }
 
 /** Réinitialise l'override runtime : revient à la valeur de la config persistante. */
 export function clearRuntimeBindAddress(): void {
-	runtimeBindAddress = null;
+	state.runtimeBindAddress = null;
 }
 
 function findHugoRoot(): string | null {
@@ -77,23 +82,21 @@ function findHugoRoot(): string | null {
 
 export function getHugoStatus(): HugoStatus {
 	return {
-		running: hugoProcess !== null && hugoProcess.exitCode === null,
-		url: hugoUrl,
+		running: state.hugoProcess !== null && state.hugoProcess.exitCode === null,
+		url: state.hugoUrl,
 		port: getCmsConfig().hugoServerPort,
-		error: hugoError,
+		error: state.hugoError,
 		live: getEffectiveBindAddress() !== '127.0.0.1',
 	};
 }
 
-let startPromise: Promise<HugoStatus> | null = null;
-
 export async function startHugoServer(): Promise<HugoStatus> {
-	if (hugoProcess && hugoProcess.exitCode === null) {
+	if (state.hugoProcess && state.hugoProcess.exitCode === null) {
 		return getHugoStatus();
 	}
-	if (startPromise) return startPromise;
+	if (state.startPromise) return state.startPromise;
 
-	hugoError = null;
+	state.hugoError = null;
 	const root = findHugoRoot() || resolve(getCmsConfig().hugoContentPath, '..');
 	const port = getCmsConfig().hugoServerPort;
 
@@ -109,10 +112,10 @@ export async function startHugoServer(): Promise<HugoStatus> {
 		windowsHide: true,
 	});
 
-	startPromise = new Promise<HugoStatus>((resolvePromise) => {
+	state.startPromise = new Promise<HugoStatus>((resolvePromise) => {
 		const timeout = setTimeout(() => {
-			hugoError = "Le serveur Hugo n'a pas démarré dans les temps.";
-			startPromise = null;
+			state.hugoError = "Le serveur Hugo n'a pas démarré dans les temps.";
+			state.startPromise = null;
 			resolvePromise(getHugoStatus());
 		}, getCmsConfig().hugoStartupTimeout);
 
@@ -122,13 +125,13 @@ export async function startHugoServer(): Promise<HugoStatus> {
 			console.log(`[hugo] ${trimmed}`);
 			pushLog('stdout', trimmed);
 			const portMatch = text.match(/Web Server is available at (\S+)/);
-			if (portMatch) hugoUrl = portMatch[1];
+			if (portMatch) state.hugoUrl = portMatch[1];
 			const envMatch = text.match(/listening on (\S+)/i);
-			if (envMatch) hugoUrl = envMatch[1];
-			if (hugoUrl) {
+			if (envMatch) state.hugoUrl = envMatch[1];
+			if (state.hugoUrl) {
 				clearTimeout(timeout);
-				hugoProcess = proc;
-				startPromise = null;
+				state.hugoProcess = proc;
+				state.startPromise = null;
 				resolvePromise(getHugoStatus());
 			}
 		});
@@ -139,63 +142,63 @@ export async function startHugoServer(): Promise<HugoStatus> {
 			console.error(`[hugo:err] ${trimmed}`);
 			pushLog('stderr', trimmed);
 			if (text.toLowerCase().includes('error') || text.toLowerCase().includes('failed')) {
-				hugoError = text.trim();
+				state.hugoError = text.trim();
 			}
 		});
 
 		proc.on('error', (err) => {
 			clearTimeout(timeout);
-			hugoError = err.message;
-			hugoProcess = null;
-			startPromise = null;
+			state.hugoError = err.message;
+			state.hugoProcess = null;
+			state.startPromise = null;
 			resolvePromise(getHugoStatus());
 		});
 
 		proc.on('exit', (code) => {
 			clearTimeout(timeout);
-			if (code !== 0 && !hugoUrl) {
-				hugoError = hugoError || `Hugo s'est arrêté (code ${code}).`;
+			if (code !== 0 && !state.hugoUrl) {
+				state.hugoError = state.hugoError || `Hugo s'est arrêté (code ${code}).`;
 			}
-			hugoProcess = null;
-			startPromise = null;
+			state.hugoProcess = null;
+			state.startPromise = null;
 			resolvePromise(getHugoStatus());
 		});
 	});
 
-	return startPromise;
+	return state.startPromise;
 }
 
 export async function stopHugoServer(): Promise<HugoStatus> {
-	if (hugoProcess && hugoProcess.exitCode === null) {
-		hugoProcess.kill('SIGTERM');
+	if (state.hugoProcess && state.hugoProcess.exitCode === null) {
+		state.hugoProcess.kill('SIGTERM');
 
-		return new Promise((resolve) => {
+		return new Promise((resolvePromise) => {
 			const timeout = setTimeout(() => {
-				hugoProcess?.kill('SIGKILL');
-				hugoProcess = null;
-				hugoUrl = null;
-				hugoError = null;
-				resolve(getHugoStatus());
+				state.hugoProcess?.kill('SIGKILL');
+				state.hugoProcess = null;
+				state.hugoUrl = null;
+				state.hugoError = null;
+				resolvePromise(getHugoStatus());
 			}, getCmsConfig().hugoStopTimeout);
 
-			hugoProcess!.on('exit', () => {
+			state.hugoProcess!.on('exit', () => {
 				clearTimeout(timeout);
-				hugoProcess = null;
-				hugoUrl = null;
-				hugoError = null;
-				resolve(getHugoStatus());
+				state.hugoProcess = null;
+				state.hugoUrl = null;
+				state.hugoError = null;
+				resolvePromise(getHugoStatus());
 			});
 		});
 	}
 
-	hugoProcess = null;
-	hugoUrl = null;
-	hugoError = null;
+	state.hugoProcess = null;
+	state.hugoUrl = null;
+	state.hugoError = null;
 	return getHugoStatus();
 }
 
 export async function restartHugoServer(): Promise<HugoStatus> {
-	const wasRunning = hugoProcess !== null && hugoProcess.exitCode === null;
+	const wasRunning = state.hugoProcess !== null && state.hugoProcess.exitCode === null;
 	if (wasRunning) {
 		await stopHugoServer();
 	}
@@ -204,10 +207,10 @@ export async function restartHugoServer(): Promise<HugoStatus> {
 
 /** Pour les tests : réinitialise tout l'état du module. */
 export function __resetHugoStateForTests(): void {
-	hugoProcess = null;
-	hugoUrl = null;
-	hugoError = null;
-	startPromise = null;
-	logBuffer = [];
-	runtimeBindAddress = null;
+	state.hugoProcess = null;
+	state.hugoUrl = null;
+	state.hugoError = null;
+	state.startPromise = null;
+	state.logBuffer = [];
+	state.runtimeBindAddress = null;
 }
