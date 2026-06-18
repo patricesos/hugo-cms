@@ -10,8 +10,8 @@ function getGit(): ReturnType<typeof simpleGit> {
 	return _git;
 }
 
-/** Pour les tests : force la réinitialisation de l'instance simple-git. */
-export function __resetGitForTests(): void {
+/** Force la réinitialisation de l'instance simple-git (utilisé après changement de config). */
+export function resetGit(): void {
 	_git = null;
 }
 

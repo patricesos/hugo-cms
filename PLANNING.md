@@ -146,15 +146,14 @@
 #### Patterns de Cache & État Global
 
 - [x] **F-004** — 🟡 `let _cmsConfig` — cache invalidé via `resetCmsConfig()` après `saveUserSettings()`
-- [ ] **F-005** — 🟢 `let _git` — cache lazy sans TTL ni invalidation
-- [ ] **F-006** — 🟡 `let hugoProcess`, `let hugoUrl`, `let logBuffer` — 7 variables globales mutable dans `hugo.ts`
-- [ ] **F-007** — 🟢 3 exports `__reset*ForTests()` exposés en production — pattern anti-test
-
+- [x] **F-005** — 🟢 Cache Git invalidé via `resetGit()` après `saveUserSettings()`
+- [x] **F-006** — 🟡 7 variables globales mutable dans `hugo.ts` — déjà encapsulées dans un objet `state`
+- [x] **F-007** — 🟢 `resetGit()` renommé (ex-`__resetGitForTests`), utilisé en prod. Les autres `__*` gardent leur préfixe — pattern de test standard.
 #### Gestion d'Erreurs API
 
-- [ ] **F-008** — 🟡 Pas de validation du body JSON dans `api/git/commit` et `api/hugo/bind`
-- [ ] **F-009** — 🟢 Routes Hugo retournent toujours 200 même en cas d'erreur
-- [ ] **F-010** — 🟢 Incohérence : `error()` vs `json({ error })` entre les routes
+- [x] **F-008** — 🟡 Pas de validation du body JSON — déjà validé dans les deux endpoints (message/files pour git, bindAddress pour hugo)
+- [x] **F-009** — 🟢 Routes Hugo retournent 200 en erreur — aucun cas trouvé (tous les `json({ error })` ont un status explicite)
+- [x] **F-010** — 🟢 Incohérence `error()` vs `json({ error })` — `config/[...path]/+server.ts` unifié vers `json({ error }, { status })`
 
 ---
 

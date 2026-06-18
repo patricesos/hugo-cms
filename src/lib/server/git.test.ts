@@ -4,7 +4,7 @@ import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import simpleGit from 'simple-git';
 import { __setCmsConfigForTests } from './config';
-import { __resetGitForTests } from './git';
+import { resetGit } from './git';
 
 let testDir: string;
 
@@ -39,7 +39,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-	__resetGitForTests();
+	resetGit();
 	__setCmsConfigForTests(null);
 	if (testDir && existsSync(testDir)) {
 		rmSync(testDir, { recursive: true, force: true });

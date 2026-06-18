@@ -1,37 +1,37 @@
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { readConfigFile, writeConfigFile, deleteConfigFile } from '$lib/server/config-files';
 
 export async function GET({ params }) {
 	const slug = params.path;
-	if (!slug) error(400, 'Config file path is required');
+	if (!slug) return json({ error: 'Config file path is required' }, { status: 400 });
 	try {
 		const result = await readConfigFile(slug);
 		return json(result);
 	} catch (e) {
-		error(404, (e as Error).message);
+		return json({ error: (e as Error).message }, { status: 404 });
 	}
 }
 
 export async function PUT({ params, request }) {
 	const slug = params.path;
-	if (!slug) error(400, 'Config file path is required');
+	if (!slug) return json({ error: 'Config file path is required' }, { status: 400 });
 	const { content } = await request.json();
-	if (typeof content !== 'string') error(400, 'content is required');
+	if (typeof content !== 'string') return json({ error: 'content is required' }, { status: 400 });
 	try {
 		await writeConfigFile(slug, content);
 		return json({ ok: true });
 	} catch (e) {
-		error(500, (e as Error).message);
+		return json({ error: (e as Error).message }, { status: 500 });
 	}
 }
 
 export async function DELETE({ params }) {
 	const slug = params.path;
-	if (!slug) error(400, 'Config file path is required');
+	if (!slug) return json({ error: 'Config file path is required' }, { status: 400 });
 	try {
 		await deleteConfigFile(slug);
 		return new Response(null, { status: 204 });
 	} catch (e) {
-		error(404, (e as Error).message);
+		return json({ error: (e as Error).message }, { status: 404 });
 	}
 }
