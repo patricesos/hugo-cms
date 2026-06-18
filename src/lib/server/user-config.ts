@@ -67,7 +67,7 @@ const defaults: UserSettings = {
 	gitBranch: 'main',
 	hugoSitePathUseDotEnv: true,
 	hugoSitePathCustom: '',
-	hugoBindAddress: '127.0.0.1',
+	hugoBindAddress: '0.0.0.0',
 	hugoPort: 1313,
 	cmsPort: 1703,
 	trashDir: '_trash',
