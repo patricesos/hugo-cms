@@ -3,39 +3,7 @@
 	import { Settings, X } from '@lucide/svelte';
 	import SettingsPanel from '$lib/settings/SettingsPanel.svelte';
 	import { settingsSchema } from '$lib/settings/schema';
-
-	interface SettingsData {
-		defaultRawMode: boolean;
-		showBubbleMenu: boolean;
-		showSlashMenu: boolean;
-		draftByDefault: boolean;
-		autoSaveDelay: number;
-		theme: string;
-		editorFont: string;
-		editorFontSize: string;
-		editorMaxWidth: string;
-		editorMaxWidthCustom: number;
-		historyDepth: number;
-		sidebarOpen: boolean;
-		sidebarWidth: number;
-		fmOpen: boolean;
-		fmWidth: number;
-		fmRawMode: boolean;
-		sidebarView: string;
-		showConsole: boolean;
-		showPreview: boolean;
-		showGit: boolean;
-		showFilenameInTabs: boolean;
-		gitRemote: string;
-		gitBranch: string;
-		hugoSitePathUseDotEnv: boolean;
-		hugoSitePathCustom: string;
-		hugoBindAddress: string;
-		hugoPort: number;
-		cmsBindAddress: string;
-		cmsPort: number;
-		trashDir: string;
-	}
+	import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	let { show = false, settings = {} as SettingsData, serverConfig = null, onClose, onSave, onConfirm }: {
 		show: boolean;

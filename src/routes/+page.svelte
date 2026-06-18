@@ -10,7 +10,8 @@
 		import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
-import { settingsStore } from '$lib/stores/settings.svelte';
+import type { Tab } from '$lib/stores/editor.svelte';
+import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
@@ -697,38 +698,7 @@ import { settingsStore } from '$lib/stores/settings.svelte';
 {#if SettingsDialogComp}
 	<SettingsDialogComp
 		show={$dialogs.showSettings}
-		settings={{
-			defaultRawMode: $settings.defaultRawMode,
-			showBubbleMenu: $settings.showBubbleMenu,
-			showSlashMenu: $settings.showSlashMenu,
-			draftByDefault: $settings.draftByDefault,
-			autoSaveDelay: $settings.autoSaveDelay,
-			theme: $settings.theme,
-			editorFont: $settings.editorFont,
-			editorFontSize: $settings.editorFontSize,
-			editorMaxWidth: $settings.editorMaxWidth,
-			editorMaxWidthCustom: $settings.editorMaxWidthCustom,
-			historyDepth: $settings.historyDepth,
-			sidebarOpen: $layout.sidebarOpen,
-			sidebarWidth: $layout.sidebarWidth,
-			fmOpen: $layout.fmOpen,
-			fmWidth: $layout.fmWidth,
-			fmRawMode: $layout.fmRawMode,
-			sidebarView: $layout.sidebarView,
-			showConsole: $layout.showConsole,
-			showPreview: $layout.showPreview,
-			showGit: $layout.showGit,
-			gitRemote: $settings.gitRemote,
-			gitBranch: $settings.gitBranch,
-			hugoSitePathUseDotEnv: $settings.hugoSitePathUseDotEnv,
-			hugoSitePathCustom: $settings.hugoSitePathCustom,
-			showFilenameInTabs: $settings.showFilenameInTabs,
-			hugoBindAddress: $settings.hugoBindAddress,
-			hugoPort: $settings.hugoPort,
-			cmsBindAddress: $settings.cmsBindAddress,
-			cmsPort: $settings.cmsPort,
-			trashDir: $settings.trashDir,
-		}}
+		settings={$settingsData}
 		{serverConfig}
 		onClose={() => uiStore.updateDialogs({ showSettings: false })}
 		onConfirm={() => {

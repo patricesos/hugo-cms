@@ -1,4 +1,37 @@
-import { writable, get } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
+
+export interface SettingsData {
+	defaultRawMode: boolean;
+	showBubbleMenu: boolean;
+	showSlashMenu: boolean;
+	draftByDefault: boolean;
+	autoSaveDelay: number;
+	theme: string;
+	editorFont: string;
+	editorFontSize: string;
+	editorMaxWidth: string;
+	editorMaxWidthCustom: number;
+	historyDepth: number;
+	sidebarOpen: boolean;
+	sidebarWidth: number;
+	fmOpen: boolean;
+	fmWidth: number;
+	fmRawMode: boolean;
+	sidebarView: string;
+	showConsole: boolean;
+	showPreview: boolean;
+	showGit: boolean;
+	showFilenameInTabs: boolean;
+	gitRemote: string;
+	gitBranch: string;
+	hugoSitePathUseDotEnv: boolean;
+	hugoSitePathCustom: string;
+	hugoBindAddress: string;
+	hugoPort: number;
+	cmsBindAddress: string;
+	cmsPort: number;
+	trashDir: string;
+}
 
 export interface SettingsState {
   // Hugo config
@@ -237,3 +270,40 @@ function createSettingsStore() {
 }
 
 export const settingsStore = createSettingsStore();
+
+export const settingsData = derived(
+	[settingsStore.settings, settingsStore.layout],
+	([$s, $l]) =>
+		({
+			defaultRawMode: $s.defaultRawMode,
+			showBubbleMenu: $s.showBubbleMenu,
+			showSlashMenu: $s.showSlashMenu,
+			draftByDefault: $s.draftByDefault,
+			autoSaveDelay: $s.autoSaveDelay,
+			theme: $s.theme,
+			editorFont: $s.editorFont,
+			editorFontSize: $s.editorFontSize,
+			editorMaxWidth: $s.editorMaxWidth,
+			editorMaxWidthCustom: $s.editorMaxWidthCustom,
+			historyDepth: $s.historyDepth,
+			sidebarOpen: $l.sidebarOpen,
+			sidebarWidth: $l.sidebarWidth,
+			fmOpen: $l.fmOpen,
+			fmWidth: $l.fmWidth,
+			fmRawMode: $l.fmRawMode,
+			sidebarView: $l.sidebarView,
+			showConsole: $l.showConsole,
+			showPreview: $l.showPreview,
+			showGit: $l.showGit,
+			showFilenameInTabs: $s.showFilenameInTabs,
+			gitRemote: $s.gitRemote,
+			gitBranch: $s.gitBranch,
+			hugoSitePathUseDotEnv: $s.hugoSitePathUseDotEnv,
+			hugoSitePathCustom: $s.hugoSitePathCustom,
+			hugoBindAddress: $s.hugoBindAddress,
+			hugoPort: $s.hugoPort,
+			cmsBindAddress: $s.cmsBindAddress,
+			cmsPort: $s.cmsPort,
+			trashDir: $s.trashDir,
+		}) as SettingsData
+);
