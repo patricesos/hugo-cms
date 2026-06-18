@@ -7,8 +7,7 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import type { TreeNode } from '$lib/server/types';
-	import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
+		import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
 	import type { Tab as EditorTab } from '$lib/stores/editor.svelte';
@@ -16,6 +15,7 @@
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
+	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
 	import { getClientConfig, getServerConfig } from '$lib/client-config';
 
 	// Stores source de vérité unique
@@ -24,12 +24,8 @@
 	const { dialogs } = uiStore;
 	const { status: gitStatus, loading: gitLoading, initialized: gitInitialized } = gitStore;
 
-	// Arbres (charges au montage, pas dans un store)
-	let tree = $state<TreeNode[]>([]);
-	let assetTree = $state<TreeNode[]>([]);
-	let archetypeTree = $state<TreeNode[]>([]);
-	let configTree = $state<TreeNode[]>([]);
-	let archetypes = $state<{ name: string; label: string }[]>([]);
+	// Arbres (store dedie)
+	const { tree, assetTree, archetypeTree, configTree, archetypes, directories, searchEntries, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
 
 	// Timers internes (pas reactifs)
 	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -128,18 +124,7 @@
 		(w) => settingsStore.updateLayout({ previewWidth: w })
 	);
 
-	// --- Derives ---
-	let directories = $derived(
-		tree.filter((n) => n.type === 'directory').map((n) => ({ slug: n.slug, name: n.name }))
-	);
 
-	let searchEntries = $derived(
-		editorStore.flattenTree(tree).map((n) => ({
-			slug: n.slug,
-			title: (n.frontmatter?.title as string) || n.name.replace(/\.md$/, ''),
-			type: n.type as 'file' | 'directory',
-		}))
-	);
 
 	// --- Mount ---
 	onMount(() => {
@@ -204,42 +189,6 @@
 		return () => { if (unsub) unsub(); };
 	});
 
-	// --- Chargement arbres ---
-	async function loadTree() {
-		const res = await fetch('/api/content?tree=true');
-		tree = await res.json();
-	}
-
-	async function loadAssetTree() {
-		try {
-			const res = await fetch('/api/assets?tree=true');
-			assetTree = await res.json();
-		} catch {}
-	}
-
-	async function loadArchetypes() {
-		try {
-			const [flatRes, treeRes] = await Promise.all([
-				fetch('/api/archetypes'),
-				fetch('/api/archetypes?tree=true'),
-			]);
-			archetypes = await flatRes.json();
-			archetypeTree = await treeRes.json();
-		} catch {
-			archetypes = [];
-			archetypeTree = [];
-		}
-	}
-
-	async function loadConfigTree() {
-		try {
-			const res = await fetch('/api/config?tree=true');
-			configTree = await res.json();
-		} catch {
-			configTree = [];
-		}
-	}
-
 	// --- Fonctions editeur ---
 	async function loadFile(slug: string) {
 		await editorStore.loadFile(slug, loadTree);
@@ -270,8 +219,11 @@
 		if ($currentSlug) {
 			const tab = $tabs.find(t => t.slug === $currentSlug);
 			if (tab) tab.frontmatter = fm;
-			tree = editorStore.updateTreeFrontmatter(tree, $currentSlug, fm);
+			fileTreeStore.updateTreeFrontmatter($currentSlug, fm);
 		}
+	}
+
+	async function handleCreate(title: string, section: string, archetype?: string) {
 		if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		const delay = clientCfg?.fmSaveDelay ?? 2000;
 		fmSaveTimeout = setTimeout(() => { editorStore.saveRequest.update(r => r + 1); }, delay);
@@ -302,7 +254,7 @@
 	}
 
 	async function handleDuplicate(slug: string) {
-		await editorStore.handleDuplicate(slug, tree, loadTree);
+		await editorStore.handleDuplicate(slug, $tree, loadTree);
 	}
 
 	function handleCloseTab(slug: string) {
@@ -682,7 +634,7 @@
 											getContent={(fn: () => string) => { editorStore.setEditorGetContent(fn); }}
 											onSetContent={(fn: (content: string) => void) => { editorStore.setEditorSetContent(fn); }}
 											onSave={handleSave}
-											onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.currentFrontmatter.set(fm); if ($currentSlug) { const tab = $tabs.find(t => t.slug === $currentSlug); if (tab) tab.frontmatter = fm; editorStore.updateTreeFrontmatter(tree, $currentSlug, fm); } }}
+											onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.currentFrontmatter.set(fm); if ($currentSlug) { const tab = $tabs.find(t => t.slug === $currentSlug); if (tab) tab.frontmatter = fm; fileTreeStore.updateTreeFrontmatter($currentSlug, fm); } }}
 											onStats={(s: { words: number; chars: number }) => { $wordCount = s.words; $charCount = s.chars; }}
 											onSaveState={(s: 'saved' | 'unsaved' | 'saving') => { editorStore.saveState.set(s); }}
 										/>
