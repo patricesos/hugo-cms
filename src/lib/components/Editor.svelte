@@ -248,7 +248,10 @@
 		}
 		window.addEventListener('slash:image', onSlashImage);
 
-		buildEditor(content);
+		if (!rawMode) {
+			buildEditor(content);
+		}
+		prevContent = content;
 		onSaveState?.('saved');
 		getContent?.(() => rawMode ? rawContent : getMarkdown());
 		onSetContent?.((c: string) => {
@@ -268,23 +271,41 @@
 	});
 
 	let prevRawMode = false;
+	let prevContent = '';
+
+	// Réagit aux changements externes du prop `content` (changement d'onglet, restoration,
+	// recréation après settingsKey). C'est le filet de sécurité quand onSetContent
+	// n'a pas pu être appelé (callback pas encore enregistré, ou périmé après {#key}).
+	$effect(() => {
+		if (content === prevContent) return;
+		prevContent = content;
+		if (rawMode) {
+			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
+				? serializeFm(frontmatter, frontmatterFormat)
+				: '';
+			const newContent = fmString ? `${fmString}\n\n${content}` : content;
+			if (rawContent !== newContent) rawContent = newContent;
+		} else if (editor) {
+			editor.commands.setContent(protectShortcodes(content));
+		}
+	});
 
 	$effect(() => {
 		if (rawMode === prevRawMode) return;
 		if (rawMode) {
-			// switching to raw: Tiptap → CM6, include frontmatter
 			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
 				? serializeFm(frontmatter, frontmatterFormat)
 				: '';
-			const body = getMarkdown();
+			const body = editor ? getMarkdown() : content;
 			rawContent = fmString ? `${fmString}\n\n${body}` : body;
 		} else {
-			// switching to WYSIWYG: textarea → Tiptap, strip frontmatter
 			const { body } = splitRawContent(rawContent);
-			if (editor) {
+			if (!editor) {
+				buildEditor(protectShortcodes(body));
+			} else {
 				editor.commands.setContent(protectShortcodes(body));
-				updateStats();
 			}
+			updateStats();
 		}
 		prevRawMode = rawMode;
 	});
@@ -340,9 +361,10 @@
 			return;
 		}
 		const isDark = document.documentElement.dataset.theme === 'dark';
+		const docValue = untrack(() => rawContent);
 		const view = new EditorView({
 			state: EditorState.create({
-				doc: untrack(() => rawContent),
+				doc: docValue,
 				extensions: [
 					basicSetup(),
 					markdown(),

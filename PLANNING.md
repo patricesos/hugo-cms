@@ -98,6 +98,25 @@
 
 ---
 
+## Backlog — Sélecteur de thème Hugo simplifié
+
+**Hypothèses (à valider avec l'utilisateur avant de coder) :**
+- Liste fixe de thèmes pré-testés (pas d'URL GitHub arbitraire)
+- Avertissement avant installation si conflit/shortcode potentiellement non supporté
+
+**Ordre d'implémentation :** US-100 → US-101 → US-102 → US-103 (séquentiel).
+
+---
+
+### EPIC A — Installation de thème en un clic (liste fixe pré-testée)
+
+- [ ] **US-100** — Catalogue de thèmes pré-testés (`src/lib/server/theme-catalog.ts`, liste statique, test manuel obligatoire de chaque thème avec les shortcodes custom réels avant ajout)
+- [ ] **US-101** — Détection de conflit shortcodes avant installation (`detectShortcodeConflicts()` dans `theme-install.ts`, liste `providedShortcodes` maintenue à la main par thème)
+- [ ] **US-102** — Endpoint `POST /api/hugo/theme/install` (validation themeId, sauvegarde config avant modification, gestion erreurs réseau/binaire manquant/format config, rollback possible via `.cms/backups/`)
+- [ ] **US-103** — UI `ThemeSelector.svelte` (modal grille de cartes, preview image, avertissement conflit, confirmation, état chargement, accessible depuis Settings)
+
+---
+
 ### Ancien backlog (future lointain)
 
 - [ ] Split view 50/50 éditeur + aperçu (auto-reload sur sauvegarde)

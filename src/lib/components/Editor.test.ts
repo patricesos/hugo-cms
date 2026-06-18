@@ -233,7 +233,22 @@ describe('Editor — mode brut / CM6', () => {
 		});
 	});
 
+	it('conserve le body content quand rawMode=true dès le départ', async () => {
+		const { default: Editor } = await import('./Editor.svelte');
+		const { render } = await import('@testing-library/svelte');
+		const { container } = render(Editor, {
+			rawMode: true,
+			content: 'Hello **world**',
+			frontmatter: { title: 'Saved' },
+		});
 
+		await waitFor(() => {
+			const lines = container.querySelectorAll('.cm-line');
+			const fullText = Array.from(lines).map(l => l.textContent).join('\n');
+			expect(fullText).toContain('Hello **world**');
+			expect(fullText).toContain('title: Saved');
+		});
+	});
 
 	it('affiche le bouton toggle avec "Mode visuel" en raw', async () => {
 		const { default: Editor } = await import('./Editor.svelte');
