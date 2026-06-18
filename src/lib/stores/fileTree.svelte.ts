@@ -54,13 +54,15 @@ function create() {
 
 		async loadTree() {
 			const res = await fetch('/api/content?tree=true');
-			update(state => ({ ...state, tree: await res.json() }));
+			const tree = await res.json() as TreeNode[];
+			update(state => ({ ...state, tree }));
 		},
 
 		async loadAssetTree() {
 			try {
 				const res = await fetch('/api/assets?tree=true');
-				update(state => ({ ...state, assetTree: await res.json() }));
+				const assetTree = await res.json() as TreeNode[];
+				update(state => ({ ...state, assetTree }));
 			} catch { /* ignore */ }
 		},
 
@@ -70,11 +72,9 @@ function create() {
 					fetch('/api/archetypes'),
 					fetch('/api/archetypes?tree=true'),
 				]);
-				update(state => ({
-					...state,
-					archetypes: await flatRes.json(),
-					archetypeTree: await treeRes.json(),
-				}));
+				const archetypes = await flatRes.json() as { name: string; label: string }[];
+				const archetypeTree = await treeRes.json() as TreeNode[];
+				update(state => ({ ...state, archetypes, archetypeTree }));
 			} catch {
 				update(state => ({ ...state, archetypes: [], archetypeTree: [] }));
 			}
@@ -83,7 +83,8 @@ function create() {
 		async loadConfigTree() {
 			try {
 				const res = await fetch('/api/config?tree=true');
-				update(state => ({ ...state, configTree: await res.json() }));
+				const configTree = await res.json() as TreeNode[];
+				update(state => ({ ...state, configTree }));
 			} catch {
 				update(state => ({ ...state, configTree: [] }));
 			}
