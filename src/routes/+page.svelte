@@ -15,6 +15,7 @@
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
+	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
 	import { getClientConfig, getServerConfig } from '$lib/client-config';
 
 	// Stores source de vérité unique
@@ -32,7 +33,6 @@
 
 	// Timers internes (pas reactifs)
 	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
-	let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 
 	// References composants lazy-loaded
 	let EditorComp = $state<any>(null);
@@ -105,55 +105,14 @@
 		settingsStore.persist(hydrated);
 	});
 
-	// --- Conflit ---
-	function startConflictPoll() {
-		stopConflictPoll();
-		if (!$currentSlug) return;
-		const interval = clientCfg?.externalPollInterval ?? 5000;
-		conflictPollTimer = setInterval(checkExternalChanges, interval);
-	}
-
-	function stopConflictPoll() {
-		if (conflictPollTimer) {
-			clearInterval(conflictPollTimer);
-			conflictPollTimer = null;
-		}
-	}
-
+	// --- Conflit : polling modifications externes ---
 	$effect(() => {
-		$currentSlug;
 		if ($currentSlug) {
-			startConflictPoll();
+			startConflictPoll($currentSlug, clientCfg?.externalPollInterval ?? 5000);
 		} else {
 			stopConflictPoll();
 		}
 	});
-
-	async function checkExternalChanges() {
-		if (!$currentSlug || $saveState === 'unsaved') return;
-		const tab = $tabs.find(t => t.slug === $currentSlug);
-		if (!tab || tab.kind !== 'content') return;
-		try {
-			const res = await fetch(`/api/content/${$currentSlug}`);
-			if (!res.ok) return;
-			const data = await res.json();
-			const serverMtime: number = data.mtimeMs;
-			if (Math.abs(serverMtime - tab.mtimeMs) > 1) {
-				editorStore.conflictSlug.set($currentSlug);
-				editorStore.conflictServerMtimeMs.set(serverMtime);
-			}
-		} catch { /* ignore */ }
-	}
-
-	function resolveConflict(action: 'reload' | 'overwrite') {
-		if (!$conflictSlug) return;
-		const tab = $tabs.find(t => t.slug === $conflictSlug);
-		if (!tab) { editorStore.conflictSlug.set(null); return; }
-		if (action === 'reload') {
-			editorStore.reloadFileFromDisk(tab);
-		}
-		editorStore.conflictSlug.set(null);
-	}
 
 	// --- Redimensionnement ---
 	const startResize = startSidebarResize(
@@ -348,12 +307,6 @@
 
 	function handleCloseTab(slug: string) {
 		editorStore.handleCloseTab(slug);
-	}
-
-	function handleVisibilityChange() {
-		if (document.visibilityState === 'visible' && $currentSlug) {
-			checkExternalChanges();
-		}
 	}
 
 	// --- Fonctions Git ---
