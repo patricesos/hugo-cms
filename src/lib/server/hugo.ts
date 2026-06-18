@@ -65,19 +65,8 @@ export function clearRuntimeBindAddress(): void {
 	state.runtimeBindAddress = null;
 }
 
-function findHugoRoot(): string | null {
-	const site = getCmsConfig().hugoSitePath;
-	if (
-		existsSync(resolve(site, 'hugo.toml')) ||
-		existsSync(resolve(site, 'hugo.yaml')) ||
-		existsSync(resolve(site, 'hugo.json')) ||
-		existsSync(resolve(site, 'config.toml')) ||
-		existsSync(resolve(site, 'config.yaml')) ||
-		existsSync(resolve(site, 'config.json'))
-	) {
-		return site;
-	}
-	return site;
+function findHugoRoot(): string {
+	return getCmsConfig().hugoSitePath;
 }
 
 export function getHugoStatus(): HugoStatus {
