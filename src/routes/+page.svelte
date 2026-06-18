@@ -10,12 +10,12 @@
 		import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
-	import type { Tab as EditorTab } from '$lib/stores/editor.svelte';
-	import { settingsStore } from '$lib/stores/settings.svelte';
+import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
 	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+	import { restoreAppState as restoreState } from '$lib/restore';
 	import { getClientConfig, getServerConfig } from '$lib/client-config';
 
 	// Stores source de vérité unique
@@ -288,43 +288,13 @@
 
 	// --- Restauration d'etat ---
 	async function restoreAppState() {
-		const result = settingsStore.restoreFromLocalStorage();
-		const showGitFromStorage = result?.showGit ?? false;
-		if (result?.tabs && result?.currentSlug) {
-			const restored: EditorTab[] = result.tabs.map((t: { slug: string; title: string; frontmatterLanguage?: string; kind?: string; isImage?: boolean }) => {
-				const kind = t.kind as EditorTab['kind'] ?? (t.isImage ? 'static' : 'content');
-				return { slug: t.slug, title: t.title, content: '', frontmatter: {}, mtimeMs: 0, frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml', kind };
-			});
-			editorStore.tabs.set(restored);
-			editorStore.currentSlug.set(result.currentSlug);
-			const contentTabs = restored.filter(t => t.kind === 'content');
-			await Promise.all(contentTabs.map(async (t) => {
-				try {
-					const res = await fetch(`/api/content/${t.slug}`);
-					const data = await res.json();
-					t.content = data.body || '';
-					t.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
-					t.mtimeMs = data.mtimeMs ?? 0;
-					t.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
-				} catch { /* ignore */ }
-			}));
-			const active = restored.find(t => t.slug === result.currentSlug);
-			if (active) {
-				if (active.kind === 'content') {
-					editorStore.editorContent.set(active.content);
-					editorStore.currentFrontmatter.set({ ...active.frontmatter });
-					editorStore.currentFmFormat.set(active.frontmatterLanguage ?? 'yaml');
-					editorStore.setEditorSetContent?.(active.content);
-				}
-				await switchToTab(result.currentSlug);
-			}
-		}
-		if (showGitFromStorage) {
+		const { activeSlug, shouldInitGit } = await restoreState();
+		if (activeSlug) await switchToTab(activeSlug);
+		if (shouldInitGit) {
 			gitStore.initialized.set(true);
 			await refreshGitStatus();
 		}
 		hydrated = true;
-		await settingsStore.restoreFromFile();
 	}
 </script>
 
