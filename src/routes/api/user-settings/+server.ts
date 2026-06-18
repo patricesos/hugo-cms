@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { loadUserSettings, saveUserSettings, type UserSettings } from '$lib/server/user-config';
+import { resetCmsConfig } from '$lib/server/config';
 import { validateSettingValue, allSettingKeys } from '$lib/settings/validate';
 
 export async function GET() {
@@ -37,5 +38,6 @@ export async function PUT({ request }) {
 	}
 
 	saveUserSettings(data as unknown as UserSettings);
+	resetCmsConfig();
 	return json({ ok: true });
 }

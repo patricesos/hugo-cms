@@ -26,6 +26,9 @@ function resolveDotenv(): string | null {
 	return null;
 }
 
+// readFileSync délibéré : fichier .env (<1KB) lu une fois au démarrage, ~5ms.
+// Convertir en async nécessiterait de refaire toute la chaîne getCmsConfig()
+// (39 call sites, 9 fonctions synchrones) — voir PLANNING.md F-002.
 function loadDotenv(): void {
 	const envPath = resolveDotenv();
 	if (!envPath) return;

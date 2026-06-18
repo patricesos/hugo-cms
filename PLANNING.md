@@ -115,14 +115,23 @@
 - [x] **E-003** — 🟡 `saveAppState()` reconstruit un objet de 30+ champs manuellement — duplication du schema entre `saveAppState`, `restoreAppState`, et le callback `onSave`
 - [x] **E-004** — 🟡 `restoreAppState()` fait 40+ `if (s.xxx !== undefined) xxx = s.xxx as type` — devrait être un `Object.assign()` avec un type safely
 - [x] **E-005** — 🟡 Composants lazy-loaded typés `$state<any>(null)` — 12 composants sans type safety
-- [ ] **E-006** — 🟡 `onSave` du SettingsDialog reçoit un objet inline de 30+ champs — le type est écrit en dur dans le template
-- [ ] **E-007** — 🟡 `$effect` pour `saveAppState` avec 35+ dépendances listées manuellement — risque d'oubli
+- [x] **E-006** — 🟡 `onSave` du SettingsDialog reçoit un objet inline de 30+ champs — le type est écrit en dur dans le template
+- [x] **E-007** — 🟡 `$effect` pour `saveAppState` avec 35+ dépendances listées manuellement — risque d'oubli
 
 #### Duplications de Types
 
 - [x] **E-008** — 🟡 `TreeNode` défini dans `types.ts` ET re-défini dans `+page.svelte:12-19` — devrait import depuis `$lib/server/types`
 - [x] **E-009** — 🟡 `safeResolveBase()` duplique `safeResolveIn()` — `api/content/[...slug]/+server.ts:10-17` vs `content.ts:18-25`
-- [ ] **E-010** — 🟢 `TabKind` et `Tab` interface redéfinis localement — devraient être dans un fichier partagé
+- [x] **E-010** — 🟢 `TabKind` et `Tab` interface redéfinis localement — devraient être dans un fichier partagé
+
+#### Extraction `+page.svelte` (session juin 2026)
+
+- [x] **E-011** — 🟢 Restaurer `currentTab`/`handleCreate` dans `editorStore`, déléguer depuis `+page.svelte`
+- [x] **E-012** — 🟢 Restaurer 5 derived stores Hugo dans `hugoStore`, consommer depuis `+page.svelte` (fini `$hugoStore.x`)
+- [x] **E-013** — 🟢 Extraire `conflict.ts` (polling externes, resolve, visibility change)
+- [x] **E-014** — 🟢 Extraire `fileTree.svelte.ts` (arbres + loaders + derives directories/searchEntries)
+- [x] **E-015** — 🟢 Extraire `restoreAppState()` dans `restore.ts` (utilitaire multi-stores, comme `conflict.ts`)
+- [x] **E-016** — 🟢 Extraire `handleFrontmatterChange()` dans `editorStore`
 
 ---
 
@@ -131,12 +140,12 @@
 #### I/O Synchrone vs Asynchrone
 
 - [x] **F-001** — 🟡 `existsSync()` mélangé avec des fonctions async dans `content.ts` (7 occurrences) — bloquer l'event loop
-- [ ] **F-002** — 🟡 `readFileSync` dans `config.ts:33` — bloque le thread principal
-- [ ] **F-003** — 🟢 `shortcodes.ts:108-110` — `for...of` avec `await readFile()` séquentiel au lieu de `Promise.all()`
+- [x] **F-002** — 🟡 `readFileSync` dans `config.ts:33` — documenté dans le code (commentaire). Fichier <1KB, une seule fois au démarrage, ~5ms. Convertir en async nécessiterait 39 call sites + 9 fonctions sync à refaire — coût déraisonnable.
+- [x] **F-003** — 🟢 `shortcodes.ts:108-110` — déjà fixé : `Promise.all()` + `map()` async = lectures concurrentes
 
 #### Patterns de Cache & État Global
 
-- [ ] **F-004** — 🟡 `let _cmsConfig` — cache module-level sans invalidation automatique
+- [x] **F-004** — 🟡 `let _cmsConfig` — cache invalidé via `resetCmsConfig()` après `saveUserSettings()`
 - [ ] **F-005** — 🟢 `let _git` — cache lazy sans TTL ni invalidation
 - [ ] **F-006** — 🟡 `let hugoProcess`, `let hugoUrl`, `let logBuffer` — 7 variables globales mutable dans `hugo.ts`
 - [ ] **F-007** — 🟢 3 exports `__reset*ForTests()` exposés en production — pattern anti-test
