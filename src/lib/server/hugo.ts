@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getCmsConfig } from './config';
 
-interface HugoStatus {
+export interface HugoStatus {
 	running: boolean;
 	url: string | null;
 	port: number;
@@ -16,7 +16,7 @@ export interface LogEntry {
 	timestamp: number;
 }
 
-const MAX_LOG_ENTRIES = 2000;
+export const MAX_LOG_ENTRIES = 2000;
 let logBuffer: LogEntry[] = [];
 
 export function getLogs(): LogEntry[] {
@@ -136,6 +136,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 			}
 			hugoProcess = null;
 			startPromise = null;
+			resolvePromise(getHugoStatus());
 		});
 	});
 
@@ -169,4 +170,13 @@ export async function stopHugoServer(): Promise<HugoStatus> {
 	hugoUrl = null;
 	hugoError = null;
 	return getHugoStatus();
+}
+
+/** Pour les tests : réinitialise tout l'état du module. */
+export function __resetHugoStateForTests(): void {
+	hugoProcess = null;
+	hugoUrl = null;
+	hugoError = null;
+	startPromise = null;
+	logBuffer = [];
 }

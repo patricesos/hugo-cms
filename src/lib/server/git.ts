@@ -10,6 +10,11 @@ function getGit(): ReturnType<typeof simpleGit> {
 	return _git;
 }
 
+/** Pour les tests : force la réinitialisation de l'instance simple-git. */
+export function __resetGitForTests(): void {
+	_git = null;
+}
+
 export interface GitStatus {
 	branch: string;
 	modified: string[];
