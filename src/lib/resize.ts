@@ -4,14 +4,14 @@ function createResizeHandler(
 	getStartWidth: () => number,
 	setWidth: (w: number) => void,
 	clamp: (w: number) => number,
-	onMoveExtra?: (ev: MouseEvent) => void,
+	reverse?: boolean,
 ) {
 	return (e: MouseEvent) => {
 		e.preventDefault();
 		const startX = e.clientX;
 		const startWidth = getStartWidth();
 		function onMove(ev: MouseEvent) {
-			const delta = onMoveExtra ? -(ev.clientX - startX) : ev.clientX - startX;
+			const delta = reverse ? -(ev.clientX - startX) : ev.clientX - startX;
 			setWidth(clamp(startWidth + delta));
 		}
 		function onUp() {
@@ -39,7 +39,7 @@ export function startSidebarResize(getWidth: () => number, setWidth: (w: number)
 }
 
 export function startFmResize(getWidth: () => number, setWidth: (w: number) => void) {
-	return createResizeHandler(getWidth, setWidth, w => Math.max(200, Math.min(500, w)), () => {});
+	return createResizeHandler(getWidth, setWidth, w => Math.max(200, Math.min(500, w)), true);
 }
 
 export function startPreviewResize(getWidth: () => number, setWidth: (w: number) => void) {

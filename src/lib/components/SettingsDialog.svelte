@@ -4,7 +4,7 @@
 	import SettingsPanel from '$lib/settings/SettingsPanel.svelte';
 	import { settingsSchema } from '$lib/settings/schema';
 
-	interface SettingsState {
+	interface SettingsData {
 		defaultRawMode: boolean;
 		showBubbleMenu: boolean;
 		showSlashMenu: boolean;
@@ -25,28 +25,29 @@
 		showConsole: boolean;
 		showPreview: boolean;
 		showGit: boolean;
+		showFilenameInTabs: boolean;
 		gitRemote: string;
 		gitBranch: string;
 		hugoSitePathUseDotEnv: boolean;
 		hugoSitePathCustom: string;
 		hugoBindAddress: string;
 		hugoPort: number;
-	cmsBindAddress: string;
-	cmsPort: number;
-	trashDir: string;
+		cmsBindAddress: string;
+		cmsPort: number;
+		trashDir: string;
 	}
 
-	let { show = false, settings = {} as SettingsState, serverConfig = null, onClose, onSave, onConfirm }: {
+	let { show = false, settings = {} as SettingsData, serverConfig = null, onClose, onSave, onConfirm }: {
 		show: boolean;
-		settings: SettingsState;
+		settings: SettingsData;
 		serverConfig: Record<string, string | number | boolean> | null;
 		onClose: () => void;
-		onSave: (s: SettingsState) => void;
+		onSave: (s: SettingsData) => void;
 		onConfirm?: () => void;
 	} = $props();
 
-	let local = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsBindAddress: '127.0.0.1', cmsPort: 1703, trashDir: '_trash' });
-	let snapshot = $state<SettingsState>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsBindAddress: '127.0.0.1', cmsPort: 1703, trashDir: '_trash' });
+	let local = $state<SettingsData>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, showFilenameInTabs: true, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsBindAddress: '127.0.0.1', cmsPort: 1703, trashDir: '_trash' });
+	let snapshot = $state<SettingsData>({ defaultRawMode: false, showBubbleMenu: true, showSlashMenu: true, draftByDefault: true, autoSaveDelay: 2000, theme: 'system', editorFont: 'serif', editorFontSize: 'normal', editorMaxWidth: '720px', editorMaxWidthCustom: 720, historyDepth: 250, sidebarOpen: true, sidebarWidth: 260, fmOpen: true, fmWidth: 280, fmRawMode: false, sidebarView: 'content', showConsole: false, showPreview: false, showGit: false, showFilenameInTabs: true, gitRemote: 'origin', gitBranch: 'main', hugoSitePathUseDotEnv: true, hugoSitePathCustom: '', hugoBindAddress: '127.0.0.1', hugoPort: 1313, cmsBindAddress: '127.0.0.1', cmsPort: 1703, trashDir: '_trash' });
 
 	$effect(() => {
 		if (show) {

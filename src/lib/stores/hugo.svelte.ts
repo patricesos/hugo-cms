@@ -11,7 +11,7 @@ export interface HugoState {
 }
 
 function create() {
-	const { subscribe, update, set } = writable<HugoState>({
+	const { subscribe, update } = writable<HugoState>({
 		status: 'stopped',
 		url: null,
 		live: false,

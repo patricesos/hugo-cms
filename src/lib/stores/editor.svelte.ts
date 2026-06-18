@@ -49,24 +49,14 @@ function create() {
 		conflictSlug,
 		conflictServerMtimeMs,
 
-		currentTab: derived(currentSlug, (curSlug, set) => {
-			const unsub = tabs.subscribe(curTabs => {
-				set(curTabs.find(t => t.slug === curSlug));
-			});
-			return unsub;
-		}),
+		currentTab: derived([currentSlug, tabs], ([$slug, $tabs]) =>
+			$tabs.find(t => t.slug === $slug)
+		),
 
 		setEditorGetContent(fn: (() => string) | null) { _editorGetContent = fn; },
 		setEditorSetContent(fn: ((content: string) => void) | null) { _editorSetContent = fn; },
 
-		flattenTree(nodes: TreeNode[]): TreeNode[] {
-			const result: TreeNode[] = [];
-			for (const n of nodes) {
-				if (n.type === 'file') result.push(n);
-				if (n.children) result.push(...flattenTree(n.children));
-			}
-			return result;
-		},
+		flattenTree,
 
 		updateTreeFrontmatter(tree: TreeNode[], slug: string, fm: Record<string, unknown>): TreeNode[] {
 			function walk(nodes: TreeNode[]): boolean {
@@ -183,10 +173,11 @@ function create() {
 			}
 		},
 
-		async handleCreate(title: string, section: string, loadTreeFn: () => Promise<void>, archetype?: string) {
+		async handleCreate(title: string, section: string, loadTreeFn: () => Promise<void>, draftByDefault: boolean, archetype?: string) {
 			const slug = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 			const fullSlug = section ? `${section}/${slug}` : slug;
 			const frontmatter: Record<string, unknown> = { title, date: new Date().toISOString().split('T')[0] };
+			if (draftByDefault) frontmatter.draft = true;
 			await fetch(`/api/content/${fullSlug}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
