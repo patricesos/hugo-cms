@@ -2,6 +2,7 @@ import { homedir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { stringify, parse } from '@iarna/toml';
+import { validateSettingValue, allSettingKeys } from '../settings/validate';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type EditorFont = 'sans' | 'mono' | 'serif' | 'system-ui';
@@ -83,44 +84,12 @@ export function loadUserSettings(): UserSettings {
 		const raw = readFileSync(path, 'utf-8');
 		const parsed = parse(raw) as Record<string, unknown>;
 		const result = { ...defaults };
-		for (const key of Object.keys(defaults) as (keyof UserSettings)[]) {
+		for (const key of allSettingKeys()) {
+			if (!(key in parsed)) continue;
 			const val = parsed[key];
-			if (key === 'autoSaveDelay') {
-				if (typeof val === 'number' && val >= 500) result[key] = val;
-			} else if (key === 'theme') {
-				if (val === 'light' || val === 'dark' || val === 'system') result[key] = val;
-			} else if (key === 'editorFont') {
-				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') result[key] = val;
-			} else if (key === 'editorFontSize') {
-				if (val === 'small' || val === 'normal' || val === 'large') result[key] = val;
-			} else if (key === 'editorMaxWidth') {
-				if (val === '720px' || val === '100%' || val === 'custom') result[key] = val;
-			} else if (key === 'editorMaxWidthCustom') {
-				if (typeof val === 'number' && val >= 400 && val <= 2000) result[key] = val;
-			} else if (key === 'historyDepth') {
-				if (typeof val === 'number' && val >= 10 && val <= 10000) result[key] = val;
-			} else if (key === 'sidebarWidth') {
-				if (typeof val === 'number' && val >= 180 && val <= 500) result[key] = val;
-			} else if (key === 'fmWidth') {
-				if (typeof val === 'number' && val >= 200 && val <= 500) result[key] = val;
-			} else if (key === 'sidebarView') {
-				if (val === 'content' || val === 'static' || val === 'archetypes' || val === 'config') result[key] = val;
-			} else if (key === 'gitRemote' || key === 'gitBranch') {
-				if (typeof val === 'string') result[key] = val;
-			} else if (key === 'hugoSitePathUseDotEnv') {
-				if (typeof val === 'boolean') result[key] = val;
-			} else if (key === 'hugoSitePathCustom') {
-				if (typeof val === 'string') result[key] = val;
-			} else if (key === 'hugoBindAddress') {
-				if (typeof val === 'string') result[key] = val;
-			} else if (key === 'hugoPort') {
-				if (typeof val === 'number' && val >= 1 && val <= 65535) result[key] = val;
-			} else if (key === 'cmsPort') {
-				if (typeof val === 'number' && val >= 1 && val <= 65535) result[key] = val;
-			} else if (key === 'trashDir') {
-				if (typeof val === 'string') result[key] = val;
-			} else if (typeof val === 'boolean') {
-				result[key] = val;
+			const validation = validateSettingValue(key, val);
+			if (validation.valid) {
+				(result as Record<string, unknown>)[key] = validation.parsed;
 			}
 		}
 		return result;
@@ -134,45 +103,12 @@ export function saveUserSettings(settings: UserSettings): void {
 	const dir = dirname(path);
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 	const obj: Record<string, unknown> = {};
-		for (const key of Object.keys(defaults) as (keyof UserSettings)[]) {
-			const val = settings[key];
-			if (key === 'autoSaveDelay') {
-				if (typeof val === 'number' && val >= 500) obj[key] = val;
-			} else if (key === 'theme') {
-				if (val === 'light' || val === 'dark' || val === 'system') obj[key] = val;
-			} else if (key === 'editorFont') {
-				if (val === 'sans' || val === 'mono' || val === 'serif' || val === 'system-ui') obj[key] = val;
-			} else if (key === 'editorFontSize') {
-				if (val === 'small' || val === 'normal' || val === 'large') obj[key] = val;
-			} else if (key === 'editorMaxWidth') {
-				if (val === '720px' || val === '100%' || val === 'custom') obj[key] = val;
-			} else if (key === 'editorMaxWidthCustom') {
-				if (typeof val === 'number' && val >= 400 && val <= 2000) obj[key] = val;
-			} else if (key === 'historyDepth') {
-				if (typeof val === 'number' && val >= 10 && val <= 10000) obj[key] = val;
-			} else if (key === 'sidebarWidth') {
-				if (typeof val === 'number' && val >= 180 && val <= 500) obj[key] = val;
-			} else if (key === 'fmWidth') {
-				if (typeof val === 'number' && val >= 200 && val <= 500) obj[key] = val;
-			} else if (key === 'sidebarView') {
-				if (val === 'content' || val === 'static' || val === 'archetypes' || val === 'config') obj[key] = val;
-			} else if (key === 'gitRemote' || key === 'gitBranch') {
-				if (typeof val === 'string') obj[key] = val;
-			} else if (key === 'hugoSitePathUseDotEnv') {
-				if (typeof val === 'boolean') obj[key] = val;
-			} else if (key === 'hugoSitePathCustom') {
-				if (typeof val === 'string') obj[key] = val;
-			} else if (key === 'hugoBindAddress') {
-				if (typeof val === 'string') obj[key] = val;
-			} else if (key === 'hugoPort') {
-				if (typeof val === 'number' && val >= 1 && val <= 65535) obj[key] = val;
-			} else if (key === 'cmsPort') {
-				if (typeof val === 'number' && val >= 1 && val <= 65535) obj[key] = val;
-			} else if (key === 'trashDir') {
-				if (typeof val === 'string') obj[key] = val;
-			} else if (typeof val === 'boolean') {
-				obj[key] = val;
-			}
+	for (const key of allSettingKeys()) {
+		const val = (settings as Record<string, unknown>)[key];
+		const validation = validateSettingValue(key, val);
+		if (validation.valid) {
+			obj[key] = validation.parsed;
 		}
+	}
 	writeFileSync(path, stringify(obj as import('@iarna/toml').JsonMap), 'utf-8');
 }

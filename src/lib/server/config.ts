@@ -139,9 +139,9 @@ function buildConfig(sitePath: string, userSettings: UserSettings): CmsConfig {
 		defaultAuthor: env('DEFAULT_AUTHOR', 'patricesos'),
 		dateFormat: env('DATE_FORMAT', 'YYYY-MM-DD'),
 		git: {
-			enabled: envBool('GIT_ENABLED', false),
-			remote: env('GIT_REMOTE', 'origin'),
-			branch: env('GIT_BRANCH', 'main'),
+			enabled: envBool('GIT_ENABLED', userSettings.showGit),
+			remote: env('GIT_REMOTE', userSettings.gitRemote),
+			branch: env('GIT_BRANCH', userSettings.gitBranch),
 		},
 		trashDir: env('TRASH_DIR', userSettings.trashDir),
 		archetypesDir: env('ARCHETYPES_DIR', 'archetypes'),

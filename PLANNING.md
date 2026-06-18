@@ -5,6 +5,13 @@
 - [ ] Langue de l'interface (Français, English) *(Nice to have)*
 - [ ] Slugify : conserver les caractères non-ASCII (oui/non) — actuellement strip tout sauf a-z0-9-
 
+### En cours — Architecture config
+
+- [x] **PROBLÈME 1** — `buildConfig()` : fallbacks git enabled/remote/branch utilisent maintenant `userSettings.showGit`/`gitRemote`/`gitBranch` au lieu de valeurs hardcodées
+- [x] **PROBLÈME 2** — `validate.ts` : `validateSettingValue()` + `allSettingKeys()` pilotés par `settingsSchema`. Rewrite `loadUserSettings()`/`saveUserSettings()` sans duplication
+- [x] **PROBLÈME 3** — `PUT /api/user-settings` : validation JSON body, type object, clés connues, valeurs valides → 400
+- [x] **VALIDATION** — `npx vitest run` → 110/110
+
 ### En cours — Fix testabilité
 
 - [x] **FIX 1** — `Editor.test.ts` : ajouter `Image` au mock `@lucide/svelte`
