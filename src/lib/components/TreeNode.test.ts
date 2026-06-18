@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/svelte';
 import TreeNode from './TreeNode.svelte';
+import type { TreeNodeData } from '$lib/types';
 
 // --- mock des icônes lucide (identique aux autres tests du projet) ---
 vi.mock('@lucide/svelte', () => {
@@ -27,15 +28,6 @@ beforeAll(() => {
 });
 
 afterEach(cleanup);
-
-interface TreeNodeData {
-	type: 'file' | 'directory';
-	name: string;
-	slug: string;
-	path: string;
-	children?: TreeNodeData[];
-	frontmatter?: Record<string, unknown>;
-}
 
 // --- jeux de données ---
 const fileNode: TreeNodeData = {
@@ -88,17 +80,17 @@ describe('TreeNode', () => {
 	// =========== Rendu de base ===========
 
 	it('renders a file name', () => {
-		render(TreeNode, { node: fileNode, depth: 0, currentSlug: '' });
+		render(TreeNode, { node: fileNode, depth: 0, currentSlug: '', onLoadFile: vi.fn() });
 		expect(screen.getByText('about.md')).toBeTruthy();
 	});
 
 	it('renders a directory name', () => {
-		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '' });
+		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '', onLoadFile: vi.fn() });
 		expect(screen.getByText('blog')).toBeTruthy();
 	});
 
 	it('shows chevron-right for a closed directory', () => {
-		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '', expandedSlugs: new Set() });
+		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '', expandedSlugs: new Set<string>() });
 		// La classe active n'est pas sur le chevron lui-même,
 		// on vérifie que le titre du bouton est "Développer"
 		const dirBtn = screen.getByText('blog').closest('button')!;
@@ -160,7 +152,7 @@ describe('TreeNode', () => {
 	});
 
 	it('hides children when expandedSlugs does not contain the directory slug', () => {
-		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '', expandedSlugs: new Set() });
+		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '', expandedSlugs: new Set<string>() });
 		expect(screen.queryByText('hello.md')).toBeNull();
 	});
 

@@ -8,9 +8,7 @@ beforeAll(() => {
 	// Mock de element.animate pour les transitions Svelte (slide) en jsdom.
 	// On ignore les callbacks onfinish ; la fermeture du dropdown est testée
 	// via aria-expanded (synchronisé avec l'état Svelte, pas l'animation).
-	HTMLElement.prototype.animate = vi.fn<[PropertyIndexedKeyframes | Keyframe[] | null, number | KeyframeAnimationOptions | undefined], Animation>(
-		() => ({ onfinish: null, finish: vi.fn(), cancel: vi.fn() } as unknown as Animation),
-	);
+	HTMLElement.prototype.animate = vi.fn<(...args: unknown[]) => Animation>(() => ({ onfinish: null, finish: vi.fn(), cancel: vi.fn() } as unknown as Animation),);
 	Element.prototype.getAnimations = vi.fn(() => []) as unknown as typeof Element.prototype.getAnimations;
 });
 
@@ -35,8 +33,8 @@ afterEach(cleanup);
 describe('Sidebar', () => {
 	// Arbres plats (sans sous-dossiers) pour la plupart des tests
 	const flatTree = [
-		{ type: 'file' as const, name: 'about.md', slug: 'about' },
-		{ type: 'file' as const, name: 'contact.md', slug: 'contact' },
+		{ type: 'file' as const, name: 'about.md', slug: 'about', path: 'about.md' },
+		{ type: 'file' as const, name: 'contact.md', slug: 'contact', path: 'contact.md' },
 	];
 
 	const treeWithDir = [
@@ -44,12 +42,13 @@ describe('Sidebar', () => {
 			type: 'directory' as const,
 			name: 'blog',
 			slug: 'blog',
+			path: 'blog',
 			children: [
-				{ type: 'file' as const, name: 'hello.md', slug: 'blog/hello' },
-				{ type: 'file' as const, name: 'tips.md', slug: 'blog/tips' },
+				{ type: 'file' as const, name: 'hello.md', slug: 'blog/hello', path: 'blog/hello.md' },
+				{ type: 'file' as const, name: 'tips.md', slug: 'blog/tips', path: 'blog/tips.md' },
 			],
 		},
-		{ type: 'file' as const, name: 'about.md', slug: 'about' },
+		{ type: 'file' as const, name: 'about.md', slug: 'about', path: 'about.md' },
 	];
 
 	const assetTree = [
@@ -110,14 +109,14 @@ describe('Sidebar', () => {
 	it('hides children when expandedSlugs does not contain the directory', () => {
 		render(Sidebar, {
 			tree: treeWithDir,
-			expandedSlugs: new Set(),
+			expandedSlugs: new Set<string>(),
 		});
 		expect(screen.queryByText('hello.md')).toBeNull();
 		expect(screen.queryByText('tips.md')).toBeNull();
 	});
 
 	it('does not crash with an empty tree', () => {
-		render(Sidebar, { tree: [], assetTree: [], archetypeTree: [], configTree: [] });
+		render(Sidebar, { tree: [], assetTree: [], archetypeTree: [], configTree: [], currentSlug: '', onLoadFile: vi.fn() });
 		expect(screen.getByText('Content')).toBeTruthy();
 	});
 
@@ -261,9 +260,12 @@ describe('Sidebar', () => {
 	it('calls onSelectAsset in static view', async () => {
 		const onSelectAsset = vi.fn();
 		render(Sidebar, {
+			tree: flatTree,
 			assetTree,
 			sidebarView: 'static',
 			onSelectAsset,
+			currentSlug: '',
+			onLoadFile: vi.fn(),
 		});
 
 		const assetBtn = screen.getByText('logo.png').closest('button')!;
@@ -274,9 +276,12 @@ describe('Sidebar', () => {
 	it('calls onSelectConfig in config view', async () => {
 		const onSelectConfig = vi.fn();
 		render(Sidebar, {
+			tree: flatTree,
 			configTree,
 			sidebarView: 'config',
 			onSelectConfig,
+			currentSlug: '',
+			onLoadFile: vi.fn(),
 		});
 
 		const configBtn = screen.getByText('hugo.yaml').closest('button')!;
@@ -287,9 +292,12 @@ describe('Sidebar', () => {
 	it('calls onSelectArchetype in archetypes view', async () => {
 		const onSelectArchetype = vi.fn();
 		render(Sidebar, {
+			tree: flatTree,
 			archetypeTree,
 			sidebarView: 'archetypes',
 			onSelectArchetype,
+			currentSlug: '',
+			onLoadFile: vi.fn(),
 		});
 
 		const archetypeBtn = screen.getByText('post').closest('button')!;
@@ -337,22 +345,22 @@ describe('Sidebar', () => {
 
 	it('renders multiple directories in the tree', () => {
 		const multiDirTree = [
-			{ type: 'directory' as const, name: 'blog', slug: 'blog', children: [] },
-			{ type: 'directory' as const, name: 'projects', slug: 'projects', children: [] },
+			{ type: 'directory' as const, name: 'blog', slug: 'blog', path: 'blog', children: [] },
+			{ type: 'directory' as const, name: 'projects', slug: 'projects', path: 'projects', children: [] },
 		];
-		render(Sidebar, { tree: multiDirTree });
+		render(Sidebar, { tree: multiDirTree, currentSlug: '', onLoadFile: vi.fn() });
 		expect(screen.getByText('blog')).toBeTruthy();
 		expect(screen.getByText('projects')).toBeTruthy();
 	});
 
 	it('shows collapse icon when expandedSlugs contains the directory', () => {
-		render(Sidebar, { tree: treeWithDir, expandedSlugs: new Set(['blog']) });
+		render(Sidebar, { tree: treeWithDir, expandedSlugs: new Set(['blog']), currentSlug: '', onLoadFile: vi.fn() });
 		const dirBtn = screen.getByText('blog').closest('button')!;
 		expect(dirBtn.getAttribute('title')).toBe('Réduire');
 	});
 
 	it('shows expand icon when expandedSlugs does not contain the directory', () => {
-		render(Sidebar, { tree: treeWithDir, expandedSlugs: new Set() });
+		render(Sidebar, { tree: treeWithDir, expandedSlugs: new Set<string>(), currentSlug: '', onLoadFile: vi.fn() });
 		const dirBtn = screen.getByText('blog').closest('button')!;
 		expect(dirBtn.getAttribute('title')).toBe('Développer');
 	});
@@ -364,6 +372,8 @@ describe('Sidebar', () => {
 			tree: treeWithDir,
 			expandedSlugs,
 			onToggleFolder: handleToggle,
+			currentSlug: '',
+			onLoadFile: vi.fn(),
 		});
 
 		const dirBtn = screen.getByText('blog').closest('button')!;

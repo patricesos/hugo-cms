@@ -21,6 +21,7 @@ function create() {
 
 	return {
 		subscribe,
+		update,
 
 		async start() {
 			update(s => ({ ...s, status: 'loading' }));

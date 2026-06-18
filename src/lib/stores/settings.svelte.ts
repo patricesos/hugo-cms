@@ -1,5 +1,5 @@
 import { writable, derived, get } from "svelte/store";
-import { editorStore } from './editor.svelte';
+import { SETTINGS_DEFAULTS as SHARED_DEFAULTS } from '$lib/settings/defaults';
 
 export interface SettingsData {
 	defaultRawMode: boolean;
@@ -18,7 +18,7 @@ export interface SettingsData {
 	fmOpen: boolean;
 	fmWidth: number;
 	fmRawMode: boolean;
-	sidebarView: string;
+	sidebarView: 'content' | 'static' | 'archetypes' | 'config';
 	showConsole: boolean;
 	showPreview: boolean;
 	showGit: boolean;
@@ -78,29 +78,7 @@ export interface LayoutState {
   expandedSlugs: string[];
 }
 
-const SETTINGS_DEFAULTS: SettingsState = {
-  defaultRawMode: false,
-  showBubbleMenu: true,
-  showSlashMenu: true,
-  draftByDefault: true,
-  autoSaveDelay: 2000,
-  theme: "system",
-  editorFont: "serif",
-  editorFontSize: "normal",
-  editorMaxWidth: "720px",
-  editorMaxWidthCustom: 720,
-  historyDepth: 250,
-  showFilenameInTabs: false,
-  gitRemote: "origin",
-  gitBranch: "main",
-  hugoSitePathUseDotEnv: true,
-  hugoSitePathCustom: "",
-  hugoBindAddress: "127.0.0.1",
-  hugoPort: 1313,
-  cmsBindAddress: "127.0.0.1",
-  cmsPort: 1703,
-  trashDir: "_trash",
-};
+const SETTINGS_DEFAULTS = SHARED_DEFAULTS as unknown as SettingsState;
 
 const LAYOUT_DEFAULTS: LayoutState = {
   sidebarOpen: true,
@@ -122,12 +100,16 @@ function createSettingsStore() {
   const layout = writable<LayoutState>({ ...LAYOUT_DEFAULTS });
   let _hydrated = false;
 
+  /** Getters injectes depuis +page.svelte pour eviter l'import direct de editorStore. */
+  let _getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string }> = () => [];
+  let _getCurrentSlug: () => string | null = () => null;
+
   function persist() {
     if (!_hydrated) return;
     const s = get(settings);
     const l = get(layout);
-    const eTabs = get(editorStore.tabs);
-    const eSlug = get(editorStore.currentSlug);
+    const eTabs = _getTabs();
+    const eSlug = _getCurrentSlug();
     const state = {
       tabs: eTabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, kind: t.kind })),
       currentSlug: eSlug,
@@ -157,8 +139,6 @@ function createSettingsStore() {
 
   settings.subscribe(persist);
   layout.subscribe(persist);
-  editorStore.tabs.subscribe(persist);
-  editorStore.currentSlug.subscribe(persist);
 
   return {
     settings,
@@ -192,6 +172,15 @@ function createSettingsStore() {
     setHydrated() {
       _hydrated = true;
       persist();
+    },
+
+    /** Injection des getters editor pour eviter l'import direct de editorStore. */
+    setEditorGetters(
+      getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string }>,
+      getCurrentSlug: () => string | null
+    ) {
+      _getTabs = getTabs;
+      _getCurrentSlug = getCurrentSlug;
     },
 
     /** Restaure depuis localStorage */

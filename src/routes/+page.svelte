@@ -10,8 +10,8 @@
 		import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
-import type { Tab } from '$lib/stores/editor.svelte';
 import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
+import type { SettingsData } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
@@ -27,6 +27,12 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 
 	// Arbres (store dedie)
 	const { tree, assetTree, archetypeTree, configTree, archetypes, directories, searchEntries, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
+
+	// Injection des getters editor dans settingsStore pour le persist (evite l'import direct)
+	settingsStore.setEditorGetters(
+		() => $tabs,
+		() => $currentSlug
+	);
 
 	// Timers internes (pas reactifs)
 	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -411,10 +417,10 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 				/>
 			{:else}
 				<Sidebar
-					tree={tree}
-					{assetTree}
-					{archetypeTree}
-					{configTree}
+					tree={$tree}
+					assetTree={$assetTree}
+					archetypeTree={$archetypeTree}
+					configTree={$configTree}
 					currentSlug={$currentSlug}
 					sidebarView={$layout.sidebarView}
 					expandedSlugs={new Set($layout.expandedSlugs)}
@@ -431,43 +437,14 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 					onSelectAsset={(path) => {
 						const ext = path.split('.').pop()?.toLowerCase();
 						if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
-							const slug = path;
-							const existing = $tabs.find(t => t.slug === slug);
-							if (existing) { switchToTab(slug); return; }
-							const tab: Tab = {
-								slug,
-								title: slug.split('/').pop() || slug,
-								content: '',
-								frontmatter: {},
-								mtimeMs: 0,
-								kind: 'static',
-							};
-							editorStore.tabs.set([...$tabs, tab]);
-							switchToTab(slug);
+							editorStore.openKindTab(path, 'static');
+							switchToTab(path);
 						} else {
 							window.open(`/api/assets/${path}`, '_blank');
 						}
 					}}
-					onSelectArchetype={(slug) => {
-						const existing = $tabs.find(t => t.slug === slug);
-						if (existing) { switchToTab(slug); return; }
-						editorStore.tabs.set([...$tabs, {
-							slug, title: slug.split('/').pop() || slug,
-							content: '', frontmatter: {}, mtimeMs: 0, kind: 'archetype',
-						}]);
-						editorStore.currentArchetype.set(slug);
-						switchToTab(slug);
-					}}
-					onSelectConfig={(slug) => {
-						const existing = $tabs.find(t => t.slug === slug);
-						if (existing) { switchToTab(slug); return; }
-						editorStore.tabs.set([...$tabs, {
-							slug, title: slug.split('/').pop() || slug,
-							content: '', frontmatter: {}, mtimeMs: 0, kind: 'config',
-						}]);
-						editorStore.currentConfigSlug.set(slug);
-						switchToTab(slug);
-					}}
+					onSelectArchetype={(slug) => { editorStore.openKindTab(slug, 'archetype'); switchToTab(slug); }}
+					onSelectConfig={(slug) => { editorStore.openKindTab(slug, 'config'); switchToTab(slug); }}
 					onViewChange={(v) => { settingsStore.updateLayout({ sidebarView: v }); if (v === 'config') loadConfigTree(); }}
 				/>
 			{/if}
@@ -498,7 +475,7 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 						/>
 					{/if}
 				{:else if $dialogs.showSitemap && !$currentSlug}
-					<SitemapView {tree} currentSlug={$currentSlug} onLoadFile={(slug) => { loadFile(slug); uiStore.updateDialogs({ showSitemap: false }); }} onRefresh={loadTree} />
+					<SitemapView tree={$tree} currentSlug={$currentSlug} onLoadFile={(slug) => { loadFile(slug); uiStore.updateDialogs({ showSitemap: false }); }} onRefresh={loadTree} />
 				{:else if !$currentSlug}
 					{#if !$dialogs.showSitemap}
 						<div class="empty-state" transition:fade={{ duration: 200 }}>
@@ -703,38 +680,7 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 				uiStore.updateDialogs({ showRestartBanner: true });
 			}
 		}}
-		onSave={(s: {
-			defaultRawMode: boolean;
-			showBubbleMenu: boolean;
-			showSlashMenu: boolean;
-			draftByDefault: boolean;
-			autoSaveDelay: number;
-			theme: string;
-			editorFont: string;
-			editorFontSize: string;
-			editorMaxWidth: string;
-			editorMaxWidthCustom: number;
-			historyDepth: number;
-			sidebarOpen: boolean;
-			sidebarWidth: number;
-			fmOpen: boolean;
-			fmWidth: number;
-			fmRawMode: boolean;
-			sidebarView: 'content' | 'static' | 'archetypes' | 'config';
-			showConsole: boolean;
-			showPreview: boolean;
-			showGit: boolean;
-			showFilenameInTabs: boolean;
-			gitRemote: string;
-			gitBranch: string;
-			hugoSitePathUseDotEnv: boolean;
-			hugoSitePathCustom: string;
-			hugoBindAddress: string;
-			hugoPort: number;
-			cmsBindAddress: string;
-			cmsPort: number;
-			trashDir: string;
-		}) => {
+		onSave={(s: SettingsData) => {
 			if (s.defaultRawMode !== $settings.defaultRawMode || s.showBubbleMenu !== $settings.showBubbleMenu || s.showSlashMenu !== $settings.showSlashMenu || s.historyDepth !== $settings.historyDepth) {
 				const captured = editorStore.snapshot().editorContent;
 				if (captured) editorStore.editorContent.set(captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, ''));
@@ -1419,4 +1365,3 @@ import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 		background: var(--c-bg-muted);
 	}
 </style>
-

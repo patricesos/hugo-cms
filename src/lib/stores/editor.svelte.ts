@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
+import { flattenTree } from '$lib/tree-utils';
 
 export type TabKind = 'content' | 'static' | 'archetype' | 'config';
 
@@ -61,9 +62,7 @@ function create() {
 			saveState.set('unsaved');
 			const slug = get(currentSlug);
 			if (slug) {
-				const tabsArr = get(tabs);
-				const tab = tabsArr.find(t => t.slug === slug);
-				if (tab) tab.frontmatter = fm;
+				tabs.update(t => t.map(ti => ti.slug === slug ? { ...ti, frontmatter: fm } : ti));
 			}
 		},
 
@@ -105,6 +104,22 @@ function create() {
 			loading.set(false);
 		},
 
+		/** Crée un onglet de type non-content s'il n'existe pas déjà.
+		 *  N'appelle PAS switchToTab — l'appelant décide du moment du switch
+		 *  (via la fonction locale `switchToTab` de +page.svelte qui gère aussi sidebarView). */
+		openKindTab(slug: string, kind: TabKind) {
+			const curTabs = get(tabs);
+			if (curTabs.some(t => t.slug === slug)) return;
+			tabs.set([...curTabs, {
+				slug,
+				title: slug.split('/').pop() || slug,
+				content: '',
+				frontmatter: {},
+				mtimeMs: 0,
+				kind,
+			} as Tab]);
+		},
+
 		async switchToTab(slug: string) {
 			const curTabs = get(tabs);
 			const tab = curTabs.find(t => t.slug === slug);
@@ -112,11 +127,13 @@ function create() {
 			if (tab.kind === 'content') {
 				if (_editorGetContent) {
 					const curSlug = get(currentSlug);
-					const current = curTabs.find(t => t.slug === curSlug);
-					if (current && current.kind === 'content') {
-						current.content = _editorGetContent();
-						current.frontmatter = { ...get(currentFrontmatter) };
-					}
+					const savedContent = _editorGetContent();
+					const savedFm = { ...get(currentFrontmatter) };
+					tabs.update(t => t.map(ti =>
+						ti.slug === curSlug && ti.kind === 'content'
+							? { ...ti, content: savedContent, frontmatter: savedFm }
+							: ti
+					));
 				}
 				currentSlug.set(tab.slug);
 				editorContent.set(tab.content);
@@ -138,22 +155,22 @@ function create() {
 			const tab = curTabs.find(t => t.slug === curSlug);
 			if (!tab) return;
 			const expectedMtimeMs = tab.mtimeMs;
-			tab.content = markdown;
-			tab.frontmatter = { ...get(currentFrontmatter) };
+			const fm = { ...get(currentFrontmatter) };
 			const res = await fetch(`/api/content/${curSlug}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ body: markdown, frontmatter: get(currentFrontmatter), expectedMtimeMs, frontmatterLanguage: tab.frontmatterLanguage ?? 'yaml' }),
+				body: JSON.stringify({ body: markdown, frontmatter: fm, expectedMtimeMs, frontmatterLanguage: tab.frontmatterLanguage ?? 'yaml' }),
 			});
 			if (res.status === 409) {
 				const { serverMtimeMs } = await res.json();
 				conflictSlug.set(curSlug);
 				conflictServerMtimeMs.set(serverMtimeMs);
+				tabs.update(t => t.map(ti => ti.slug === curSlug ? { ...ti, content: markdown, frontmatter: fm } : ti));
 				return;
 			}
 			if (res.ok) {
 				const data = await res.json();
-				tab.mtimeMs = data.mtimeMs ?? tab.mtimeMs;
+				tabs.update(t => t.map(ti => ti.slug === curSlug ? { ...ti, content: markdown, frontmatter: fm, mtimeMs: data.mtimeMs ?? ti.mtimeMs } : ti));
 			}
 		},
 
@@ -286,18 +303,22 @@ function create() {
 
 		async reloadFileFromDisk(tab: Tab) {
 			try {
-				const res = await fetch(`/api/content/${tab.slug}`);
+				const slug = tab.slug;
+				const res = await fetch(`/api/content/${slug}`);
 				const data = await res.json();
-				tab.content = data.body || '';
-				tab.frontmatter = (data.frontmatter as Record<string, unknown>) || {};
-				tab.mtimeMs = data.mtimeMs;
-				tab.frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
-				tab.title = (data.frontmatter?.title as string) || tab.slug.split('/').pop() || '';
-				if (get(currentSlug) === tab.slug) {
-					editorContent.set(tab.content);
-					currentFrontmatter.set({ ...tab.frontmatter });
-					currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml');
-					_editorSetContent?.(tab.content);
+				const body = data.body || '';
+				const frontmatter = (data.frontmatter as Record<string, unknown>) || {};
+				const mtimeMs = data.mtimeMs;
+				const frontmatterLanguage = data.frontmatterLanguage ?? 'yaml';
+				const title = (data.frontmatter?.title as string) || slug.split('/').pop() || '';
+				tabs.update(t => t.map(ti => ti.slug === slug ? {
+					...ti, content: body, frontmatter, mtimeMs, frontmatterLanguage, title,
+				} : ti));
+				if (get(currentSlug) === slug) {
+					editorContent.set(body);
+					currentFrontmatter.set({ ...frontmatter });
+					currentFmFormat.set(frontmatterLanguage);
+					_editorSetContent?.(body);
 				}
 			} catch { /* ignore */ }
 		},
@@ -318,19 +339,10 @@ function create() {
 				currentConfigSlug: get(currentConfigSlug),
 				conflictSlug: get(conflictSlug),
 				conflictServerMtimeMs: get(conflictServerMtimeMs),
-				currentTab: get(currentTab),
+				currentTab: get(tabs).find(t => t.slug === get(currentSlug)) ?? null,
 			};
 		},
 	};
-}
-
-function flattenTree(nodes: TreeNode[]): TreeNode[] {
-	const result: TreeNode[] = [];
-	for (const n of nodes) {
-		if (n.type === 'file') result.push(n);
-		if (n.children) result.push(...flattenTree(n.children));
-	}
-	return result;
 }
 
 export const editorStore = create();

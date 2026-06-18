@@ -1,5 +1,5 @@
 import { readFile, writeFile, readdir, unlink } from 'node:fs/promises';
-import { join, resolve, relative, dirname } from 'node:path';
+import { join, resolve, relative, dirname, isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getCmsConfig } from './config';
 import type { TreeNode } from './types';
@@ -17,11 +17,12 @@ function isConfigFile(name: string): boolean {
 }
 
 function safeResolveIn(base: string, ...segments: string[]): string {
-	const resolved = resolve(base, ...segments);
-	if (!resolved.startsWith(resolve(base))) {
+	const resolvedPath = resolve(base, ...segments);
+	const rel = relative(resolve(base), resolvedPath);
+	if (rel.startsWith('..') || isAbsolute(rel)) {
 		throw new Error('Path traversal detected');
 	}
-	return resolved;
+	return resolvedPath;
 }
 
 export async function listConfigTree(): Promise<TreeNode[]> {

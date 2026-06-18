@@ -3,6 +3,8 @@ import { resolve, dirname } from 'node:path';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { stringify, parse } from '@iarna/toml';
 import { validateSettingValue, allSettingKeys } from '../settings/validate';
+import type { DefaultSettings } from '$lib/settings/defaults';
+import { SETTINGS_DEFAULTS as SHARED_DEFAULTS } from '$lib/settings/defaults';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type EditorFont = 'sans' | 'mono' | 'serif' | 'system-ui';
@@ -42,18 +44,8 @@ export interface UserSettings {
 	trashDir: string;
 }
 
-const defaults: UserSettings = {
-	defaultRawMode: false,
-	showBubbleMenu: true,
-	showSlashMenu: true,
-	draftByDefault: true,
-	autoSaveDelay: 2000,
-	theme: 'system',
-	editorFont: 'serif',
-	editorFontSize: 'normal',
-	editorMaxWidth: '720px',
-	editorMaxWidthCustom: 720,
-	historyDepth: 250,
+const SETTINGS_DEFAULTS: UserSettings = {
+	...SHARED_DEFAULTS,
 	sidebarOpen: true,
 	sidebarWidth: 260,
 	fmOpen: true,
@@ -63,16 +55,6 @@ const defaults: UserSettings = {
 	showConsole: false,
 	showPreview: false,
 	showGit: false,
-	showFilenameInTabs: false,
-	gitRemote: 'origin',
-	gitBranch: 'main',
-	hugoSitePathUseDotEnv: true,
-	hugoSitePathCustom: '',
-	hugoBindAddress: '127.0.0.1',
-	hugoPort: 1313,
-	cmsBindAddress: '127.0.0.1',
-	cmsPort: 1703,
-	trashDir: '_trash',
 };
 
 function configPath(): string {
@@ -81,11 +63,11 @@ function configPath(): string {
 
 export function loadUserSettings(): UserSettings {
 	const path = configPath();
-	if (!existsSync(path)) return { ...defaults };
+	if (!existsSync(path)) return { ...SETTINGS_DEFAULTS };
 	try {
 		const raw = readFileSync(path, 'utf-8');
 		const parsed = parse(raw) as Record<string, unknown>;
-		const result = { ...defaults };
+		const result = { ...SETTINGS_DEFAULTS };
 		for (const key of allSettingKeys()) {
 			if (!(key in parsed)) continue;
 			const val = parsed[key];
@@ -96,7 +78,7 @@ export function loadUserSettings(): UserSettings {
 		}
 		return result;
 	} catch {
-		return { ...defaults };
+		return { ...SETTINGS_DEFAULTS };
 	}
 }
 

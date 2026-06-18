@@ -3,15 +3,7 @@
 	import { Image, FileText, FileCode, Settings, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import TreeNode from './TreeNode.svelte';
-
-	interface TreeNodeData {
-		type: 'file' | 'directory';
-		name: string;
-		slug: string;
-		path: string;
-		children?: TreeNodeData[];
-		frontmatter?: Record<string, unknown>;
-	}
+	import type { TreeNodeData } from '$lib/types';
 
 	const views: { key: 'archetypes' | 'config' | 'content' | 'static'; label: string; icon: typeof FileText }[] = [
 		{ key: 'archetypes', label: 'Archétypes', icon: FileCode },
@@ -41,14 +33,14 @@
 		onViewChange,
 		onToggleFolder,
 	}: {
-		tree: TreeNodeData[];
-		assetTree: TreeNodeData[];
-		archetypeTree: TreeNodeData[];
-		configTree: TreeNodeData[];
-		currentSlug: string | null;
+		tree?: TreeNodeData[];
+		assetTree?: TreeNodeData[];
+		archetypeTree?: TreeNodeData[];
+		configTree?: TreeNodeData[];
+		currentSlug?: string | null;
 		sidebarView?: 'content' | 'static' | 'archetypes' | 'config';
 		expandedSlugs?: Set<string>;
-		onLoadFile: (slug: string) => void;
+		onLoadFile?: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
 		onCreateFolderInFolder?: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;

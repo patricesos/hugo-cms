@@ -45,7 +45,6 @@ export async function restoreAppState(): Promise<RestoreResult> {
 			editorStore.editorContent.set(active.content);
 			editorStore.currentFrontmatter.set({ ...active.frontmatter });
 			editorStore.currentFmFormat.set(active.frontmatterLanguage ?? 'yaml');
-			editorStore.setEditorSetContent?.(active.content);
 		}
 
 		await settingsStore.restoreFromFile();

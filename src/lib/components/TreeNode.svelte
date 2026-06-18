@@ -2,15 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { Folder, FileText, ChevronRight, ChevronDown, Trash2, Copy, Check, X, Plus, FolderPlus } from '@lucide/svelte';
 	import TreeNode from './TreeNode.svelte';
-
-	interface TreeNodeData {
-		type: 'file' | 'directory';
-		name: string;
-		slug: string;
-		path: string;
-		children?: TreeNodeData[];
-		frontmatter?: Record<string, unknown>;
-	}
+	import type { TreeNodeData } from '$lib/types';
 
 	let {
 		node,
@@ -30,7 +22,7 @@
 		depth: number;
 		currentSlug: string | null;
 		expandedSlugs?: Set<string>;
-		onLoadFile: (slug: string) => void;
+		onLoadFile?: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
 		onDeleteFolder?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
@@ -182,7 +174,7 @@
 				<button
 					class="tree-item file"
 					class:active={currentSlug === node.slug}
-					onclick={() => onLoadFile(node.slug)}
+					onclick={() => onLoadFile?.(node.slug)}
 					ondblclick={startEdit}
 					draggable="true"
 					ondragstart={handleDragStart}

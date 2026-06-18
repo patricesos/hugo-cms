@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
+import { flattenTree } from '$lib/tree-utils';
 import { editorStore } from './editor.svelte';
 
 export interface FileTreeState {
@@ -22,15 +23,6 @@ function create() {
 	const store = writable<FileTreeState>(initialState);
 	const { subscribe, set, update } = store;
 
-	function flattenTreeImpl(nodes: TreeNode[]): TreeNode[] {
-		const result: TreeNode[] = [];
-		for (const n of nodes) {
-			if (n.type === 'file') result.push(n);
-			if (n.children) result.push(...flattenTreeImpl(n.children));
-		}
-		return result;
-	}
-
 	return {
 		subscribe,
 
@@ -45,7 +37,7 @@ function create() {
 		),
 
 		searchEntries: derived(store, s =>
-			flattenTreeImpl(s.tree).map(n => ({
+			flattenTree(s.tree).map(n => ({
 				slug: n.slug,
 				title: (n.frontmatter?.title as string) || n.name.replace(/\.md$/, ''),
 				type: n.type as 'file' | 'directory',
