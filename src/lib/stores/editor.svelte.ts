@@ -49,9 +49,9 @@ function create() {
 		conflictSlug,
 		conflictServerMtimeMs,
 
-		currentTab: derived(currentSlug, ($slug, set) => {
-			const unsub = tabs.subscribe($tabs => {
-				set($tabs.find(t => t.slug === $slug));
+		currentTab: derived(currentSlug, (curSlug, set) => {
+			const unsub = tabs.subscribe(curTabs => {
+				set(curTabs.find(t => t.slug === curSlug));
 			});
 			return unsub;
 		}),
@@ -81,8 +81,8 @@ function create() {
 		},
 
 		async loadFile(slug: string, loadTreeFn: () => Promise<void>) {
-			const $tabs = get(tabs);
-			const existing = $tabs.find(t => t.slug === slug);
+			const curTabs = get(tabs);
+			const existing = curTabs.find(t => t.slug === slug);
 			if (existing) {
 				await this.switchToTab(slug);
 				return;
@@ -105,13 +105,13 @@ function create() {
 		},
 
 		async switchToTab(slug: string) {
-			const $tabs = get(tabs);
-			const tab = $tabs.find(t => t.slug === slug);
+			const curTabs = get(tabs);
+			const tab = curTabs.find(t => t.slug === slug);
 			if (!tab) return;
 			if (tab.kind === 'content') {
 				if (_editorGetContent) {
-					const $currentSlug = get(currentSlug);
-					const current = $tabs.find(t => t.slug === $currentSlug);
+					const curSlug = get(currentSlug);
+					const current = curTabs.find(t => t.slug === curSlug);
 					if (current && current.kind === 'content') {
 						current.content = _editorGetContent();
 						current.frontmatter = { ...get(currentFrontmatter) };
@@ -131,22 +131,22 @@ function create() {
 		},
 
 		async handleSave(markdown: string) {
-			const $slug = get(currentSlug);
-			if (!$slug) return;
-			const $tabs = get(tabs);
-			const tab = $tabs.find(t => t.slug === $slug);
+			const curSlug = get(currentSlug);
+			if (!curSlug) return;
+			const curTabs = get(tabs);
+			const tab = curTabs.find(t => t.slug === curSlug);
 			if (!tab) return;
 			const expectedMtimeMs = tab.mtimeMs;
 			tab.content = markdown;
 			tab.frontmatter = { ...get(currentFrontmatter) };
-			const res = await fetch(`/api/content/${$slug}`, {
+			const res = await fetch(`/api/content/${curSlug}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ body: markdown, frontmatter: get(currentFrontmatter), expectedMtimeMs, frontmatterLanguage: tab.frontmatterLanguage ?? 'yaml' }),
 			});
 			if (res.status === 409) {
 				const { serverMtimeMs } = await res.json();
-				conflictSlug.set($slug);
+				conflictSlug.set(curSlug);
 				conflictServerMtimeMs.set(serverMtimeMs);
 				return;
 			}
@@ -157,17 +157,17 @@ function create() {
 		},
 
 		handleCloseTab(slug: string) {
-			const $tabs = get(tabs);
-			const idx = $tabs.findIndex(t => t.slug === slug);
+			const curTabs = get(tabs);
+			const idx = curTabs.findIndex(t => t.slug === slug);
 			if (idx === -1) return;
-			tabs.set($tabs.filter(t => t.slug !== slug));
-			const $ca = get(currentArchetype);
-			const $ccs = get(currentConfigSlug);
-			if ($ca === slug) currentArchetype.set(null);
-			if ($ccs === slug) currentConfigSlug.set(null);
+			tabs.set(curTabs.filter(t => t.slug !== slug));
+			const curArchetype = get(currentArchetype);
+			const curConfigSlug = get(currentConfigSlug);
+			if (curArchetype === slug) currentArchetype.set(null);
+			if (curConfigSlug === slug) currentConfigSlug.set(null);
 			if (get(currentSlug) === slug) {
-				const $newTabs = get(tabs);
-				const nextTab = $newTabs[Math.min(idx, $newTabs.length - 1)];
+				const newTabs = get(tabs);
+				const nextTab = newTabs[Math.min(idx, newTabs.length - 1)];
 				if (nextTab) {
 					currentSlug.set(nextTab.slug);
 					if (nextTab.kind === 'content') {
@@ -203,11 +203,11 @@ function create() {
 			await fetch(`/api/content/${target}`, { method: 'DELETE' });
 			tabs.update(t => t.filter(tab => tab.slug !== target));
 			if (slug || get(currentSlug) === target) {
-				const $tabs = get(tabs);
-				currentSlug.set($tabs.length > 0 ? $tabs[$tabs.length - 1].slug : null);
-				const $newSlug = get(currentSlug);
-				if ($newSlug) {
-					const tab = $tabs.find(t => t.slug === $newSlug)!;
+				const curTabs = get(tabs);
+				currentSlug.set(curTabs.length > 0 ? curTabs[curTabs.length - 1].slug : null);
+				const newSlug = get(currentSlug);
+				if (newSlug) {
+					const tab = curTabs.find(t => t.slug === newSlug)!;
 					editorContent.set(tab.content);
 					currentFrontmatter.set({ ...tab.frontmatter });
 				} else {
@@ -222,13 +222,13 @@ function create() {
 			if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDir}/.`)) return;
 			await fetch(`/api/directory/${slug}`, { method: 'DELETE' });
 			tabs.update(t => t.filter(tab => tab.slug !== slug && !tab.slug.startsWith(slug + '/')));
-			const $tabs = get(tabs);
-			if ($tabs.length === 0) {
+			const curTabs = get(tabs);
+			if (curTabs.length === 0) {
 				currentSlug.set(null);
 				editorContent.set('');
-			} else if (!$tabs.find(t => t.slug === get(currentSlug))) {
-				currentSlug.set($tabs[$tabs.length - 1].slug);
-				const tab = $tabs.find(t => t.slug === get(currentSlug))!;
+			} else if (!curTabs.find(t => t.slug === get(currentSlug))) {
+				currentSlug.set(curTabs[curTabs.length - 1].slug);
+				const tab = curTabs.find(t => t.slug === get(currentSlug))!;
 				editorContent.set(tab.content);
 			}
 			await loadTreeFn();
@@ -255,8 +255,8 @@ function create() {
 		async handleDuplicate(slug: string, tree: TreeNode[], loadTreeFn: () => Promise<void>) {
 			let content: string;
 			let frontmatter: Record<string, unknown>;
-			const $tabs = get(tabs);
-			const existingTab = $tabs.find(t => t.slug === slug);
+			const curTabs = get(tabs);
+			const existingTab = curTabs.find(t => t.slug === slug);
 			if (existingTab) {
 				content = existingTab.content;
 				frontmatter = { ...existingTab.frontmatter };
@@ -266,7 +266,7 @@ function create() {
 				content = data.body || '';
 				frontmatter = (data.frontmatter as Record<string, unknown>) || {};
 			}
-			const allSlugs = new Set([...$tabs.map(t => t.slug), ...flattenTree(tree).map(n => n.slug)]);
+			const allSlugs = new Set([...curTabs.map(t => t.slug), ...flattenTree(tree).map(n => n.slug)]);
 			const baseSlug = slug.replace(/\.md$/, '') + '-copy';
 			let newSlug = baseSlug;
 			let counter = 0;

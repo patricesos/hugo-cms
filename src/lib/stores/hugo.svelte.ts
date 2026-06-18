@@ -103,8 +103,8 @@ function create() {
 
 export const hugoStore = create();
 
-export const hugoStatus = derived(hugoStore, $s => $s.status);
-export const hugoUrl = derived(hugoStore, $s => $s.url);
-export const hugoLive = derived(hugoStore, $s => $s.live);
-export const hugoTogglingLive = derived(hugoStore, $s => $s.togglingLive);
-export const previewReloadKey = derived(hugoStore, $s => $s.previewReloadKey);
+export const hugoStatus = derived(hugoStore, s => s.status);
+export const hugoUrl = derived(hugoStore, s => s.url);
+export const hugoLive = derived(hugoStore, s => s.live);
+export const hugoTogglingLive = derived(hugoStore, s => s.togglingLive);
+export const previewReloadKey = derived(hugoStore, s => s.previewReloadKey);
