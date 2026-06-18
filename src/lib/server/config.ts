@@ -125,7 +125,7 @@ function loadConfig(): CmsConfig {
 	return buildConfig(sitePath, userSettings);
 }
 
-function buildConfig(sitePath: string, userSettings: UserSettings): CmsConfig {
+export function buildConfig(sitePath: string, userSettings: UserSettings): CmsConfig {
 	const contentDir = resolve(sitePath, 'content');
 	const staticPath = resolve(sitePath, 'static');
 	const cmsPort = envInt('PORT', userSettings.cmsPort);

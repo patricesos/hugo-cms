@@ -31,6 +31,8 @@
 - [x] **Validation finale** — `npx vitest run` → 37/37
 - [x] **FIX 3 — Shortcode round-trip** — Extraction de `shortcode-utils.ts`: `protectShortcodes()`, `restoreShortcodes()`, `splitShortcodeLines()`. `breaks: false` dans markdown-it. 21 tests unitaires.
 - [x] **FIX 4 — Tests user-config** — `user-config.test.ts` : 11 tests couvrant `loadUserSettings` (fichier manquant, vide, fusion, valeurs invalides, TOML invalide, clés inconnues), `saveUserSettings` (écriture, clés invalides, types), round-trip save→load.
+- [x] **FIX 5 — Tests buildConfig** — `config.test.ts` : 16 tests pour `buildConfig()` — fallback userSettings (git, ports, paths), surcharge env vars, valeurs absolues, env vide.
+- [x] **FIX 6 — Tests archetypes** — `archetypes.test.ts` : 29 tests — CRUD complet (read/create/update/delete), list (tri, cachés, labels, tree), render (tous les remplacements Hugo).
 
 ## Backlog
 
