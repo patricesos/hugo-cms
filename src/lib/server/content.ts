@@ -1,13 +1,19 @@
 import { readFile, writeFile, readdir, mkdir, rename, stat, rm } from 'node:fs/promises';
 import { join, relative, resolve, dirname, isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
-import { cmsConfig } from './config';
+import { getCmsConfig } from './config';
 import { parseFrontmatter, serializeFrontmatter, detectFrontmatterLanguage } from './markdown';
 import type { ContentMeta, ContentItem, TreeNode } from './types';
 import type { FrontmatterLanguage } from './markdown';
 
-const BASE = cmsConfig.hugoContentPath;
-const TRASH_DIR = join(BASE, cmsConfig.trashDir);
+function getBase(): string {
+	return getCmsConfig().hugoContentPath;
+}
+
+function getTrashDir(): string {
+	const config = getCmsConfig();
+	return join(config.hugoContentPath, config.trashDir);
+}
 
 export function safeResolveIn(base: string, ...segments: string[]): string {
 	const resolvedPath = resolve(base, ...segments);
@@ -19,7 +25,7 @@ export function safeResolveIn(base: string, ...segments: string[]): string {
 }
 
 function safeResolve(...segments: string[]): string {
-	return safeResolveIn(BASE, ...segments);
+	return safeResolveIn(getBase(), ...segments);
 }
 
 export async function listContent(dir: string = ''): Promise<ContentMeta[]> {
@@ -31,7 +37,7 @@ export async function listContent(dir: string = ''): Promise<ContentMeta[]> {
 		if (entry.name.startsWith('.')) continue;
 
 		const fullPath = join(target, entry.name);
-		const slug = relative(BASE, fullPath).replace(/\\/g, '/');
+		const slug = relative(getBase(), fullPath).replace(/\\/g, '/');
 
 		if (entry.isDirectory()) {
 			results.push({ type: 'directory', name: entry.name, slug, path: slug });
@@ -90,7 +96,7 @@ export async function listContentTree(dir: string = ''): Promise<TreeNode[]> {
 	for (const entry of entries) {
 		if (entry.name.startsWith('.')) continue;
 		const fullPath = join(target, entry.name);
-		const slug = relative(BASE, fullPath).replace(/\\/g, '/');
+		const slug = relative(getBase(), fullPath).replace(/\\/g, '/');
 
 		if (entry.isDirectory()) {
 			const children = await listContentTree(dir ? `${dir}/${entry.name}` : entry.name);
@@ -141,10 +147,11 @@ export async function updateContent(
 
 export async function deleteContent(slug: string): Promise<void> {
 	const filePath = safeResolve(slug + '.md');
-	if (!existsSync(TRASH_DIR)) {
-		await mkdir(TRASH_DIR, { recursive: true });
+	const trashDir = getTrashDir();
+	if (!existsSync(trashDir)) {
+		await mkdir(trashDir, { recursive: true });
 	}
-	const trashPath = join(TRASH_DIR, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}.md`);
+	const trashPath = join(trashDir, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}.md`);
 	await rename(filePath, trashPath);
 }
 
@@ -169,15 +176,16 @@ export async function deleteDirectory(slug: string): Promise<void> {
 	if (!existsSync(dirPath)) {
 		throw new Error(`Directory "${slug}" not found`);
 	}
-	if (!existsSync(TRASH_DIR)) {
-		await mkdir(TRASH_DIR, { recursive: true });
+	const trashDir = getTrashDir();
+	if (!existsSync(trashDir)) {
+		await mkdir(trashDir, { recursive: true });
 	}
-	const trashPath = join(TRASH_DIR, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}`);
+	const trashPath = join(trashDir, `${slug.replace(/[/\\]/g, '_')}_${Date.now()}`);
 	await rename(dirPath, trashPath);
 }
 
 export async function listAssets(): Promise<string[]> {
-	const staticDir = cmsConfig.hugoStaticPath;
+	const staticDir = getCmsConfig().hugoStaticPath;
 	if (!existsSync(staticDir)) return [];
 	const images: string[] = [];
 
@@ -198,7 +206,7 @@ export async function listAssets(): Promise<string[]> {
 }
 
 export async function listAssetTree(dir: string = ''): Promise<TreeNode[]> {
-	const staticDir = cmsConfig.hugoStaticPath;
+	const staticDir = getCmsConfig().hugoStaticPath;
 	const target = dir ? join(staticDir, dir) : staticDir;
 	if (!existsSync(target)) return [];
 	const entries = await readdir(target, { withFileTypes: true });

@@ -1,10 +1,13 @@
 import { readFile, writeFile, readdir, unlink } from 'node:fs/promises';
 import { join, resolve, relative, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
-import { cmsConfig } from './config';
+import { getCmsConfig } from './config';
 import type { TreeNode } from './types';
 
-const CONFIG_DIR = join(cmsConfig.hugoSitePath, cmsConfig.configDir);
+function getConfigDir(): string {
+	const config = getCmsConfig();
+	return join(config.hugoSitePath, config.configDir);
+}
 const ROOT_CONFIG_PATTERNS = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
 
 const CONFIG_EXTENSIONS = new Set(['toml', 'yaml', 'yml', 'json']);
@@ -24,11 +27,12 @@ function safeResolveIn(base: string, ...segments: string[]): string {
 export async function listConfigTree(): Promise<TreeNode[]> {
 	const results: TreeNode[] = [];
 
-	if (existsSync(CONFIG_DIR)) {
-		await walkConfigDir(CONFIG_DIR, '', results);
+	const configDir = getConfigDir();
+	if (existsSync(configDir)) {
+		await walkConfigDir(configDir, '', results);
 	} else {
 		for (const pattern of ROOT_CONFIG_PATTERNS) {
-			const filePath = join(cmsConfig.hugoSitePath, pattern);
+			const filePath = join(getCmsConfig().hugoSitePath, pattern);
 			if (existsSync(filePath)) {
 				results.push({
 					type: 'file',
@@ -77,15 +81,16 @@ async function walkConfigDir(dir: string, prefix: string, results: TreeNode[]) {
 }
 
 function resolveConfigPath(slug: string): string {
-	if (existsSync(CONFIG_DIR)) {
-		return safeResolveIn(CONFIG_DIR, slug);
+	const configDir = getConfigDir();
+	if (existsSync(configDir)) {
+		return safeResolveIn(configDir, slug);
 	}
 	for (const pattern of ROOT_CONFIG_PATTERNS) {
 		if (slug === pattern) {
-			return join(cmsConfig.hugoSitePath, pattern);
+			return join(getCmsConfig().hugoSitePath, pattern);
 		}
 	}
-	return safeResolveIn(CONFIG_DIR, slug);
+	return safeResolveIn(configDir, slug);
 }
 
 export async function readConfigFile(slug: string): Promise<{ content: string; slug: string }> {

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { cmsConfig } from '$lib/server/config';
+import { getCmsConfig } from '$lib/server/config';
 import { safeResolveIn } from '$lib/server/content';
 
 const MIME_TYPES: Record<string, string> = {
@@ -13,7 +13,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 export async function GET({ params }) {
-	const filePath = safeResolveIn(cmsConfig.hugoStaticPath, cmsConfig.imagesDir, params.path);
+	const filePath = safeResolveIn(getCmsConfig().hugoStaticPath, getCmsConfig().imagesDir, params.path);
 	const ext = filePath.split('.').pop()?.toLowerCase() || '';
 	const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 	try {

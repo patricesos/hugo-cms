@@ -2,16 +2,42 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { __setCmsConfigForTests } from './config';
 
-const ORIG_PATH = process.env.HUGO_CONTENT_PATH;
 let tmpDir: string;
 let contentDir: string;
+let staticDir: string;
 
 beforeAll(() => {
 	tmpDir = mkdtempSync(join(tmpdir(), 'hugo-cms-test-'));
 	contentDir = join(tmpDir, 'content');
+	staticDir = join(tmpDir, 'static');
 	mkdirSync(contentDir, { recursive: true });
-	process.env.HUGO_CONTENT_PATH = contentDir;
+	mkdirSync(staticDir, { recursive: true });
+
+	__setCmsConfigForTests({
+		hugoSitePath: tmpDir,
+		hugoContentPath: contentDir,
+		hugoStaticPath: staticDir,
+		cmsPort: 3000,
+		hugoServerPort: 1313,
+		hugoBindAddress: '127.0.0.1',
+		defaultAuthor: 'test',
+		dateFormat: 'YYYY-MM-DD',
+		git: { enabled: false, remote: 'origin', branch: 'main' },
+		trashDir: '_trash',
+		archetypesDir: 'archetypes',
+		configDir: 'config',
+		shortcodesDir: 'layouts/shortcodes',
+		imagesDir: 'images',
+		hugoStartupTimeout: 15000,
+		hugoStopTimeout: 5000,
+		externalPollInterval: 5000,
+		autoSaveDelay: 2000,
+		fmSaveDelay: 2000,
+		appTitle: 'Test',
+		defaultArchetype: 'default',
+	});
 
 	writeFileSync(join(contentDir, 'hello.md'), `---
 title: "Hello"
@@ -37,7 +63,7 @@ Blog body.
 });
 
 afterAll(() => {
-	process.env.HUGO_CONTENT_PATH = ORIG_PATH;
+	__setCmsConfigForTests(null);
 	if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -143,17 +169,13 @@ describe('listAssets', () => {
 	});
 
 	it('finds images in static directory', async () => {
-		const { writeFileSync, mkdirSync } = await import('node:fs');
-		const staticDir = join(tmpDir, 'static-images-test');
 		const imagesDir = join(staticDir, 'images');
 		mkdirSync(imagesDir, { recursive: true });
 		writeFileSync(join(imagesDir, 'test.png'), 'fake-png');
 		writeFileSync(join(staticDir, 'readme.txt'), 'not an image');
 
-		const mod = await import('./content');
-		const { cmsConfig } = await import('./config');
-		cmsConfig.hugoStaticPath = staticDir;
-		const assets = await mod.listAssets();
+		const { listAssets } = await import('./content');
+		const assets = await listAssets();
 		expect(assets).toContain('images/test.png');
 		expect(assets).not.toContain('readme.txt');
 	});
@@ -162,10 +184,9 @@ describe('listAssets', () => {
 describe('deleteContent', () => {
 	it('moves file to trash dir', async () => {
 		const { deleteContent } = await import('./content');
-		const { cmsConfig } = await import('./config');
 		const { readdirSync } = await import('node:fs');
 		await deleteContent('draft');
-		const trashDir = join(contentDir, cmsConfig.trashDir);
+		const trashDir = join(contentDir, '_trash');
 		const trashFiles = readdirSync(trashDir);
 		expect(trashFiles.length).toBeGreaterThan(0);
 		expect(trashFiles.some((f) => f.includes('draft'))).toBe(true);

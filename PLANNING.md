@@ -5,6 +5,24 @@
 - [ ] Langue de l'interface (Français, English) *(Nice to have)*
 - [ ] Slugify : conserver les caractères non-ASCII (oui/non) — actuellement strip tout sauf a-z0-9-
 
+### En cours — Fix testabilité
+
+- [x] **FIX 1** — `Editor.test.ts` : ajouter `Image` au mock `@lucide/svelte`
+- [x] **FIX 2.1** — `config.ts` : `getCmsConfig()` + `__setCmsConfigForTests()`
+- [x] **FIX 2.2** — `content.ts` : `BASE`/`TRASH_DIR` → fonctions paresseuses
+- [x] **FIX 2.3** — `git.ts` : `repoRoot`/`simpleGit` paresseux
+- [x] **FIX 2.4** — `hugo.ts` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.5** — `shortcodes.ts` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.6** — `config-files.ts` : `CONFIG_DIR` → fonction paresseuse
+- [x] **FIX 2.7** — `archetypes.ts` : `ARCHETYPES_DIR` → fonction paresseuse
+- [x] **FIX 2.8a** — Route `api/content/[...slug]` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.8b** — Route `api/config` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.8c** — Route `api/assets` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.8d** — Route `images/[...path]` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.8e** — Route `api/assets/[...path]` : `cmsConfig` → `getCmsConfig()`
+- [x] **FIX 2.9** — `content.test.ts` : setup avec `__setCmsConfigForTests()`
+- [x] **Validation finale** — `npx vitest run` → 37/37
+
 ## Backlog
 
 - [ ] Split view 50/50 éditeur + aperçu (auto-reload sur sauvegarde)
@@ -59,3 +77,4 @@
 - [x] Sauvegarde manuelle depuis le header (icône Save/Check/Loader)
 - [x] Détection modification externe (mtime + polling + bannière conflit)
 - [x] Sitemap visuel
+

@@ -1,7 +1,7 @@
 import { readFile, readdir, writeFile, mkdir, stat, unlink } from 'node:fs/promises';
 import { join, dirname, basename } from 'node:path';
 import { existsSync } from 'node:fs';
-import { cmsConfig } from './config';
+import { getCmsConfig } from './config';
 import type { TreeNode } from './types';
 
 export interface Archetype {
@@ -10,14 +10,13 @@ export interface Archetype {
 	source: string;
 }
 
-const ARCHETYPES_DIR = join(cmsConfig.hugoSitePath, cmsConfig.archetypesDir);
-
 export function getArchetypesDir(): string {
-	return ARCHETYPES_DIR;
+	const config = getCmsConfig();
+	return join(config.hugoSitePath, config.archetypesDir);
 }
 
 export function archetypeSlugToPath(slug: string): string {
-	return join(ARCHETYPES_DIR, slug + '.md');
+	return join(getArchetypesDir(), slug + '.md');
 }
 
 async function walkArchetypes(dir: string, prefix: string): Promise<Archetype[]> {
@@ -49,7 +48,7 @@ async function walkArchetypes(dir: string, prefix: string): Promise<Archetype[]>
 }
 
 export async function listArchetypes(): Promise<Archetype[]> {
-	const results = await walkArchetypes(ARCHETYPES_DIR, '');
+	const results = await walkArchetypes(getArchetypesDir(), '');
 
 	results.sort((a, b) => {
 		if (a.name === 'default') return -1;
@@ -61,7 +60,8 @@ export async function listArchetypes(): Promise<Archetype[]> {
 }
 
 export async function listArchetypeTree(dir: string = ''): Promise<TreeNode[]> {
-	const target = dir ? join(ARCHETYPES_DIR, dir) : ARCHETYPES_DIR;
+	const archetypesDir = getArchetypesDir();
+	const target = dir ? join(archetypesDir, dir) : archetypesDir;
 	if (!existsSync(target)) return [];
 
 	const entries = await readdir(target, { withFileTypes: true });

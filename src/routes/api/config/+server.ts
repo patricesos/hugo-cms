@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { cmsConfig } from '$lib/server/config';
+import { getCmsConfig } from '$lib/server/config';
 import { listConfigTree } from '$lib/server/config-files';
 
 export async function GET({ url }) {
@@ -8,21 +8,21 @@ export async function GET({ url }) {
 		return json(await listConfigTree());
 	}
 	return json({
-		hugoSitePath: cmsConfig.hugoSitePath,
-		hugoServerPort: cmsConfig.hugoServerPort,
-		hugoBindAddress: cmsConfig.hugoBindAddress,
-		hugoStartupTimeout: cmsConfig.hugoStartupTimeout,
-		hugoStopTimeout: cmsConfig.hugoStopTimeout,
-		externalPollInterval: cmsConfig.externalPollInterval,
-		autoSaveDelay: cmsConfig.autoSaveDelay,
-		fmSaveDelay: cmsConfig.fmSaveDelay,
-		appTitle: cmsConfig.appTitle,
-		defaultAuthor: cmsConfig.defaultAuthor,
-		defaultArchetype: cmsConfig.defaultArchetype,
-		dateFormat: cmsConfig.dateFormat,
-		trashDir: cmsConfig.trashDir,
-		gitEnabled: cmsConfig.git.enabled,
-		defaultRemote: cmsConfig.git.remote,
-		defaultBranch: cmsConfig.git.branch,
+		hugoSitePath: getCmsConfig().hugoSitePath,
+		hugoServerPort: getCmsConfig().hugoServerPort,
+		hugoBindAddress: getCmsConfig().hugoBindAddress,
+		hugoStartupTimeout: getCmsConfig().hugoStartupTimeout,
+		hugoStopTimeout: getCmsConfig().hugoStopTimeout,
+		externalPollInterval: getCmsConfig().externalPollInterval,
+		autoSaveDelay: getCmsConfig().autoSaveDelay,
+		fmSaveDelay: getCmsConfig().fmSaveDelay,
+		appTitle: getCmsConfig().appTitle,
+		defaultAuthor: getCmsConfig().defaultAuthor,
+		defaultArchetype: getCmsConfig().defaultArchetype,
+		dateFormat: getCmsConfig().dateFormat,
+		trashDir: getCmsConfig().trashDir,
+		gitEnabled: getCmsConfig().git.enabled,
+		defaultRemote: getCmsConfig().git.remote,
+		defaultBranch: getCmsConfig().git.branch,
 	});
 }

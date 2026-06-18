@@ -158,12 +158,21 @@ function buildConfig(sitePath: string, userSettings: UserSettings): CmsConfig {
 	};
 }
 
-export const cmsConfig: CmsConfig = (() => {
+let _cmsConfig: CmsConfig | null = null;
+
+export function getCmsConfig(): CmsConfig {
+	if (_cmsConfig) return _cmsConfig;
 	try {
-		return loadConfig();
+		_cmsConfig = loadConfig();
+		return _cmsConfig;
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
 		console.error(`[config] ${msg}`);
 		throw new Error(msg.split('\n')[0]);
 	}
-})();
+}
+
+/** Pour les tests uniquement : permet d'injecter une config sans passer par loadConfig(). */
+export function __setCmsConfigForTests(config: CmsConfig | null): void {
+	_cmsConfig = config;
+}

@@ -1,8 +1,14 @@
 import simpleGit from 'simple-git';
-import { cmsConfig } from './config';
+import { getCmsConfig } from './config';
 
-const repoRoot = cmsConfig.hugoSitePath;
-const git = simpleGit(repoRoot);
+let _git: ReturnType<typeof simpleGit> | null = null;
+
+function getGit(): ReturnType<typeof simpleGit> {
+	if (!_git) {
+		_git = simpleGit(getCmsConfig().hugoSitePath);
+	}
+	return _git;
+}
 
 export interface GitStatus {
 	branch: string;
@@ -25,9 +31,10 @@ export interface GitLogEntry {
 
 export async function getStatus(): Promise<GitStatus | null> {
 	try {
-		const isRepo = await git.checkIsRepo();
+		const g = getGit();
+		const isRepo = await g.checkIsRepo();
 		if (!isRepo) return null;
-		const status = await git.status();
+		const status = await g.status();
 		return {
 			branch: status.current ?? 'unknown',
 			modified: status.modified,
@@ -45,17 +52,19 @@ export async function getStatus(): Promise<GitStatus | null> {
 }
 
 export async function commit(message: string, files?: string[]): Promise<{ hash: string; summary: string }> {
+	const g = getGit();
 	if (files && files.length > 0) {
-		await git.add(files);
+		await g.add(files);
 	} else {
-		await git.add('.');
+		await g.add('.');
 	}
-	const result = await git.commit(message);
+	const result = await g.commit(message);
 	return { hash: result.commit ?? '', summary: result.summary ?? '' };
 }
 
 export async function getLog(file?: string, maxCount = 20): Promise<GitLogEntry[]> {
-	const log = file ? await git.log({ file, maxCount }) : await git.log({ maxCount });
+	const g = getGit();
+	const log = file ? await g.log({ file, maxCount }) : await g.log({ maxCount });
 	return log.all.map(entry => ({
 		hash: entry.hash,
 		date: entry.date,
@@ -65,22 +74,26 @@ export async function getLog(file?: string, maxCount = 20): Promise<GitLogEntry[
 }
 
 export async function reset(hash: string): Promise<{ hash: string; message: string }> {
-	await git.reset(['--soft', hash]);
+	const g = getGit();
+	await g.reset(['--soft', hash]);
 	return { hash, message: `Reset vers ${hash.slice(0, 7)}` };
 }
 
 export async function push(): Promise<{ pushed: boolean; message: string }> {
-	const status = await git.status();
+	const g = getGit();
+	const status = await g.status();
 	if (status.ahead === 0) return { pushed: false, message: 'Rien à pousser' };
-	const remote = cmsConfig.git.remote;
-	const branch = cmsConfig.git.branch;
-	await git.push(remote, branch);
+	const config = getCmsConfig();
+	const remote = config.git.remote;
+	const branch = config.git.branch;
+	await g.push(remote, branch);
 	return { pushed: true, message: `Push vers ${remote}/${branch} effectué` };
 }
 
 export async function ensureRepo(): Promise<{ initialized: boolean; message: string }> {
-	const isRepo = await git.checkIsRepo();
+	const g = getGit();
+	const isRepo = await g.checkIsRepo();
 	if (isRepo) return { initialized: true, message: 'Déjà un dépôt git' };
-	await git.init();
+	await g.init();
 	return { initialized: true, message: 'Dépôt git initialisé' };
 }

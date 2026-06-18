@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { cmsConfig } from './config';
+import { getCmsConfig } from './config';
 
 interface HugoStatus {
 	running: boolean;
@@ -39,7 +39,7 @@ let hugoUrl: string | null = null;
 let hugoError: string | null = null;
 
 function findHugoRoot(): string | null {
-	const site = cmsConfig.hugoSitePath;
+	const site = getCmsConfig().hugoSitePath;
 	if (
 		existsSync(resolve(site, 'hugo.toml')) ||
 		existsSync(resolve(site, 'hugo.yaml')) ||
@@ -57,7 +57,7 @@ export function getHugoStatus(): HugoStatus {
 	return {
 		running: hugoProcess !== null && hugoProcess.exitCode === null,
 		url: hugoUrl,
-		port: cmsConfig.hugoServerPort,
+		port: getCmsConfig().hugoServerPort,
 		error: hugoError,
 	};
 }
@@ -71,15 +71,15 @@ export async function startHugoServer(): Promise<HugoStatus> {
 	if (startPromise) return startPromise;
 
 	hugoError = null;
-	const root = findHugoRoot() || resolve(cmsConfig.hugoContentPath, '..');
-	const port = cmsConfig.hugoServerPort;
+	const root = findHugoRoot() || resolve(getCmsConfig().hugoContentPath, '..');
+	const port = getCmsConfig().hugoServerPort;
 
 	const proc = spawn('hugo', [
 		'server',
 		'-D',
 		'--port', String(port),
-		'--bind', cmsConfig.hugoBindAddress,
-		'--baseURL', `http://${cmsConfig.hugoBindAddress}:${port}`,
+		'--bind', getCmsConfig().hugoBindAddress,
+		'--baseURL', `http://${getCmsConfig().hugoBindAddress}:${port}`,
 		'--source', root,
 		'--disableFastRender',
 	], {
@@ -92,7 +92,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 			hugoError = "Le serveur Hugo n'a pas démarré dans les temps.";
 			startPromise = null;
 			resolvePromise(getHugoStatus());
-		}, cmsConfig.hugoStartupTimeout);
+		}, getCmsConfig().hugoStartupTimeout);
 
 		proc.stdout?.on('data', (chunk: Buffer) => {
 			const text = chunk.toString();
@@ -153,7 +153,7 @@ export async function stopHugoServer(): Promise<HugoStatus> {
 				hugoUrl = null;
 				hugoError = null;
 				resolve(getHugoStatus());
-			}, cmsConfig.hugoStopTimeout);
+			}, getCmsConfig().hugoStopTimeout);
 
 			hugoProcess!.on('exit', () => {
 				clearTimeout(timeout);

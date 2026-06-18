@@ -11,7 +11,7 @@ vi.mock('@lucide/svelte', () => {
 		'CheckCircle2', 'AlertCircle', 'Loader2', 'Type', 'Hash',
 		'FileText', 'RefreshCw', 'ChevronRight', 'ArrowUp', 'Folder',
 		'PanelRightOpen', 'PanelRightClose', 'PenLine',
-		'X', 'Plus', 'AlertTriangle', 'Code2',
+		'X', 'Plus', 'AlertTriangle', 'Code2', 'Image', 'Zap',
 	] as const;
 	const mod: Record<string, unknown> = {};
 	for (const name of icons) mod[name] = IconMock;
@@ -26,9 +26,11 @@ vi.mock('@tiptap/core', () => {
 		storage: { markdown: { getMarkdown: () => '' } },
 		state: { doc: { textContent: '' } },
 		isActive: () => false,
+		isDestroyed: false,
 		destroy: () => {},
 		commands: { setContent: () => true },
 		getHTML: () => '',
+		view: { dom: { addEventListener: () => {}, removeEventListener: () => {} } },
 	};
 	function MockEditor() { return mockInstance; }
 	MockEditor.prototype = mockInstance;

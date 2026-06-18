@@ -4,13 +4,13 @@ import { listArchetypes, renderArchetype } from '$lib/server/archetypes';
 import { writeFile, mkdir, stat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
-import { cmsConfig } from '$lib/server/config';
+import { getCmsConfig } from '$lib/server/config';
 import { parseFrontmatter } from '$lib/server/markdown';
 
 function safeResolveBase(...segments: string[]): string {
-	const BASE = cmsConfig.hugoContentPath;
-	const resolved = resolve(BASE, ...segments);
-	if (!resolved.startsWith(resolve(BASE))) {
+	const base = getCmsConfig().hugoContentPath;
+	const resolved = resolve(base, ...segments);
+	if (!resolved.startsWith(resolve(base))) {
 		throw new Error('Path traversal detected');
 	}
 	return resolved;
