@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { Editor as TiptapEditor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 	import Placeholder from '@tiptap/extension-placeholder';
@@ -12,6 +12,46 @@
 	import yaml from 'js-yaml';
 	import { parse, stringify } from '@iarna/toml';
 	import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
+	import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
+	import { EditorState, EditorSelection } from '@codemirror/state';
+	import { markdown } from '@codemirror/lang-markdown';
+	import { oneDark } from '@codemirror/theme-one-dark';
+	import { undo, redo, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
+	import { foldGutter, indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldKeymap } from '@codemirror/language';
+	import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+	import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+	import { lintKeymap } from '@codemirror/lint';
+
+	function basicSetup(): import('@codemirror/state').Extension {
+		return [
+			lineNumbers(),
+			highlightActiveLineGutter(),
+			highlightSpecialChars(),
+			history(),
+			foldGutter(),
+			drawSelection(),
+			dropCursor(),
+			EditorState.allowMultipleSelections.of(true),
+			indentOnInput(),
+			syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+			bracketMatching(),
+			closeBrackets(),
+			autocompletion(),
+			rectangularSelection(),
+			crosshairCursor(),
+			highlightActiveLine(),
+			highlightSelectionMatches(),
+			keymap.of([
+				...defaultKeymap,
+				...searchKeymap,
+				...historyKeymap,
+				...foldKeymap,
+				...completionKeymap,
+				...closeBracketsKeymap,
+				...lintKeymap,
+			]),
+		];
+	}
 
 	interface EditorProps {
 		content?: string;
@@ -40,9 +80,12 @@
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
 	let bubbleEl: HTMLDivElement;
-	let textareaEl = $state<HTMLTextAreaElement | null>(null);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let rawContent = $state('');
+
+	let cmView: EditorView | null = null;
+	let cmContainer = $state<HTMLDivElement | undefined>();
+	let cmUpdating = false;
 
 	let showImagePicker = $state(false);
 	let pendingImageInsert = $state<{ editor: TiptapEditor; range: import('@tiptap/core').Range } | null>(null);
@@ -119,7 +162,6 @@
 	}
 
 	function markRawUnsaved() {
-		pushRawHistory();
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		++saveVersion;
 		onSaveState?.('unsaved');
@@ -230,16 +272,12 @@
 	$effect(() => {
 		if (rawMode === prevRawMode) return;
 		if (rawMode) {
-			// switching to raw: Tiptap → textarea, include frontmatter
+			// switching to raw: Tiptap → CM6, include frontmatter
 			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
 				? serializeFm(frontmatter, frontmatterFormat)
 				: '';
 			const body = getMarkdown();
 			rawContent = fmString ? `${fmString}\n\n${body}` : body;
-			// seed undo history
-			rawHistory = [rawContent];
-			rawHistoryIdx = 0;
-			rawHistoryLock = 0;
 		} else {
 			// switching to WYSIWYG: textarea → Tiptap, strip frontmatter
 			const { body } = splitRawContent(rawContent);
@@ -275,7 +313,7 @@
 		};
 	});
 
-	// when frontmatter changes in raw mode, refresh the raw textarea
+	// when frontmatter changes in raw mode, refresh the CM6 content
 	let prevFmSnapshot = $state('');
 	$effect(() => {
 		if (!rawMode) return;
@@ -286,12 +324,62 @@
 		const fmString = serializeFm(frontmatter, frontmatterFormat);
 		const newContent = fmString ? `${fmString}\n\n${body}` : body;
 		if (newContent === rawContent) return;
-		// push current state into history before replacing
-		rawHistory = rawHistory.slice(0, rawHistoryIdx + 1);
-		rawHistory.push(rawContent);
-		rawHistoryIdx = rawHistory.length - 1;
-		if (rawHistory.length > 200) rawHistory.shift();
 		rawContent = newContent;
+	});
+
+	// CM6 lifecycle : création/destruction selon rawMode uniquement
+	// Ne PAS tracker rawContent ici (untrack) — les mises à jour de contenu
+	// sont gérées par le $effect de sync ci-dessous, pour éviter les cycles
+	// de destruction/création qui dupliquent le contenu (voir #duplication-bug).
+	$effect(() => {
+		if (!rawMode || !cmContainer) {
+			if (cmView) {
+				cmView.destroy();
+				cmView = null;
+			}
+			return;
+		}
+		const isDark = document.documentElement.dataset.theme === 'dark';
+		const view = new EditorView({
+			state: EditorState.create({
+				doc: untrack(() => rawContent),
+				extensions: [
+					basicSetup(),
+					markdown(),
+					isDark ? oneDark : [],
+					EditorView.updateListener.of(update => {
+						if (update.docChanged && !cmUpdating) {
+							rawContent = update.state.doc.toString();
+							markRawUnsaved();
+						}
+					}),
+					EditorView.theme({
+						'&': { height: '100%' },
+						'.cm-scroller': { overflow: 'auto', fontFamily: 'inherit' },
+						'.cm-content': { padding: '24px 32px', fontFamily: 'var(--editor-font, var(--font-mono))', fontSize: 'var(--editor-font-size, 14px)' },
+					}),
+				],
+			}),
+			parent: cmContainer,
+		});
+		cmView = view;
+		return () => {
+			view.destroy();
+			if (cmView === view) cmView = null;
+		};
+	});
+
+	// Sync CM6 ← rawContent quand modifié de l'extérieur (frontmatter, etc.)
+	$effect(() => {
+		if (!cmView || !rawMode || cmUpdating) return;
+		const current = cmView.state.doc.toString();
+		if (current !== rawContent) {
+			cmUpdating = true;
+			cmView.dispatch({
+				changes: { from: 0, to: current.length, insert: rawContent },
+			});
+			cmUpdating = false;
+		}
 	});
 
 	function serializeFm(fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
@@ -396,89 +484,70 @@
 		}
 	}
 
+	function cmDispatch(changes: { from: number; to: number; insert: string }[], selectionPos?: number) {
+		if (!cmView) return;
+		cmView.dispatch({
+			changes: changes.map(c => ({ from: c.from, to: c.to, insert: c.insert })),
+			...(selectionPos !== undefined ? { selection: EditorSelection.cursor(selectionPos) } : {}),
+		});
+		cmView.focus();
+		markRawUnsaved();
+	}
+
 	function rawWrap(prefix: string, suffix: string) {
-		const ta = textareaEl;
-		if (!ta) return;
-		const start = ta.selectionStart;
-		const end = ta.selectionEnd;
-		const text = rawContent;
+		if (!cmView) return;
+		const sel = cmView.state.selection.main;
+		const start = sel.from;
+		const end = sel.to;
+		const text = cmView.state.doc.toString();
 		const selected = text.substring(start, end);
 		const wrapped = selected ? `${prefix}${selected}${suffix}` : `${prefix}${suffix}`;
-		rawContent = text.substring(0, start) + wrapped + text.substring(end);
-		markRawUnsaved();
-		requestAnimationFrame(() => {
-			ta.focus();
-			if (selected) {
-				ta.setSelectionRange(start, start + wrapped.length);
-			} else {
-				ta.setSelectionRange(start + prefix.length, start + prefix.length);
-			}
-		});
+		cmDispatch(
+			[{ from: start, to: end, insert: wrapped }],
+			selected ? start : start + prefix.length,
+		);
 	}
 
 	function rawWrapInner(text: string) {
-		const ta = textareaEl;
-		if (!ta) return;
-		const start = ta.selectionStart;
-		const cur = rawContent;
-		rawContent = cur.substring(0, start) + text + cur.substring(start);
-		markRawUnsaved();
-		requestAnimationFrame(() => {
-			ta.focus();
-			ta.setSelectionRange(start + text.length, start + text.length);
-		});
+		if (!cmView) return;
+		const pos = cmView.state.selection.main.from;
+		cmDispatch([{ from: pos, to: pos, insert: text }], pos + text.length);
 	}
 
 	function rawHeading(level: number) {
-		const ta = textareaEl;
-		if (!ta) return;
-		const start = ta.selectionStart;
-		const text = rawContent;
-		const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-		const lineEnd = text.indexOf('\n', start);
-		const line = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd);
+		if (!cmView) return;
+		const pos = cmView.state.selection.main.from;
+		const doc = cmView.state.doc;
+		const line = doc.lineAt(pos);
+		const lineText = line.text;
 		const prefix = '#'.repeat(level) + ' ';
-		const stripped = line.replace(/^#{1,6}\s*/, '');
+		const stripped = lineText.replace(/^#{1,6}\s*/, '');
 		const newLine = `${prefix}${stripped}`;
-		const before = text.substring(0, lineStart);
-		const after = text.substring(lineEnd === -1 ? text.length : lineEnd);
-		rawContent = before + newLine + after;
-		markRawUnsaved();
-		requestAnimationFrame(() => {
-			ta.focus();
-			ta.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length);
-		});
+		cmDispatch([{ from: line.from, to: line.to, insert: newLine }], line.from + prefix.length);
 	}
 
 	function rawList(ordered: boolean) {
-		const ta = textareaEl;
-		if (!ta) return;
-		const start = ta.selectionStart;
-		const text = rawContent;
-		const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-		const lineEnd = text.indexOf('\n', start);
-		const stripped = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd).replace(/^(\s*)(\d+\.\s|[-*+]\s)/, '$1');
+		if (!cmView) return;
+		const pos = cmView.state.selection.main.from;
+		const doc = cmView.state.doc;
+		const line = doc.lineAt(pos);
+		const lineText = line.text;
+		const stripped = lineText.replace(/^(\s*)(\d+\.\s|[-*+]\s)/, '$1');
 		const prefix = ordered ? '1. ' : '- ';
-		const newLine = `${stripped ? stripped.replace(/^\s*/, '') : ''}`;
 		const indent = stripped.match(/^\s*/)?.[0] || '';
-		const result = `${indent}${prefix}${newLine}`;
-		rawContent = text.substring(0, lineStart) + result + text.substring(lineEnd === -1 ? text.length : lineEnd);
-		markRawUnsaved();
-		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(lineStart + result.length, lineStart + result.length); });
+		const content = stripped.replace(/^\s*/, '');
+		const result = content ? `${indent}${prefix}${content}` : `${indent}${prefix}`;
+		cmDispatch([{ from: line.from, to: line.to, insert: result }], line.from + result.length);
 	}
 
 	function rawBlockquote() {
-		const ta = textareaEl;
-		if (!ta) return;
-		const start = ta.selectionStart;
-		const text = rawContent;
-		const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-		const lineEnd = text.indexOf('\n', start);
-		const line = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd);
-		const newLine = line.startsWith('> ') ? line.slice(2) : `> ${line}`;
-		rawContent = text.substring(0, lineStart) + newLine + text.substring(lineEnd === -1 ? text.length : lineEnd);
-		markRawUnsaved();
-		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(lineStart + newLine.length, lineStart + newLine.length); });
+		if (!cmView) return;
+		const pos = cmView.state.selection.main.from;
+		const doc = cmView.state.doc;
+		const line = doc.lineAt(pos);
+		const lineText = line.text;
+		const newLine = lineText.startsWith('> ') ? lineText.slice(2) : `> ${lineText}`;
+		cmDispatch([{ from: line.from, to: line.to, insert: newLine }], line.from + newLine.length);
 	}
 
 	function rawLink() {
@@ -488,45 +557,21 @@
 	}
 
 	function rawHr() {
-		const ta = textareaEl;
-		if (!ta) return;
-		const start = ta.selectionStart;
-		const text = rawContent;
-		const before = text.substring(0, start);
-		const after = text.substring(start);
-		const nl = before.endsWith('\n') ? '' : '\n';
-		rawContent = `${before}${nl}---\n\n${after}`;
-		markRawUnsaved();
-		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + nl.length + 5, start + nl.length + 5); });
+		if (!cmView) return;
+		const pos = cmView.state.selection.main.from;
+		const doc = cmView.state.doc.toString();
+		const before = doc.substring(0, pos);
+		const nl = before.endsWith('\n') || before === '' ? '' : '\n';
+		const insert = `${nl}---\n\n`;
+		cmDispatch([{ from: pos, to: pos, insert }], pos + insert.length);
 	}
 
-	let rawHistory = $state<string[]>([]);
-	let rawHistoryIdx = $state(-1);
-	let rawHistoryLock = $state(0); // prevents push during undo/redo restore
-
 	function rawUndo() {
-		if (rawHistoryIdx <= 0) return;
-		rawHistoryIdx--;
-		rawHistoryLock++;
-		rawContent = rawHistory[rawHistoryIdx];
-		textareaEl?.focus();
+		if (cmView) { undo(cmView); return; }
 	}
 
 	function rawRedo() {
-		if (rawHistoryIdx >= rawHistory.length - 1) return;
-		rawHistoryIdx++;
-		rawHistoryLock++;
-		rawContent = rawHistory[rawHistoryIdx];
-		textareaEl?.focus();
-	}
-
-	function pushRawHistory() {
-		if (rawHistoryLock > 0) { rawHistoryLock = Math.max(0, rawHistoryLock - 1); return; }
-		// trim future
-		rawHistory = rawHistory.slice(0, rawHistoryIdx + 1);
-		rawHistory.push(rawContent);
-		if (rawHistory.length > 200) rawHistory.shift();
-		rawHistoryIdx = rawHistory.length - 1;
+		if (cmView) { redo(cmView); return; }
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -567,15 +612,7 @@
 		<button class:toggle-active={rawMode} onclick={() => rawMode = !rawMode} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
 	</div>
 
-	<textarea
-		bind:this={textareaEl}
-		class="raw-textarea"
-		class:active={rawMode}
-		bind:value={rawContent}
-		oninput={markRawUnsaved}
-		placeholder="Commencez à écrire…"
-		aria-label="Contenu brut"
-	></textarea>
+	<div bind:this={cmContainer} class="cm-editor-host" class:active={rawMode} role="textbox" aria-label="Contenu brut"></div>
 	<div bind:this={editorEl} class="editor-content" class:active={!rawMode} role="textbox" aria-label="Éditeur de contenu"></div>
 
 	<div bind:this={bubbleEl} class="bubble-menu">
@@ -729,28 +766,25 @@
 		pointer-events: none;
 	}
 
-	.raw-textarea {
+	.cm-editor-host {
 		flex: 1;
 		width: 100%;
-		padding: 24px 32px;
-		font-family: var(--editor-font, var(--font-mono));
-		font-size: var(--editor-font-size, 14px);
-		line-height: 1.7;
+		overflow: hidden;
+		display: none;
 		border: none;
 		outline: none;
-		resize: none;
-		background: var(--c-bg);
-		color: var(--c-text);
-		tab-size: 2;
-		display: none;
 	}
 
-	.raw-textarea.active {
+	.cm-editor-host.active {
 		display: block;
 	}
 
-	.raw-textarea::placeholder {
-		color: var(--c-text-muted);
+	.cm-editor-host :global(.cm-editor) {
+		height: 100%;
+	}
+
+	.cm-editor-host :global(.cm-editor.cm-focused) {
+		outline: none;
 	}
 
 	.bubble-menu {

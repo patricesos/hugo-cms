@@ -78,7 +78,7 @@
 
 ### EPIC B — UI taskbar : run/stop Hugo + couleur d'état + expose réseau
 
-- [ ] **US-083** — Indicateur d'état Hugo unifié avec couleur (icône gris/orange/vert/rouge dans `action-bar-right`, toggle run/stop au clic, tooltip dynamique)
+- [x] **US-083** — Indicateur d'état Hugo unifié avec couleur (icône gris/orange/vert/rouge dans `action-bar-right`, toggle run/stop au clic, tooltip dynamique)
 
 ---
 
@@ -92,9 +92,9 @@
 
 ### EPIC D — Syntax highlighting léger en mode raw
 
-- [ ] **US-090** — Décision d'architecture : CodeMirror 6 (Option 1) vs overlay (Option 2). À trancher AVANT tout code.
-- [ ] **US-091** — Intégration CodeMirror 6 en mode raw (migration progressive fonction par fonction, validation manuelle après chaque migration)
-- [ ] **US-092** — Tests de non-régression pour le mode raw migré (Editor.test.ts avec CodeMirror en environnement Vitest)
+- [x] **US-090** — Décision d'architecture : CodeMirror 6 (Option 1) vs overlay (Option 2). À trancher AVANT tout code.
+- [x] **US-091** — Intégration CodeMirror 6 en mode raw (migration progressive fonction par fonction, validation manuelle après chaque migration)
+- [x] **US-092** — Tests de non-régression pour le mode raw migré (Editor.test.ts avec CodeMirror en environnement Vitest)
 
 ---
 
