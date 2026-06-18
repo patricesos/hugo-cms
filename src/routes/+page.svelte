@@ -965,9 +965,6 @@
 		<div class="header-brand">
 			<img src="/favicon.svg" alt="Hugo" class="header-logo" />
 			<h2>Hugo CMS</h2>
-			<div class="server-indicator" class:running={hugoStatus === 'running'} class:stopped={hugoStatus === 'stopped'} class:loading={hugoStatus === 'loading'} class:error={hugoStatus === 'error'} title={hugoStatus === 'running' ? 'Serveur actif' : hugoStatus === 'loading' ? 'Démarrage…' : hugoStatus === 'error' ? 'Erreur serveur' : 'Serveur arrêté'}>
-				<span class="server-dot"></span>
-			</div>
 		</div>
 	</header>
 	{#if showRestartBanner}
@@ -1049,27 +1046,28 @@
 					<span class="toggle-label">Local</span>
 				{/if}
 			</button>
-			<div class="preview-header-actions">
-				{#if hugoStatus === 'running'}
-					<button class="icon-btn" onclick={openPreviewInTab} title="Ouvrir dans un onglet">
-						<ExternalLink size={14} />
-					</button>
-					<button class="icon-btn" onclick={reloadPreview} title="Recharger">
-						<RefreshCw size={14} />
-					</button>
-					<button class="icon-btn preview-stop" onclick={stopHugoServer} title="Arrêter le serveur">
-						<Square size={13} />
-					</button>
-				{:else if hugoStatus === 'stopped'}
-					<button class="icon-btn preview-start" onclick={startHugoServer} title="Démarrer le serveur">
-						<Play size={14} />
-					</button>
-				{:else if hugoStatus === 'loading'}
-					<button class="icon-btn" disabled title="Démarrage…">
-						<Loader2 size={14} class="spin" />
-					</button>
-				{/if}
-			</div>
+			<button
+				class="hugo-indicator"
+				class:running={hugoStatus === 'running'}
+				class:loading={hugoStatus === 'loading'}
+				class:error={hugoStatus === 'error'}
+				onclick={hugoStatus === 'running' ? stopHugoServer : hugoStatus === 'stopped' || hugoStatus === 'error' ? startHugoServer : undefined}
+				disabled={hugoStatus === 'loading'}
+				title={hugoStatus === 'running' ? 'Arrêter le serveur' : hugoStatus === 'loading' ? 'Démarrage…' : hugoStatus === 'error' ? 'Relancer le serveur' : 'Démarrer le serveur'}
+			>
+				<span class="hugo-indicator-dot"></span>
+				<span class="hugo-indicator-label">
+					{ hugoStatus === 'running' ? 'Actif' : hugoStatus === 'loading' ? 'Démarrage…' : hugoStatus === 'error' ? 'Erreur' : 'Arrêté' }
+				</span>
+			</button>
+			{#if hugoStatus === 'running'}
+				<button class="icon-btn" onclick={openPreviewInTab} title="Ouvrir dans un onglet">
+					<ExternalLink size={14} />
+				</button>
+				<button class="icon-btn" onclick={reloadPreview} title="Recharger">
+					<RefreshCw size={15} />
+				</button>
+			{/if}
 			<button class="icon-btn" onclick={() => showSettings = true} title="Paramètres">
 				<Settings size={16} />
 			</button>
@@ -1496,42 +1494,88 @@
 		color: var(--c-text);
 	}
 
-	.server-indicator {
+	.hugo-indicator {
 		display: flex;
 		align-items: center;
-		margin-left: 4px;
+		gap: 6px;
+		padding: 4px 10px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-md);
+		background: var(--c-bg);
+		color: var(--c-text-secondary);
+		font-size: 12px;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.12s;
+		margin-right: 4px;
+		white-space: nowrap;
 	}
 
-	.server-dot {
+	.hugo-indicator:hover:not(:disabled) {
+		background: var(--c-bg-muted);
+	}
+
+	.hugo-indicator:disabled {
+		cursor: default;
+		opacity: 0.8;
+	}
+
+	.hugo-indicator.running {
+		color: var(--c-success);
+		border-color: var(--c-success-border);
+	}
+
+	.hugo-indicator.running:hover:not(:disabled) {
+		background: var(--c-danger-bg);
+		color: var(--c-danger);
+		border-color: var(--c-danger-border);
+	}
+
+	.hugo-indicator.error {
+		color: var(--c-danger);
+		border-color: var(--c-danger-border);
+	}
+
+	.hugo-indicator.loading {
+		color: var(--c-warning);
+		border-color: var(--c-warning-border);
+	}
+
+	.hugo-indicator-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
+		flex-shrink: 0;
 		transition: all 0.3s;
 	}
 
-	.server-indicator.running .server-dot {
+	.hugo-indicator:not(.running):not(.loading):not(.error) .hugo-indicator-dot {
+		background: var(--c-text-muted);
+	}
+
+	.hugo-indicator.running .hugo-indicator-dot {
 		background: var(--c-success);
 		box-shadow: 0 0 6px var(--c-success);
 	}
 
-	.server-indicator.stopped .server-dot {
+	.hugo-indicator.running:hover:not(:disabled) .hugo-indicator-dot {
 		background: var(--c-danger);
 		box-shadow: 0 0 6px var(--c-danger);
 	}
 
-	.server-indicator.loading .server-dot {
+	.hugo-indicator.loading .hugo-indicator-dot {
 		background: var(--c-warning);
 		box-shadow: 0 0 6px var(--c-warning);
-		animation: pulse 0.8s ease-in-out infinite;
+		animation: hugo-pulse 0.8s ease-in-out infinite;
 	}
 
-	.server-indicator.error .server-dot {
+	.hugo-indicator.error .hugo-indicator-dot {
 		background: var(--c-danger);
 		box-shadow: 0 0 6px var(--c-danger);
-		animation: pulse 0.4s ease-in-out infinite;
+		animation: hugo-pulse 0.4s ease-in-out infinite;
 	}
 
-	@keyframes pulse {
+	@keyframes hugo-pulse {
 		0%, 100% { opacity: 1; }
 		50% { opacity: 0.4; }
 	}
@@ -1555,25 +1599,6 @@
 	.action-bar .icon-btn:hover {
 		background: var(--c-bg-muted);
 		color: var(--c-text);
-	}
-
-	.preview-header-actions {
-		display: flex;
-		align-items: center;
-		gap: 2px;
-		margin-right: 4px;
-		padding-right: 4px;
-		border-right: 1px solid var(--c-border);
-	}
-
-	.action-bar .icon-btn.preview-stop:hover {
-		background: var(--c-danger-bg);
-		color: var(--c-danger);
-	}
-
-	.action-bar .icon-btn.preview-start:hover {
-		background: var(--c-success-bg);
-		color: var(--c-success);
 	}
 
 	.action-bar .icon-btn.network-toggle {
