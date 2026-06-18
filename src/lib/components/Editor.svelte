@@ -683,6 +683,7 @@
 		font-style: italic;
 	}
 	.editor-content :global(pre) {
+		/* Bloc de code toujours en thème sombre, indépendant du thème de l'app — convention éditeur */
 		background: #1e1e2e;
 		color: #cdd6f4;
 		padding: 16px;

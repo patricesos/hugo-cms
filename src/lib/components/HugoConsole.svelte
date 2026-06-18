@@ -133,6 +133,7 @@
 {/if}
 
 <style>
+	/* Console toujours en thème sombre, indépendant du thème de l'app — convention terminal */
 	.console-panel {
 		border-top: 1px solid var(--c-border);
 		background: #1a1b1e;

@@ -1,11 +1,6 @@
 # Planning — Prochaines fonctionnalités
 
-## À faire
-
-- [ ] Langue de l'interface (Français, English) *(Nice to have)*
-- [ ] Slugify : conserver les caractères non-ASCII (oui/non) — actuellement strip tout sauf a-z0-9-
-
-### En cours — Architecture config
+## En cours — Architecture config
 
 - [x] **PROBLÈME 1** — `buildConfig()` : fallbacks git enabled/remote/branch utilisent maintenant `userSettings.showGit`/`gitRemote`/`gitBranch` au lieu de valeurs hardcodées
 - [x] **PROBLÈME 2** — `validate.ts` : `validateSettingValue()` + `allSettingKeys()` pilotés par `settingsSchema`. Rewrite `loadUserSettings()`/`saveUserSettings()` sans duplication
@@ -34,13 +29,84 @@
 - [x] **FIX 5 — Tests buildConfig** — `config.test.ts` : 16 tests pour `buildConfig()` — fallback userSettings (git, ports, paths), surcharge env vars, valeurs absolues, env vide.
 - [x] **FIX 6 — Tests archetypes** — `archetypes.test.ts` : 29 tests — CRUD complet (read/create/update/delete), list (tri, cachés, labels, tree), render (tous les remplacements Hugo).
 
-## Backlog
+## Backlog — Polish UI : cohérence du design system
+
+**Ordre :** PROBLÈME 1 (couleurs) → PROBLÈME 2 (border-radius) → PROBLÈME 3 (`.btn-primary`, optionnel).
+
+---
+
+### PROBLÈME 1 — Couleurs sémantiques hardcodées (cassées en dark mode)
+
+- [x] **1.1** — Ajouter les tokens de fond manquants dans `app.css` (`--c-success-bg`, `--c-warning-bg`, `--c-danger-bg`, `--c-*-border`) en light et dark
+- [x] **1.2** — Migrer `StatusBar.svelte`, `SitemapView.svelte` vers les tokens
+- [x] **1.3** — Migrer `ArchetypeView.svelte`, `ConfigView.svelte`, `SitemapTreeItem.svelte`, `TreeNode.svelte`
+- [x] **1.4** — Migrer `FrontMatterEditor.svelte`, `GitSidebar.svelte`, `CommitDialog.svelte`
+- [x] **1.5** — Migrer `HugoPreview.svelte`, `+page.svelte`
+- [x] **1.6** — Ajouter commentaire `/* Console toujours en thème sombre */` dans `HugoConsole.svelte` et vérifier `Editor.svelte:686-687`
+- [x] **1.7** — Validation visuelle dark mode + `npx vitest run` → 189/189
+
+---
+
+### PROBLÈME 2 — border-radius incohérent avec les tokens existants
+
+- [ ] **2.1** — Lister toutes les occurrences `border-radius: [0-9]` dans les `.svelte`
+- [ ] **2.2** — Remplacer : `4px → var(--radius-sm)`, `6px → var(--radius-md)`, `3px → var(--radius-sm)`, cas par cas pour `10px` (éventuel `--radius-xl`)
+- [ ] **2.3** — Validation visuelle avant/après sur 2-3 modals
+
+---
+
+### PROBLÈME 3 — Duplication pattern `.btn-primary` (optionnel)
+
+- [ ] **3.1** — Ajouter classe `.btn-primary` dans `app.css`
+- [ ] **3.2** — Remplacer la règle dupliquée dans les 9 fichiers
+
+---
+
+## Backlog — Prochains EPICs
+
+**Ordre d'implémentation :** EPIC C → A → B → D. Chaque EPIC dans une session/commit séparée.
+
+---
+
+### EPIC A — Création d'un nouveau site Hugo depuis la web app
+
+- [ ] **US-080** — Détection de l'absence de site Hugo valide au démarrage (ne plus throw dans `getCmsConfig()`, flag `siteValid`, gardes explicites dans les appelants)
+- [ ] **US-081** — Endpoint `POST /api/hugo/new-site` (spawn `hugo new site`, validation dossier existant non-vide, mise à jour config)
+- [ ] **US-082** — UI `NewSiteDialog.svelte` (modal cohérent avec Settings/ImagePicker, appel POST, loading/error/success)
+
+---
+
+### EPIC B — UI taskbar : run/stop Hugo + couleur d'état + expose réseau
+
+- [ ] **US-083** — Indicateur d'état Hugo unifié avec couleur (icône gris/orange/vert/rouge dans `action-bar-right`, toggle run/stop au clic, tooltip dynamique)
+
+---
+
+### EPIC C — Folder picker custom (remplacer le dialogue natif Windows)
+
+- [ ] **US-084** — Endpoint `GET /api/fs/browse` (liste sous-dossiers, sécurité navigation, Windows drives)
+- [ ] **US-085** — Composant `FolderPicker.svelte` (modal style ImagePicker, fil d'ariane, sélection, champ saisie manuelle)
+- [ ] **US-086** — Brancher FolderPicker dans SettingsDialog (remplace picker natif pour `hugoSitePathCustom`) + réutilisé dans NewSiteDialog
+
+---
+
+### EPIC D — Syntax highlighting léger en mode raw
+
+- [ ] **US-090** — Décision d'architecture : CodeMirror 6 (Option 1) vs overlay (Option 2). À trancher AVANT tout code.
+- [ ] **US-091** — Intégration CodeMirror 6 en mode raw (migration progressive fonction par fonction, validation manuelle après chaque migration)
+- [ ] **US-092** — Tests de non-régression pour le mode raw migré (Editor.test.ts avec CodeMirror en environnement Vitest)
+
+---
+
+### Ancien backlog (future lointain)
 
 - [ ] Split view 50/50 éditeur + aperçu (auto-reload sur sauvegarde)
 - [ ] Multi-remote git dans l'UI
 - [ ] Version history (10 dernières versions dans /.cms-history/)
 - [ ] Drag-drop entre les vues sidebar
 - [ ] Recherche dans la vue Config
+- [ ] Langue de l'interface (Français, English)
+- [ ] Slugify : conserver les caractères non-ASCII (oui/non)
 
 ## Done
 

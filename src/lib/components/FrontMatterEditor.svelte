@@ -391,9 +391,9 @@
 	}
 
 	.draft-toggle.draft {
-		background: #fef3c7;
-		border-color: #fde68a;
-		color: #92400e;
+		background: var(--c-warning-bg);
+		border-color: var(--c-warning-border);
+		color: var(--c-warning);
 	}
 
 	.draft-toggle:hover {
@@ -402,7 +402,7 @@
 	}
 
 	.draft-toggle.draft:hover {
-		background: #fde68a;
+		background: var(--c-warning-border);
 	}
 
 	.draft-badge {
@@ -413,8 +413,8 @@
 		font-weight: 600;
 		padding: 2px 6px;
 		border-radius: 3px;
-		background: #fef3c7;
-		color: #92400e;
+		background: var(--c-warning-bg);
+		color: var(--c-warning);
 		text-transform: uppercase;
 	}
 
@@ -504,7 +504,7 @@
 	}
 
 	.tag-remove:hover {
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 	}
 
 	.add-btn {
@@ -701,7 +701,7 @@
 	}
 
 	.custom-remove:hover {
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 	}
 
 	.raw-toggle {

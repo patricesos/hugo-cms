@@ -54,9 +54,15 @@
 	--c-text-muted: #5c5c66;
 
 	--c-success: #15803d;
+	--c-success-bg: #f0fdf4;
+	--c-success-border: #bbf7d0;
 	--c-warning: #b45309;
+	--c-warning-bg: #fef3c7;
+	--c-warning-border: #fde68a;
 	--c-info: #6366f1;
 	--c-danger: #dc2626;
+	--c-danger-bg: #fef2f2;
+	--c-danger-border: #fecaca;
 
 	--radius-sm: 4px;
 	--radius-md: 6px;
@@ -90,9 +96,15 @@
 	--c-text-muted: #71717a;
 
 	--c-success: #22c55e;
+	--c-success-bg: #052e16;
+	--c-success-border: #14532d;
 	--c-warning: #f59e0b;
+	--c-warning-bg: #451a03;
+	--c-warning-border: #78350f;
 	--c-info: #818cf8;
 	--c-danger: #ef4444;
+	--c-danger-bg: #450a0a;
+	--c-danger-border: #7f1d1d;
 
 	--shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
 	--shadow-md: 0 4px 16px rgba(0,0,0,0.4);

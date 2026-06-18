@@ -1470,24 +1470,24 @@
 	}
 
 	.server-indicator.running .server-dot {
-		background: #22c55e;
-		box-shadow: 0 0 6px #22c55e;
+		background: var(--c-success);
+		box-shadow: 0 0 6px var(--c-success);
 	}
 
 	.server-indicator.stopped .server-dot {
-		background: #ef4444;
-		box-shadow: 0 0 6px #ef4444;
+		background: var(--c-danger);
+		box-shadow: 0 0 6px var(--c-danger);
 	}
 
 	.server-indicator.loading .server-dot {
-		background: #f59e0b;
-		box-shadow: 0 0 6px #f59e0b;
+		background: var(--c-warning);
+		box-shadow: 0 0 6px var(--c-warning);
 		animation: pulse 0.8s ease-in-out infinite;
 	}
 
 	.server-indicator.error .server-dot {
-		background: #ef4444;
-		box-shadow: 0 0 6px #ef4444;
+		background: var(--c-danger);
+		box-shadow: 0 0 6px var(--c-danger);
 		animation: pulse 0.4s ease-in-out infinite;
 	}
 
@@ -1527,13 +1527,13 @@
 	}
 
 	.action-bar .icon-btn.preview-stop:hover {
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 		color: var(--c-danger);
 	}
 
 	.action-bar .icon-btn.preview-start:hover {
-		background: #f0fdf4;
-		color: #16a34a;
+		background: var(--c-success-bg);
+		color: var(--c-success);
 	}
 
 	.action-bar .icon-btn.network-toggle {
@@ -1549,12 +1549,12 @@
 	}
 
 	.action-bar .icon-btn.network-toggle.active {
-		background: #f0fdf4;
-		color: #166534;
+		background: var(--c-success-bg);
+		color: var(--c-success);
 	}
 
 	.action-bar .icon-btn.network-toggle.active:hover {
-		background: #dcfce7;
+		background: var(--c-success-border);
 	}
 
 	.action-bar .icon-btn.network-toggle:disabled {
@@ -1610,11 +1610,11 @@
 		align-items: center;
 		gap: 8px;
 		padding: 8px 16px;
-		background: #fef3c7;
-		border-bottom: 1px solid #f59e0b;
+		background: var(--c-warning-bg);
+		border-bottom: 1px solid var(--c-warning);
 		flex-shrink: 0;
 		font-size: 13px;
-		color: #92400e;
+		color: var(--c-warning);
 	}
 
 	.conflict-icon {
@@ -1629,28 +1629,29 @@
 
 	.conflict-btn {
 		padding: 4px 12px;
-		border: 1px solid #f59e0b;
+		border: 1px solid var(--c-warning);
 		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
 		font-size: 12px;
 		font-family: inherit;
-		color: #92400e;
+		color: var(--c-warning);
 		transition: all 0.12s;
 	}
 
 	.conflict-btn:hover {
-		background: #f59e0b;
+		background: var(--c-warning);
 		color: white;
 	}
 
 	.conflict-btn.primary {
-		background: #f59e0b;
+		background: var(--c-warning);
 		color: white;
 	}
 
 	.conflict-btn.primary:hover {
-		background: #d97706;
+		background: var(--c-warning);
+		opacity: 0.85;
 	}
 
 	.app-body :global(.sidebar) {
@@ -1920,17 +1921,17 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 8px 16px;
-		background: #fff3cd;
-		color: #856404;
+		background: var(--c-warning-bg);
+		color: var(--c-warning);
 		font-size: 13px;
-		border-bottom: 1px solid #ffc107;
+		border-bottom: 1px solid var(--c-warning);
 		flex-shrink: 0;
 	}
 
 	.restart-banner-close {
 		border: none;
 		background: transparent;
-		color: #856404;
+		color: var(--c-warning);
 		cursor: pointer;
 		font-size: 14px;
 		padding: 2px 6px;

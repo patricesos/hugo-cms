@@ -322,8 +322,8 @@
 		font-weight: 700;
 		padding: 1px 5px;
 		border-radius: 3px;
-		background: #fef3c7;
-		color: #92400e;
+		background: var(--c-warning-bg);
+		color: var(--c-warning);
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 	}
@@ -364,7 +364,7 @@
 
 	.delete-node-btn:hover {
 		color: var(--c-danger);
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 	}
 
 	.delete-dir-btn {
@@ -388,7 +388,7 @@
 
 	.delete-dir-btn:hover {
 		color: var(--c-danger);
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 	}
 
 	.duplicate-node-btn {

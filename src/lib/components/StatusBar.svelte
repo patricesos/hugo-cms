@@ -81,12 +81,12 @@
 	}
 
 	.save-status.saved {
-		background: #f0fdf4;
+		background: var(--c-success-bg);
 		color: var(--c-success);
 	}
 
 	.save-status.unsaved {
-		background: #fffbeb;
+		background: var(--c-warning-bg);
 		color: var(--c-warning);
 	}
 

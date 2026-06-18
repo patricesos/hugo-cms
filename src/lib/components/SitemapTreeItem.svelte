@@ -147,8 +147,8 @@
 		font-weight: 700;
 		padding: 2px 6px;
 		border-radius: 3px;
-		background: #fef3c7;
-		color: #92400e;
+		background: var(--c-warning-bg);
+		color: var(--c-warning);
 		text-transform: uppercase;
 		letter-spacing: 0.3px;
 		flex-shrink: 0;
@@ -159,8 +159,8 @@
 		font-weight: 700;
 		padding: 2px 6px;
 		border-radius: 3px;
-		background: #dcfce7;
-		color: #166534;
+		background: var(--c-success-bg);
+		color: var(--c-success);
 		text-transform: uppercase;
 		letter-spacing: 0.3px;
 		flex-shrink: 0;

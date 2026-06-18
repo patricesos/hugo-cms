@@ -223,7 +223,7 @@
 		align-items: center;
 		gap: 8px;
 		padding: 12px;
-		background: #f0fdf4;
+		background: var(--c-success-bg);
 		border-radius: var(--radius-md);
 		color: var(--c-success);
 		font-weight: 500;
@@ -235,7 +235,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 8px 12px;
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 		border-radius: var(--radius-md);
 		color: var(--c-danger);
 		font-size: 13px;
@@ -336,8 +336,8 @@
 		color: var(--c-text-muted);
 	}
 
-	.file-kind.added { background: #f0fdf4; color: var(--c-success); }
-	.file-kind.deleted { background: #fef2f2; color: var(--c-danger); }
+	.file-kind.added { background: var(--c-success-bg); color: var(--c-success); }
+	.file-kind.deleted { background: var(--c-danger-bg); color: var(--c-danger); }
 	.file-kind.renamed { background: #faf5ff; color: #9333ea; }
 	.file-kind.untracked { background: var(--c-bg-muted); color: var(--c-text-muted); }
 

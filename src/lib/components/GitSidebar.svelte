@@ -483,7 +483,7 @@
 		font-size: 11px;
 	}
 
-	.icon-modified { color: #d97706; }
+	.icon-modified { color: var(--c-warning); }
 	.icon-added { color: var(--c-success); }
 	.icon-deleted { color: var(--c-danger); }
 	.icon-renamed { color: #9333ea; }
@@ -590,7 +590,7 @@
 	.reset-btn:hover:not(:disabled) {
 		border-color: var(--c-danger);
 		color: var(--c-danger);
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 	}
 
 	.reset-btn:disabled {
@@ -694,7 +694,7 @@
 		width: 40px;
 		height: 40px;
 		border-radius: 50%;
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 		color: var(--c-danger);
 	}
 

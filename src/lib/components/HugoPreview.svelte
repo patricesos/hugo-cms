@@ -213,8 +213,8 @@
 		letter-spacing: 0.5px;
 		padding: 1px 5px;
 		border-radius: 3px;
-		background: #dcfce7;
-		color: #166534;
+		background: var(--c-success-bg);
+		color: var(--c-success);
 	}
 
 	.preview-actions {
@@ -244,18 +244,18 @@
 	}
 
 	.preview-btn.stop:hover {
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 		color: var(--c-danger);
 	}
 
 	.preview-btn.active {
-		background: #f0fdf4;
-		color: #166534;
-		border-color: #bbf7d0;
+		background: var(--c-success-bg);
+		color: var(--c-success);
+		border-color: var(--c-success-border);
 	}
 
 	.preview-btn.active:hover {
-		background: #dcfce7;
+		background: var(--c-success-border);
 	}
 
 	.preview-btn:disabled {
@@ -297,9 +297,9 @@
 	}
 
 	.network-bar.exposed {
-		color: #166534;
-		background: #f0fdf4;
-		border-top-color: #bbf7d0;
+		color: var(--c-success);
+		background: var(--c-success-bg);
+		border-top-color: var(--c-success-border);
 	}
 
 	.preview-placeholder {

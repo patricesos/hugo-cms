@@ -264,9 +264,9 @@
 	}
 
 	.icon-btn.delete-btn:hover {
-		background: #fef2f2;
+		background: var(--c-danger-bg);
 		color: var(--c-danger);
-		border-color: #fecaca;
+		border-color: var(--c-danger-border);
 	}
 
 	.icon-btn.save-btn {
