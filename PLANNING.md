@@ -102,7 +102,7 @@
 
 > Branche : `audit/pattern-violations`
 > Statut : 47 issues identifiées — 3 critiques, 25 moyennes, 19 basses
-> Fixes appliqués : 15/47 (3 critiques, 8 moyennes, 4 basses)
+> Fixes appliqués : 18/47 (3 critiques, 10 moyennes, 5 basses)
 
 ---
 
@@ -110,11 +110,11 @@
 
 #### God Component `+page.svelte`
 
-- [ ] **E-001** — 🔴 `+page.svelte` = 2064 lignes, 60+ variables d'état, 40+ fonctions — **violation SRP**. Découper en modules : `tabs`, `sidebar`, `git`, `hugo`, `settings`, `editor`, `search`, `create-delete`
-- [ ] **E-002** — 🔴 Aucun store Svelte — 60+ `let xxx = $state(...)` au lieu de stores dédiés (`settingsStore`, `tabsStore`, `hugoStore`, `gitStore`)
-- [ ] **E-003** — 🟡 `saveAppState()` reconstruit un objet de 30+ champs manuellement — duplication du schema entre `saveAppState`, `restoreAppState`, et le callback `onSave`
-- [ ] **E-004** — 🟡 `restoreAppState()` fait 40+ `if (s.xxx !== undefined) xxx = s.xxx as type` — devrait être un `Object.assign()` avec un type safely
-- [ ] **E-005** — 🟡 Composants lazy-loaded typés `$state<any>(null)` — 12 composants sans type safety
+- [x] **E-001** — 🔴 `+page.svelte` = 2064 lignes, 60+ variables d'état, 40+ fonctions — **violation SRP**. Découper en modules : `tabs`, `sidebar`, `git`, `hugo`, `settings`, `editor`, `search`, `create-delete`
+- [x] **E-002** — 🔴 Aucun store Svelte — 60+ `let xxx = $state(...)` au lieu de stores dédiés (`settingsStore`, `tabsStore`, `hugoStore`, `gitStore`)
+- [x] **E-003** — 🟡 `saveAppState()` reconstruit un objet de 30+ champs manuellement — duplication du schema entre `saveAppState`, `restoreAppState`, et le callback `onSave`
+- [x] **E-004** — 🟡 `restoreAppState()` fait 40+ `if (s.xxx !== undefined) xxx = s.xxx as type` — devrait être un `Object.assign()` avec un type safely
+- [x] **E-005** — 🟡 Composants lazy-loaded typés `$state<any>(null)` — 12 composants sans type safety
 - [ ] **E-006** — 🟡 `onSave` du SettingsDialog reçoit un objet inline de 30+ champs — le type est écrit en dur dans le template
 - [ ] **E-007** — 🟡 `$effect` pour `saveAppState` avec 35+ dépendances listées manuellement — risque d'oubli
 
