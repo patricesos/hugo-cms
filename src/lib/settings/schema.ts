@@ -293,7 +293,7 @@ export const settingsSchema: SettingTab[] = [
 						label: 'Adresse de bind',
 						description: 'Adresse sur laquelle le serveur Hugo écoute (ex: 0.0.0.0)',
 						type: 'text',
-						default: '0.0.0.0',
+						default: '127.0.0.1',
 					},
 					{
 						key: 'hugoPort',

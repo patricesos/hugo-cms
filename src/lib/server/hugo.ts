@@ -3,11 +3,18 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getCmsConfig } from './config';
 
+/**
+ * Override runtime pour l'adresse de bind sans toucher à la config persistante.
+ * `null` = on utilise la valeur de la config (getCmsConfig().hugoBindAddress).
+ */
+let runtimeBindAddress: string | null = null;
+
 export interface HugoStatus {
 	running: boolean;
 	url: string | null;
 	port: number;
 	error: string | null;
+	live: boolean;
 }
 
 export interface LogEntry {
@@ -38,6 +45,21 @@ let hugoProcess: ChildProcess | null = null;
 let hugoUrl: string | null = null;
 let hugoError: string | null = null;
 
+/** Renvoie l'adresse de bind effective (runtime override ou config persistante). */
+export function getEffectiveBindAddress(): string {
+	return runtimeBindAddress ?? getCmsConfig().hugoBindAddress;
+}
+
+/** Surcharge l'adresse de bind pour le prochain démarrage (runtime uniquement). */
+export function setRuntimeBindAddress(address: string): void {
+	runtimeBindAddress = address;
+}
+
+/** Réinitialise l'override runtime : revient à la valeur de la config persistante. */
+export function clearRuntimeBindAddress(): void {
+	runtimeBindAddress = null;
+}
+
 function findHugoRoot(): string | null {
 	const site = getCmsConfig().hugoSitePath;
 	if (
@@ -59,6 +81,7 @@ export function getHugoStatus(): HugoStatus {
 		url: hugoUrl,
 		port: getCmsConfig().hugoServerPort,
 		error: hugoError,
+		live: getEffectiveBindAddress() !== '127.0.0.1',
 	};
 }
 
@@ -78,8 +101,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 		'server',
 		'-D',
 		'--port', String(port),
-		'--bind', getCmsConfig().hugoBindAddress,
-		'--baseURL', `http://${getCmsConfig().hugoBindAddress}:${port}`,
+		'--bind', getEffectiveBindAddress(),
 		'--source', root,
 		'--disableFastRender',
 	], {
@@ -172,6 +194,14 @@ export async function stopHugoServer(): Promise<HugoStatus> {
 	return getHugoStatus();
 }
 
+export async function restartHugoServer(): Promise<HugoStatus> {
+	const wasRunning = hugoProcess !== null && hugoProcess.exitCode === null;
+	if (wasRunning) {
+		await stopHugoServer();
+	}
+	return startHugoServer();
+}
+
 /** Pour les tests : réinitialise tout l'état du module. */
 export function __resetHugoStateForTests(): void {
 	hugoProcess = null;
@@ -179,4 +209,5 @@ export function __resetHugoStateForTests(): void {
 	hugoError = null;
 	startPromise = null;
 	logBuffer = [];
+	runtimeBindAddress = null;
 }

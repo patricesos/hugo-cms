@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings, ExternalLink, Play, Square } from '@lucide/svelte';
+	import { PanelRightOpen, PanelRightClose, PenLine, Search, PanelLeftClose, PanelLeftOpen, Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle, Eye, FileText, FilePlus, FolderPlus, Map, Terminal, GitBranch, Settings, ExternalLink, Play, Square, Globe, Lock } from '@lucide/svelte';
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -79,6 +79,7 @@
 			if (data.running && data.url) {
 				hugoStatus = 'running';
 				hugoUrl = data.url;
+				hugoLive = data.live ?? hugoLive;
 				previewReloadKey++;
 			} else {
 				hugoStatus = 'error';
@@ -90,7 +91,9 @@
 
 	async function stopHugoServer() {
 		try {
-			await fetch('/api/hugo/stop', { method: 'POST' });
+			const res = await fetch('/api/hugo/stop', { method: 'POST' });
+			const data = await res.json();
+			hugoLive = data.live ?? hugoLive;
 		} catch {}
 		hugoStatus = 'stopped';
 		hugoUrl = null;
@@ -103,11 +106,39 @@
 			if (data.running && data.url) {
 				hugoStatus = 'running';
 				hugoUrl = data.url;
+				hugoLive = data.live ?? hugoLive;
 			} else {
 				hugoStatus = 'stopped';
 				hugoUrl = null;
+				hugoLive = data.live ?? hugoLive;
 			}
 		} catch {}
+	}
+
+	async function toggleHugoLive() {
+		hugoTogglingLive = true;
+		const newBind = hugoLive ? '127.0.0.1' : '0.0.0.0';
+		try {
+			const res = await fetch('/api/hugo/bind', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ bindAddress: newBind }),
+			});
+			const data = await res.json();
+			hugoLive = data.live ?? false;
+			if (data.running && data.url) {
+				hugoStatus = 'running';
+				hugoUrl = data.url;
+				previewReloadKey++;
+			} else {
+				hugoStatus = data.error ? 'error' : 'stopped';
+				hugoUrl = data.running ? data.url : null;
+			}
+		} catch {
+			hugoStatus = 'error';
+		} finally {
+			hugoTogglingLive = false;
+		}
 	}
 
 	function reloadPreview() {
@@ -153,6 +184,8 @@
 	let expandedSlugs = $state<Set<string>>(new Set());
 	let hugoStatus = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let hugoUrl = $state<string | null>(null);
+	let hugoLive = $state(false);
+	let hugoTogglingLive = $state(false);
 	let previewReloadKey = $state(0);
 	let hydrated = $state(false);
 
@@ -968,6 +1001,23 @@
 			</button>
 		</div>
 		<div class="action-bar-right">
+			<button
+				class="icon-btn network-toggle"
+				class:active={hugoLive}
+				onclick={toggleHugoLive}
+				disabled={hugoTogglingLive}
+				title={hugoLive ? 'Restreindre au local' : 'Exposer sur le réseau'}
+			>
+				{#if hugoTogglingLive}
+					<Loader2 size={13} class="spin" />
+				{:else if hugoLive}
+					<Globe size={13} />
+					<span class="toggle-label">Réseau</span>
+				{:else}
+					<Lock size={13} />
+					<span class="toggle-label">Local</span>
+				{/if}
+			</button>
 			<div class="preview-header-actions">
 				{#if hugoStatus === 'running'}
 					<button class="icon-btn" onclick={openPreviewInTab} title="Ouvrir dans un onglet">
@@ -1227,6 +1277,7 @@
 						onClose={() => showPreview = false}
 						onStatusChange={(s) => hugoStatus = s}
 						onUrlChange={(u) => hugoUrl = u}
+						onLiveChange={(v) => hugoLive = v}
 						reloadKey={previewReloadKey}
 						style="width:{previewWidth}px;min-width:{previewWidth}px"
 					/>
@@ -1478,6 +1529,32 @@
 	.action-bar .icon-btn.preview-start:hover {
 		background: #f0fdf4;
 		color: #16a34a;
+	}
+
+	.action-bar .icon-btn.network-toggle {
+		width: auto;
+		gap: 4px;
+		padding: 0 6px;
+		font-size: 11px;
+	}
+
+	.action-bar .toggle-label {
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	.action-bar .icon-btn.network-toggle.active {
+		background: #f0fdf4;
+		color: #166534;
+	}
+
+	.action-bar .icon-btn.network-toggle.active:hover {
+		background: #dcfce7;
+	}
+
+	.action-bar .icon-btn.network-toggle:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.editor-panel {

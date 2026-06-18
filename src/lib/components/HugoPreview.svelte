@@ -1,18 +1,20 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw } from '@lucide/svelte';
+	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw, Globe, Lock } from '@lucide/svelte';
 
-	let { show, onClose, onStatusChange, onUrlChange, reloadKey, style = '' }: {
+	let { show, onClose, onStatusChange, onUrlChange, onLiveChange, reloadKey, style = '' }: {
 		show: boolean;
 		onClose: () => void;
 		onStatusChange?: (status: 'loading' | 'running' | 'stopped' | 'error') => void;
 		onUrlChange?: (url: string | null) => void;
+		onLiveChange?: (live: boolean) => void;
 		reloadKey?: number;
 		style?: string;
 	} = $props();
 
 	let status = $state<'loading' | 'running' | 'stopped' | 'error'>('stopped');
 	let url = $state<string | null>(null);
+	let live = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let checking = $state(false);
 	let iframeKey = $state(0);
@@ -20,6 +22,10 @@
 	$effect(() => {
 		onStatusChange?.(status);
 		onUrlChange?.(url);
+	});
+
+	$effect(() => {
+		onLiveChange?.(live);
 	});
 
 	$effect(() => {
@@ -38,13 +44,15 @@
 			if (data.running && data.url) {
 				status = 'running';
 				url = data.url;
+				live = data.live ?? live;
 			} else {
 				status = 'stopped';
+				live = data.live ?? live;
 			}
 			errorMessage = data.error || null;
 		} catch {
 			status = 'error';
-			errorMessage = 'Impossible de contacter le serveur.';
+			errorMessage = "Impossible de contacter le serveur.";
 		} finally {
 			checking = false;
 		}
@@ -59,6 +67,7 @@
 			if (data.running && data.url) {
 				status = 'running';
 				url = data.url;
+				live = data.live ?? live;
 				iframeKey++;
 			} else {
 				status = 'error';
@@ -66,13 +75,15 @@
 			}
 		} catch {
 			status = 'error';
-			errorMessage = 'Erreur réseau lors du démarrage.';
+			errorMessage = "Erreur réseau lors du démarrage.";
 		}
 	}
 
 	async function stopHugo() {
 		try {
-			await fetch('/api/hugo/stop', { method: 'POST' });
+			const res = await fetch('/api/hugo/stop', { method: 'POST' });
+			const data = await res.json();
+			live = data.live ?? false;
 		} catch {
 			// ignore
 		}
@@ -95,6 +106,9 @@
 			<span class="preview-title">
 				<ExternalLink size={14} />
 				Aperçu Hugo
+				{#if live}
+					<span class="live-badge">live</span>
+				{/if}
 			</span>
 			<div class="preview-actions">
 				{#if status === 'running'}
@@ -120,13 +134,24 @@
 					<p>Démarrage du serveur Hugo…</p>
 				</div>
 			{:else if status === 'running' && url}
-				{#key iframeKey}
-					<iframe
-						src={url}
-						class="preview-iframe"
-						title="Aperçu Hugo"
-					></iframe>
-				{/key}
+				<div class="preview-content">
+					{#key iframeKey}
+						<iframe
+							src={url}
+							class="preview-iframe"
+							title="Aperçu Hugo"
+						></iframe>
+					{/key}
+					<div class="network-bar" class:exposed={live}>
+						{#if live}
+							<Globe size={12} />
+							<span>Accessible depuis le réseau</span>
+						{:else}
+							<Lock size={12} />
+							<span>Local uniquement</span>
+						{/if}
+					</div>
+				</div>
 			{:else if status === 'error'}
 				<div class="preview-placeholder error">
 					<AlertTriangle size={24} />
@@ -181,6 +206,17 @@
 		color: var(--c-text-secondary);
 	}
 
+	.live-badge {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		padding: 1px 5px;
+		border-radius: 3px;
+		background: #dcfce7;
+		color: #166534;
+	}
+
 	.preview-actions {
 		display: flex;
 		align-items: center;
@@ -212,17 +248,58 @@
 		color: var(--c-danger);
 	}
 
+	.preview-btn.active {
+		background: #f0fdf4;
+		color: #166534;
+		border-color: #bbf7d0;
+	}
+
+	.preview-btn.active:hover {
+		background: #dcfce7;
+	}
+
+	.preview-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
 	.preview-body {
 		flex: 1;
 		overflow: hidden;
 		display: flex;
 	}
 
+	.preview-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
 	.preview-iframe {
+		flex: 1;
 		width: 100%;
-		height: 100%;
 		border: none;
 		background: white;
+		min-height: 0;
+	}
+
+	.network-bar {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 10px;
+		font-size: 11px;
+		color: var(--c-text-muted);
+		background: var(--c-bg-subtle);
+		border-top: 1px solid var(--c-border);
+	}
+
+	.network-bar.exposed {
+		color: #166534;
+		background: #f0fdf4;
+		border-top-color: #bbf7d0;
 	}
 
 	.preview-placeholder {

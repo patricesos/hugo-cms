@@ -101,6 +101,7 @@ describe('getHugoStatus', () => {
 		expect(status.url).toBeNull();
 		expect(status.port).toBe(1313);
 		expect(status.error).toBeNull();
+		expect(status.live).toBe(false);
 	});
 });
 
