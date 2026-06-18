@@ -11,6 +11,7 @@
 	import ShortcodeDialog from './ShortcodeDialog.svelte';
 	import yaml from 'js-yaml';
 	import { parse, stringify } from '@iarna/toml';
+	import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
 
 	interface EditorProps {
 		content?: string;
@@ -34,9 +35,6 @@
 		onSetContent?: (fn: (content: string) => void) => void;
 	}
 
-	const SH_OPEN_SH = 'SH_OPEN_SH';
-	const SH_CLOSE_SH = 'SH_CLOSE_SH';
-
 	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
@@ -59,22 +57,9 @@
 		});
 	}
 
-	function protectShortcodes(text: string): string {
-		let result = text.replace(/\{\{</g, SH_OPEN_SH).replace(/\{\{%/g, SH_OPEN_SH).replace(/>\}\}/g, SH_CLOSE_SH).replace(/%\}\}/g, SH_CLOSE_SH);
-		// Chaque shortcode dans son propre paragraphe pour markdown-it
-		result = result.replace(new RegExp(`(${SH_CLOSE_SH})\\s*\\n(?!\\n)(\\s*)(${SH_OPEN_SH})`, 'g'), '$1\n\n$2$3');
-		return result;
-	}
-
-	function restoreShortcodes(text: string): string {
-		return text.replace(new RegExp(SH_OPEN_SH, 'g'), '{{<').replace(new RegExp(SH_CLOSE_SH, 'g'), '>}}');
-	}
-
 	function getMarkdown(): string {
 		const md = ((editor?.storage as unknown) as Record<string, Record<string, () => string>>).markdown?.getMarkdown() ?? '';
-		// Rétablir les sauts de ligne entre shortcodes consécutifs
-		// que markdown-it a fusionnés en une seule ligne (soft break → espace)
-		return restoreShortcodes(md).replace(/(\}\})\s+(?=\{\{<)/g, '}}\n');
+		return splitShortcodeLines(restoreShortcodes(md));
 	}
 
 	function handleImageSelect(url: string) {
