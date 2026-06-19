@@ -294,4 +294,34 @@ describe('Editor — mode brut / CM6', () => {
 		const editorContent = container.querySelector('.editor-content');
 		expect(editorContent!.classList.contains('active')).toBe(false);
 	});
+
+	it('affiche le bon contenu après toggle rawMode + changement de content simultanés (régression K-010)', async () => {
+		const { default: Editor } = await import('./Editor.svelte');
+		const { render } = await import('@testing-library/svelte');
+		const { container, rerender } = render(Editor, {
+			content: 'Contenu onglet A',
+			rawMode: false,
+			frontmatter: {},
+		});
+
+		// Laisser le premier render s'installer
+		await waitFor(() => {
+			expect(container.querySelector('.editor-content.active')).toBeTruthy();
+		});
+
+		// Simuler toggle rawMode + changement d'onglet dans un même update
+		await rerender({
+			content: 'Contenu onglet B',
+			rawMode: true,
+			frontmatter: {},
+		});
+
+		// Vérifier que CM6 affiche le nouveau contenu, pas un résidu périmé
+		await waitFor(() => {
+			const lines = container.querySelectorAll('.cm-line');
+			const fullText = Array.from(lines).map(l => l.textContent).join('\n');
+			expect(fullText).toContain('Contenu onglet B');
+			expect(fullText).not.toContain('Contenu onglet A');
+		});
+	});
 });

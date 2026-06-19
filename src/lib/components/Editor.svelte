@@ -84,7 +84,7 @@
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let rawContent = $state('');
 
-	let cmView: EditorView | null = null;
+	let cmView = $state<EditorView | null>(null);
 	let cmContainer = $state<HTMLDivElement | undefined>();
 	let cmUpdating = false;
 
@@ -369,8 +369,9 @@
 	// de destruction/création qui dupliquent le contenu (voir #duplication-bug).
 	$effect(() => {
 		if (!rawMode || !cmContainer) {
-			if (cmView) {
-				cmView.destroy();
+			const existing = untrack(() => cmView);
+			if (existing) {
+				existing.destroy();
 				cmView = null;
 			}
 			return;
@@ -402,7 +403,8 @@
 		cmView = view;
 		return () => {
 			view.destroy();
-			if (cmView === view) cmView = null;
+			const lastView = untrack(() => cmView);
+			if (lastView === view) cmView = null;
 		};
 	});
 

@@ -102,7 +102,7 @@
 
 > Branche : `audit/pattern-violations`
 > Statut : 47 issues identifiées — 3 critiques, 25 moyennes, 19 basses
-> Fixes appliqués : 18/47 (3 critiques, 10 moyennes, 5 basses)
+> Fixes appliqués : 19/47 (3 critiques, 11 moyennes, 5 basses)
 
 ---
 
@@ -172,6 +172,7 @@
 - [x] **K-007** — 🟢 Switch raw↔WYSIWYG re-parse la FM — déjà optimisé via `prevFmSnapshot`
 - [x] **K-008** — 🟢 10 résultats max dans SearchDialog — limite déjà supprimée
 - [x] **K-009** — 🟢 `draft: true` dur dans `handleCreate` — déjà paramétré via `$settings.draftByDefault`
+- [x] **K-010** — 🔴 Éditeur figé après toggle raw↔wysiwyg + changement d'onglet rapprochés. Cause racine : `cmView` est un `let` brut, pas `$state` → l'effect de sync (410) ne réagit pas à sa transition `null` → instance. Fix : `let cmView = $state<EditorView | null>(null)`, `untrack(() => cmView)` dans l'effect lifecycle pour éviter la boucle. + test de régression (toggle rawMode + content simultanés, vérifier DOM CodeMirror).
 
 ---
 
@@ -182,6 +183,19 @@
 - Avertissement avant installation si conflit/shortcode potentiellement non supporté
 
 **Ordre d'implémentation :** US-100 → US-101 → US-102 → US-103 (séquentiel).
+
+---
+
+### EPIC L — Refactor coordination raw/wysiwyg (après fix K-010)
+
+> **Ne PAS faire en même temps que K-010.** Refactor séparé, dans son propre commit, une fois le fix validé.
+> Contexte : K-010 est le 2e bug dans la même zone de `Editor.svelte` (body perdu en rawMode était le 1er).
+> La fragilité vient du mélange `let` brut + `$state` + flags de coordination manuels entre 4 `$effect`.
+
+- [ ] **L-001** — 🟡 Extraire la logique de synchronisation raw/wysiwyg dans `src/lib/editor/mode-sync.svelte.ts`. Encapsuler `cmView`, `rawContent`, flags de coordination en `$state` cohérent. API : `switchToRaw(content)`, `switchToWysiwyg(content)`, `syncFromExternalContent(content)`.
+- [ ] **L-002** — 🟡 Supprimer les 4 `$effect` entremêlés d'`Editor.svelte` (content ~287, rawMode ~302, lifecycle CM6 ~370, sync CM ~410), les remplacer par un appel unique à l'API du store dans un seul `$effect`.
+- [ ] **L-003** — 🟢 Rendre la logique testable indépendamment du DOM (pas besoin de monter `Editor.svelte` complet pour tester un cas de coordination).
+- [ ] **L-004** — 🟢 Valider que K-010 ne peut plus se reproduire en écrivant un test unitaire (pas DOM) qui reproduit la séquence "toggle + changement content → bon contenu affiché".
 
 ---
 
