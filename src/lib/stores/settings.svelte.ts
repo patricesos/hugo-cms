@@ -251,10 +251,10 @@ function createSettingsStore() {
 	},
 
     /** Applique le theme au DOM */
-    applyTheme() {
+    applyTheme(themeOverride?: string) {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
       const apply = () => {
-        const t = get(settings).theme;
+        const t = themeOverride ?? get(settings).theme;
         if (t === "dark") document.documentElement.dataset.theme = "dark";
         else if (t === "light")
           document.documentElement.dataset.theme = "light";

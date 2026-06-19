@@ -37,10 +37,17 @@ Write-Host "=== 6b. Copy .env.example ===" -ForegroundColor Cyan
 Copy-Item "$root/.env.example" "$distDir/.env.example" -Force
 
 Write-Host "=== 7. Compile C# tray launcher ===" -ForegroundColor Cyan
-$csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-$sourceFile = Join-Path $PSScriptRoot "tray-launcher.cs"
-& $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $sourceFile 2>&1
-if (-not $?) { throw "Compilation du tray launcher échouée" }
+
+# ── Skip compilation if tray is already running ──
+$existingProcess = Get-Process -Name "hugo-cms" -ErrorAction SilentlyContinue
+if ($existingProcess) {
+    Write-Host "Tray launcher already running (PID $($existingProcess.Id)) - skipping compilation" -ForegroundColor Yellow
+} else {
+    $csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+    $sourceFile = Join-Path $PSScriptRoot "tray-launcher.cs"
+    & $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $sourceFile 2>&1
+    if (-not $?) { Write-Warning "Tray launcher compilation failed" }
+}
 
 Write-Host "=== Done ===" -ForegroundColor Green
 Write-Host "Distribution folder: $distDir" -ForegroundColor Green

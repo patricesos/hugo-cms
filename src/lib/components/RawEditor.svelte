@@ -93,7 +93,7 @@
 
 		// Observe data-theme sur <html> → reconfigure le thème CM6 sans destroy
 		const themeObs = new MutationObserver(() => {
-			view.dispatch(tc.reconfigure(getCmTheme(document.documentElement.dataset.theme === 'dark')));
+			view.dispatch({ effects: [tc.reconfigure(getCmTheme(document.documentElement.dataset.theme === 'dark'))] });
 		});
 		themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 

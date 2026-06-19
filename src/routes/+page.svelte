@@ -190,8 +190,8 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	// Theme (base sur $settings.theme)
 	$effect(() => {
-		$settings.theme;
-		const unsub = settingsStore.applyTheme();
+		const t = $settings.theme;
+		const unsub = settingsStore.applyTheme(t);
 		return () => { if (unsub) unsub(); };
 	});
 
