@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, waitFor } from '@testing-library/svelte';
 
 // --- mock de @codemirror/view : CM6 ne peut pas tourner dans jsdom ---
@@ -66,9 +66,6 @@ vi.mock('@codemirror/view', () => {
 			container.appendChild(line);
 		}
 	}
-
-	class MockDOMReader {}
-	const __mockDOMReader = MockDOMReader;
 
 	return {
 		EditorView: MockEditorView as unknown as typeof import('@codemirror/view')['EditorView'],
@@ -159,13 +156,6 @@ describe('Editor — WYSIWYG mode', () => {
 		}
 	});
 
-	it('renders the bubble menu element', async () => {
-		const { default: Editor } = await import('./Editor.svelte');
-		const { render } = await import('@testing-library/svelte');
-		const { container } = render(Editor, { content: 'Test' });
-		expect(container.querySelector('.bubble-menu')).toBeTruthy();
-	});
-
 	it('renders without error with empty content', async () => {
 		const { default: Editor } = await import('./Editor.svelte');
 		const { render } = await import('@testing-library/svelte');
@@ -190,16 +180,6 @@ describe('Editor — mode brut / CM6', () => {
 		const host = container.querySelector('.cm-editor-host');
 		expect(host).toBeTruthy();
 		expect(host!.classList.contains('active')).toBe(true);
-	});
-
-	it('crée un .cm-editor dans le host', async () => {
-		const { default: Editor } = await import('./Editor.svelte');
-		const { render } = await import('@testing-library/svelte');
-		const { container } = render(Editor, { rawMode: true, content: '# Title\n\nBody' });
-
-		await waitFor(() => {
-			expect(container.querySelector('.cm-editor-host .cm-editor')).toBeTruthy();
-		});
 	});
 
 	it('affiche le frontmatter sérialisé par défaut dans .cm-line', async () => {
@@ -261,38 +241,12 @@ describe('Editor — mode brut / CM6', () => {
 		expect(toggle!.classList.contains('toggle-active')).toBe(true);
 	});
 
-	it('a l\'aria-label "Contenu brut" sur le host', async () => {
-		const { default: Editor } = await import('./Editor.svelte');
-		const { render } = await import('@testing-library/svelte');
-		const { container } = render(Editor, { rawMode: true });
-
-		const host = container.querySelector('.cm-editor-host');
-		expect(host!.getAttribute('aria-label')).toBe('Contenu brut');
-	});
-
 	it('le bubble-menu existe toujours dans le DOM', async () => {
 		const { default: Editor } = await import('./Editor.svelte');
 		const { render } = await import('@testing-library/svelte');
 		const { container } = render(Editor, { rawMode: true });
 
 		expect(container.querySelector('.bubble-menu')).toBeTruthy();
-	});
-
-	it('montre l\'éditeur visuel avec la classe active en WYSIWYG', async () => {
-		const { default: Editor } = await import('./Editor.svelte');
-		const { render } = await import('@testing-library/svelte');
-		const { container } = render(Editor, { rawMode: false, content: 'Hello' });
-
-		expect(container.querySelector('.editor-content.active')).toBeTruthy();
-	});
-
-	it('cache l\'éditeur visuel en raw mode', async () => {
-		const { default: Editor } = await import('./Editor.svelte');
-		const { render } = await import('@testing-library/svelte');
-		const { container } = render(Editor, { rawMode: true });
-
-		const editorContent = container.querySelector('.editor-content');
-		expect(editorContent!.classList.contains('active')).toBe(false);
 	});
 
 	it('affiche le bon contenu après toggle rawMode + changement de content simultanés (régression K-010)', async () => {

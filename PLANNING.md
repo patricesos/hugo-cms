@@ -252,7 +252,7 @@
 
 - [x] **US-113** — 🔴 `Editor.svelte` réduit à 210 lignes (orchestrateur). Importe `<RawEditor>` et `<WysiwygEditor>`, les passe en `active={rawMode}` / `active={!rawMode}`. Toolbar dispatch, auto-save transverse. `$effect` combiné utilise `loadContent` + `toggleToRaw`. `cmView` supprimé de `ModeSync`.
 
-- [ ] **US-114** — 🔴 Migrer les tests : les 4 tests WYSIWYG → `WysiwygEditor.test.ts` ; les tests CM6 purs → `RawEditor.test.ts` ; les tests de bascule → orchestrateur ou (mieux) store `mode-sync.test.ts`. Checklist des 13 tests existants.
+- [x] **US-114** — 🔴 Tests migrés : `WysiwygEditor.test.ts` (3 tests : bubble-menu, active/inactive), `RawEditor.test.ts` (2 tests : cm-editor, aria-label). `Editor.test.ts` réduit à 10 tests d'intégration/orchestration. 325 tests (18 fichiers), 0 svelte-check.
 
 **Décisions architecturales documentées dans le backlog complet :**
 - `WysiwygEditor` ne doit PAS appliquer `restoreShortcodes`/`splitShortcodeLines` — c'est le rôle du store
