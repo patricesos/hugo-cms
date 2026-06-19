@@ -1,0 +1,76 @@
+@startuml
+skinparam monochrome true
+skinparam rectangle {
+  BorderColor black
+  FontColor black
+}
+
+rectangle "Editor.svelte\n(instance unique)" as Editor {
+  rectangle "rawMode\n$props() local" as RawMode
+  rectangle "$effect(content)" as EffContent
+  rectangle "$effect(rawMode)" as EffRawMode
+  rectangle "getContent?.(() => rawMode\n  ? rawContent\n  : getMarkdown())" as GetContent
+  rectangle "buildEditor()\nTiptap" as Tiptap
+  rectangle "CM6\nraw editor" as CM6
+  rectangle "rawContent\n$state" as RawContent
+}
+
+rectangle "editorStore\nswitchToTab()" as SwitchToTab {
+  rectangle "_editorGetContent?.()" as CallGet
+  rectangle "tab.content = savedContent" as SaveTab
+  rectangle "editorContent\n.set(tab.content)" as SetEdContent
+  rectangle "currentSlug.set()" as SetSlug
+}
+
+rectangle "Tab A" as TabA
+rectangle "Tab B" as TabB
+
+== Raw Mode: Save & Switch ==
+
+RawMode --> GetContent : rawMode = true
+SwitchToTab --> CallGet
+CallGet --> GetContent : _editorGetContent()
+GetContent --> CallGet : returns rawContent\n(= frontmatter + body)
+CallGet --> SaveTab : tab.content = frontmatter + body
+SwitchToTab --> SetEdContent : editorContent.set(tab.content)
+SetEdContent --> EffContent : content prop changes
+note right of EffContent
+  $effect(content):
+  content !== prevContent
+  → rawMode? → merge fm + content
+  → rawContent !== newContent?
+    → rawContent = newContent
+    ⚠️ frontmatter is prepended AGAIN
+    → double frontmatter!
+end note
+EffContent --> RawContent : rawContent = fm + (fm + body)
+
+== WYSIWYG Mode: Save & Switch ==
+
+RawMode --> GetContent : rawMode = false
+SwitchToTab --> CallGet : _editorGetContent()
+GetContent --> CallGet : returns getMarkdown()\n(= body only)
+CallGet --> SaveTab : tab.content = body
+SwitchToTab --> SetEdContent : editorContent.set(body)
+SetEdContent --> EffContent : content prop changes
+note right of TabB
+  $effect(content):
+  body !== prevContent
+  → !rawMode → editor.commands
+    .setContent(body)
+  ✅ clean, no duplication
+end note
+
+legend top
+  Le bug frontmatter double :
+  switchToTab depuis rawMode
+  sauvegarde rawContent (fm+body)
+  dans tab.content, puis le
+  $effect(content) re-prépende
+  le frontmatter → doublon.
+  Switch depuis WYSIWYG :
+  getMarkdown() retourne body
+  seul → tab.content propre.
+endlegend
+
+@enduml

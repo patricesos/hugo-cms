@@ -23,6 +23,7 @@ export async function restoreAppState(): Promise<RestoreResult> {
 				mtimeMs: 0,
 				frontmatterLanguage: (t.frontmatterLanguage ?? 'yaml') as 'yaml' | 'toml',
 				kind,
+				rawMode: t.rawMode ?? false,
 			};
 		});
 		editorStore.tabs.set(restored);

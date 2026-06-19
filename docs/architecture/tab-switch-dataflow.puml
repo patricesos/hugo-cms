@@ -1,0 +1,89 @@
+@startuml
+skinparam monochrome true
+skinparam rectangle {
+  BorderColor black
+  FontColor black
+}
+
+rectangle "Déclencheurs" as Triggers {
+  rectangle "Sidebar\nonLoadFile" as Sidebar
+  rectangle "TabBar\nonSelect" as TabBar
+  rectangle "restoreState\nau démarrage" as Restore
+  rectangle "loadFile\n(loaded)" as LoadSame
+}
+
+rectangle "+page.svelte" as Page {
+  rectangle "loadFile()" as LoadFile
+  rectangle "switchToTab()" as SwitchPage
+}
+
+rectangle "editorStore" as Store {
+  rectangle "switchToTab()" as StoreSwitch
+  rectangle "loadFile()" as StoreLoad
+}
+
+rectangle "Phase 1 : SAVE" as SavePhase {
+  rectangle "_editorGetContent?" as GetContent
+  rectangle "getRawBody(rawContent)\n[raw mode]" as RawBody
+  rectangle "getMarkdown()\n[WYSIWYG]" as MD
+  rectangle "tab.content = body" as SaveTab
+}
+
+rectangle "Phase 2 : SWITCH" as SwitchPhase {
+  rectangle "currentSlug.set()" as SetSlug
+  rectangle "editorContent.set()" as SetContent
+  rectangle "currentFrontmatter.set()" as SetFm
+}
+
+rectangle "Phase 3 : RENDER" as RenderPhase {
+  rectangle "content prop change" as PropChange
+  rectangle "$effect(content)" as EffContent
+  rectangle "editor.commands\n.setContent()" as SetContent2
+  rectangle "buildEditor()\n(au 1er mount)" as BuildEd
+}
+
+Sidebar --> Page : onLoadFile(slug)
+TabBar --> Page : onSelect(slug)
+Restore --> Page : switchToTab(slug)
+LoadSame --> LoadFile : déjà ouvert
+LoadFile --> StoreLoad : store.loadFile()
+StoreLoad --> StoreSwitch : store.switchToTab()
+StoreLoad --> SavePhase : si tab existait déjà
+SwitchPage --> StoreSwitch : store.switchToTab()
+
+StoreSwitch --> SavePhase : save tab courant
+SavePhase --> GetContent : _editorGetContent()
+GetContent --> RawBody : si rawMode
+GetContent --> MD : si WYSIWYG
+RawBody --> SaveTab : body (sans fm)
+MD --> SaveTab : body (sans fm)
+
+SavePhase --> SwitchPhase : load nouveau tab
+SwitchPhase --> SetSlug : currentSlug.set()
+SwitchPhase --> SetContent : editorContent.set(body)
+SwitchPhase --> SetFm : currentFrontmatter.set()
+
+SwitchPhase --> RenderPhase : content={$editorContent}
+RenderPhase --> EffContent : content !== prevContent
+EffContent --> SetContent2 : Tiptap déjà monté
+EffContent --> BuildEd : Tiptap pas encore\nmonté (lazy mount)
+
+note right of SavePhase
+  ✅ Après le fix :
+  _editorGetContent retourne
+  TOUJOURS du body seul,
+  quel que soit le mode.
+  tab.content = body propre.
+  Plus de double frontmatter.
+endnote
+
+legend top
+  Trois phases : SAVE (capture)
+  → SWITCH (stores) → RENDER
+  (éditeur). L'invariant clé :
+  tab.content = body seulement.
+  Le frontmatter est toujours
+  dans tab.frontmatter.
+endlegend
+
+@enduml

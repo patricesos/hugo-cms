@@ -461,7 +461,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	<main class="editor-panel">
 		{#if $currentSlug || $tabs.length > 0}
-			<TabBar tabs={$tabs} activeSlug={$currentSlug ?? ''} showFilenameInTabs={$settings.showFilenameInTabs} onSelect={(slug) => { const t = $tabs.find(tab => tab.slug === slug); if (t?.kind === 'content') loadFile(slug); else switchToTab(slug); }} onClose={handleCloseTab} />
+			<TabBar tabs={$tabs} activeSlug={$currentSlug ?? ''} showFilenameInTabs={$settings.showFilenameInTabs} 						onSelect={(slug) => { switchToTab(slug); }} onClose={handleCloseTab} />
 		{/if}
 		<div class="editor-panel-body">
 			<div class="editor-panel-content">
@@ -561,7 +561,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 											content={$editorContent}
 											frontmatter={$currentFrontmatter}
 											frontmatterFormat={$currentFmFormat}
-											rawMode={$settings.defaultRawMode}
+											rawMode={$currentTab?.rawMode ?? $settings.defaultRawMode}
 											showBubbleMenu={$settings.showBubbleMenu}
 											showSlashMenu={$settings.showSlashMenu}
 											autoSaveDelay={$settings.autoSaveDelay}
@@ -577,6 +577,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 											onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.handleFrontmatterChange(fm); if ($currentSlug) fileTreeStore.updateTreeFrontmatter($currentSlug, fm); }}
 											onStats={(s: { words: number; chars: number }) => { $wordCount = s.words; $charCount = s.chars; }}
 											onSaveState={(s: 'saved' | 'unsaved' | 'saving') => { editorStore.saveState.set(s); }}
+											onRawModeChange={(mode: boolean) => { if ($currentSlug) editorStore.updateTabRawMode($currentSlug, mode); }}
 										/>
 									{:else}
 										<div class="editor-loading">

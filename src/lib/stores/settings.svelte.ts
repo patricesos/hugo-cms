@@ -101,7 +101,7 @@ function createSettingsStore() {
   let _hydrated = false;
 
   /** Getters injectes depuis +page.svelte pour eviter l'import direct de editorStore. */
-  let _getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string }> = () => [];
+  let _getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string; rawMode?: boolean }> = () => [];
   let _getCurrentSlug: () => string | null = () => null;
 
   function persist() {
@@ -111,7 +111,7 @@ function createSettingsStore() {
     const eTabs = _getTabs();
     const eSlug = _getCurrentSlug();
     const state = {
-      tabs: eTabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, kind: t.kind })),
+      tabs: eTabs.map(t => ({ slug: t.slug, title: t.title, frontmatterLanguage: t.frontmatterLanguage, kind: t.kind, rawMode: t.rawMode })),
       currentSlug: eSlug,
       settings: s,
       sidebarOpen: l.sidebarOpen,
@@ -176,7 +176,7 @@ function createSettingsStore() {
 
     /** Injection des getters editor pour eviter l'import direct de editorStore. */
     setEditorGetters(
-      getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string }>,
+      getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string; rawMode?: boolean }>,
       getCurrentSlug: () => string | null
     ) {
       _getTabs = getTabs;
@@ -191,6 +191,7 @@ function createSettingsStore() {
         frontmatterLanguage?: string;
         kind?: string;
         isImage?: boolean;
+        rawMode?: boolean;
       }>;
       currentSlug?: string;
       showGit?: boolean;

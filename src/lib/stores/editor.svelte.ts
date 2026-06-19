@@ -12,6 +12,7 @@ export interface Tab {
 	mtimeMs: number;
 	frontmatterLanguage?: 'yaml' | 'toml';
 	kind: TabKind;
+	rawMode?: boolean;
 }
 
 function create() {
@@ -255,6 +256,10 @@ function create() {
 			const fullSlug = parent ? `${parent}/${folderName}` : folderName;
 			await fetch(`/api/directory/${fullSlug}`, { method: 'POST' });
 			await loadTreeFn();
+		},
+
+		updateTabRawMode(slug: string, rawMode: boolean) {
+			tabs.update(t => t.map(ti => ti.slug === slug ? { ...ti, rawMode } : ti));
 		},
 
 		async handleRename(oldSlug: string, newSlug: string, loadTreeFn: () => Promise<void>) {

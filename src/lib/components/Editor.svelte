@@ -73,9 +73,10 @@
 		onStats?: (stats: { words: number; chars: number }) => void;
 		onSaveState?: (state: 'saved' | 'unsaved' | 'saving') => void;
 		onSetContent?: (fn: (content: string) => void) => void;
+		onRawModeChange?: (rawMode: boolean) => void;
 	}
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent, onRawModeChange }: EditorProps = $props();
 
 	let editor = $state<TiptapEditor | null>(null);
 	let editorEl = $state<HTMLDivElement | null>(null);
@@ -253,7 +254,7 @@
 		}
 		prevContent = content;
 		onSaveState?.('saved');
-		getContent?.(() => rawMode ? rawContent : getMarkdown());
+		getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
 		onSetContent?.((c: string) => {
 			if (rawMode) {
 				rawContent = c;
@@ -273,12 +274,20 @@
 	let prevRawMode = false;
 	let prevContent = '';
 
+	// Flag de communication entre $effect(content) et $effect(rawMode).
+	// Quand $effect(content) met à jour le contenu (changement d'onglet),
+	// il pose ce flag. $effect(rawMode) le vérifie : si posé, il ne capte
+	// PAS le body depuis Tiptap (qui a encore l'ancien contenu), car
+	// $effect(content) a déjà tout mis à jour.
+	let _contentUpdatedByEffect = false;
+
 	// Réagit aux changements externes du prop `content` (changement d'onglet, restoration,
 	// recréation après settingsKey). C'est le filet de sécurité quand onSetContent
 	// n'a pas pu être appelé (callback pas encore enregistré, ou périmé après {#key}).
 	$effect(() => {
 		if (content === prevContent) return;
 		prevContent = content;
+		_contentUpdatedByEffect = true;
 		if (rawMode) {
 			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
 				? serializeFm(frontmatter, frontmatterFormat)
@@ -292,13 +301,19 @@
 
 	$effect(() => {
 		if (rawMode === prevRawMode) return;
-		if (rawMode) {
+		if (_contentUpdatedByEffect) {
+			// Changement d'onglet : $effect(content) a déjà mis à jour
+			// rawContent ou Tiptap. Ne pas surcharger.
+			_contentUpdatedByEffect = false;
+		} else if (rawMode) {
+			// Bascule rawMode dans le même onglet : capturer depuis Tiptap
 			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
 				? serializeFm(frontmatter, frontmatterFormat)
 				: '';
 			const body = editor ? getMarkdown() : content;
 			rawContent = fmString ? `${fmString}\n\n${body}` : body;
 		} else {
+			// Bascule WYSIWYG dans le même onglet : extraire depuis rawContent
 			const { body } = splitRawContent(rawContent);
 			if (!editor) {
 				buildEditor(protectShortcodes(body));
@@ -603,7 +618,7 @@
 		}
 		if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
 			e.preventDefault();
-			rawMode = !rawMode;
+			onRawModeChange?.(!rawMode);
 		}
 	}
 </script>
@@ -631,7 +646,7 @@
 		<button onclick={rawMode ? () => rawList(true) : () => exec('toggleOrderedList')} class:active={!rawMode && editor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
 		<button onclick={rawMode ? rawHr : () => exec('setHorizontalRule')} title="Ligne horizontale"><Minus size={15} /></button>
 		<span class="sep"></span>
-		<button class:toggle-active={rawMode} onclick={() => rawMode = !rawMode} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
+		<button class:toggle-active={rawMode} onclick={() => onRawModeChange?.(!rawMode)} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
 	</div>
 
 	<div bind:this={cmContainer} class="cm-editor-host" class:active={rawMode} role="textbox" aria-label="Contenu brut"></div>
