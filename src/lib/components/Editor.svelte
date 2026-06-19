@@ -273,6 +273,9 @@
 				if (!cChanged) {
 					sync.toggleToRaw(() => wysiwygEditor?.getMarkdown() ?? '', frontmatter, frontmatterFormat);
 				}
+			} else if (!cChanged) {
+				const { body } = sync.toggleToWysiwyg();
+				wysiwygEditor?.setContent(body);
 			}
 		}
 

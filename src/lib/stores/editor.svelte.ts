@@ -136,16 +136,19 @@ function create() {
 							: ti
 					));
 				}
-				currentSlug.set(tab.slug);
-				editorContent.set(tab.content);
-				currentFrontmatter.set({ ...tab.frontmatter });
-				currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml');
-			} else if (tab.kind === 'archetype') {
-				currentArchetype.set(tab.slug);
-			} else if (tab.kind === 'config') {
-				currentConfigSlug.set(tab.slug);
-			}
 			currentSlug.set(tab.slug);
+			editorContent.set(tab.content);
+			currentFrontmatter.set({ ...tab.frontmatter });
+			currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml');
+		} else if (tab.kind === 'archetype') {
+			currentArchetype.set(tab.slug);
+			currentSlug.set(tab.slug);
+		} else if (tab.kind === 'config') {
+			currentConfigSlug.set(tab.slug);
+			currentSlug.set(tab.slug);
+		} else {
+			currentSlug.set(tab.slug);
+		}
 		},
 
 		async handleSave(markdown: string) {

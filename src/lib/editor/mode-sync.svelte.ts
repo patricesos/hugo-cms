@@ -149,7 +149,7 @@ export class ModeSync {
 			return {};
 		}
 		this.rawContent = '';
-		return { buildEditor: content };
+		return { buildEditor: protectShortcodes(content) };
 	}
 
 	/**
@@ -164,7 +164,8 @@ export class ModeSync {
 	 * Bascule vers le mode WYSIWYG : extrait le body depuis rawContent.
 	 */
 	toggleToWysiwyg(): { body: string } {
-		return { body: getRawBody(this.rawContent) };
+		const { frontmatter: _, body, format: __ } = splitRawContent(this.rawContent);
+		return { body: protectShortcodes(body) };
 	}
 
 	/**
