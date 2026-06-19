@@ -1,0 +1,57 @@
+@startuml
+skinparam monochrome true
+skinparam rectangle {
+  BorderColor black
+  FontColor black
+}
+
+rectangle "SettingsDialog.svelte" as Dialog {
+  rectangle "local (copie travail)" as Local
+  rectangle "snapshot (rollback)" as Snapshot
+}
+
+rectangle "SettingsPanel.svelte" as Panel
+rectangle "SettingField.svelte" as Field
+rectangle "schema.ts\n(5 onglets, 27 champs)" as Schema
+
+rectangle "+page.svelte\n(callbacks parent)" as Page {
+  rectangle "onSave" as OnSave
+  rectangle "onConfirm" as OnConfirm
+  rectangle "settingsKey++" as KeyInc
+}
+
+rectangle "settingsStore" as Store {
+  rectangle "updateSettings" as UpdSettings
+  rectangle "updateLayout" as UpdLayout
+  rectangle "persist()" as Persist
+}
+
+rectangle "localStorage" as LS
+rectangle "API\nPUT /api/user-settings" as API
+rectangle "Editor.svelte\n({#key} recréation)" as Editor
+
+User --> Dialog : modifie champ
+Dialog --> Panel : values={local}
+Panel --> Field : field schema
+Field --> Field : handleFieldChange(key, val)
+Field --> Dialog : emit()
+Dialog --> Page : onSave(local)
+
+Page --> Store : updateSettings / updateLayout
+Store --> Persist : settings.subscribe / layout.subscribe
+Persist --> LS : localStorage\n"hugo-cms-state"
+Persist --> API : settings uniquement
+
+Page --> KeyInc : si rawMode/bubbleMenu\n/slashMenu/historyDepth changés
+KeyInc --> Editor : {#key settingsKey}\ndétruit + recrée
+
+Page --> OnConfirm : Enregistrer cliqué
+OnConfirm --> Page : bannière restart si\npath/trash/port changé
+
+legend top
+  Modification en temps réel : chaque champ → onSave local.
+  Annulation : restore snapshot.
+  settingsKey++ : recrée Editor avec nouveaux props.
+endlegend
+
+@enduml
