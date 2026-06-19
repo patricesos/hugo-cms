@@ -36,7 +36,9 @@ Copy-Item "$root/.env.example" "$distDir/.env.example" -Force
 
 Write-Host "=== 7. Compile C# tray launcher ===" -ForegroundColor Cyan
 $csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-& $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $root/scripts/tray-launcher.cs 2>&1 | Out-Null
+$sourceFile = Join-Path (Join-Path $root "scripts") "tray-launcher.cs"
+& $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $sourceFile 2>&1
+if (-not $?) { throw "Compilation du tray launcher échouée" }
 
 Write-Host "=== Done ===" -ForegroundColor Green
 Write-Host "Distribution folder: $distDir" -ForegroundColor Green
