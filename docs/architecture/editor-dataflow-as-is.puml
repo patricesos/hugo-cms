@@ -14,15 +14,15 @@ rectangle "+page.svelte" as Page {
 rectangle "editorStore" as Store {
   rectangle "tabs\nwritable" as Tabs
   rectangle "currentSlug\nwritable" as CurSlug
-  rectangle "editorContent\nwritable" as EdContent
+  rectangle "editorContent\nwritable" as EdContent #FFDDDD
   rectangle "loadFile" as StoreLoad
   rectangle "switchToTab" as StoreSwitch
   rectangle "_getContent" as GetCont
-  rectangle "_setContent" as SetCont
+  rectangle "_setContent" as SetCont #FFDDDD
 }
 rectangle "Editor.svelte" as Editor {
-  rectangle "$effect\ncontent prop" as EffContent
-  rectangle "buildEditor()\n= destroy + create" as BuildEd
+  rectangle "$effect\ncontent prop" as EffContent #FFDDDD
+  rectangle "buildEditor()\n= destroy + create" as BuildEd #FFDDDD
   rectangle "onMount\nregister callbacks" as OnMount
 }
 
@@ -42,21 +42,25 @@ EffContent --> BuildEd : content changed (WYSIWYG)
 SetCont -down-> Editor : _editorSetContent callback
 OnMount --> SetCont : registers callback
 
-note right of EdContent
-  Path 1 (store): editorContent.set()
-  triggers $effect on content prop,
-  which calls editor.commands.setContent()
+note right of EdContent #FFDDDD
+  <color:red><font:bold>Path 1 (store)</font></color>
+  editorContent.set() triggers $effect
+  on content prop, which calls
+  editor.commands.setContent()
 end note
 
-note right of SetCont
-  Path 2 (callback): _editorSetContent
-  calls buildEditor(content) which
+note right of SetCont #FFDDDD
+  <color:red><font:bold>Path 2 (callback)</font></color>
+  _editorSetContent calls
+  buildEditor(content) which
   destroys and recreates Tiptap
 end note
 
 legend top
-  Red vertical bars = two concurrent update paths
-  carrying identical content through different mechanisms
+  <color:red><font:bold>Deux chemins concurrents</font></color>
+  EdContent.set() et SetCont portent le
+  MÊME contenu via des mécanismes différents
+  → doublon, perte d'historique undo
 endlegend
 
 @enduml

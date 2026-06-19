@@ -206,7 +206,7 @@ button {
 }
 
 /* Bouton principal — une seule définition centralisée */
-:global(.btn-primary) {
+.btn-primary {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -222,10 +222,10 @@ button {
 	color: #fff;
 	transition: all 0.12s;
 }
-:global(.btn-primary:hover) {
+.btn-primary:hover {
 	background: var(--c-primary-hover);
 }
-:global(.btn-primary:disabled) {
+.btn-primary:disabled {
 	opacity: 0.5;
 	cursor: default;
 }

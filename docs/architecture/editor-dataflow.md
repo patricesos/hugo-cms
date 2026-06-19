@@ -238,7 +238,7 @@ For clicking a **different** tab (`slug !== curSlug`), `tabs.update` updates the
 
 ## Current Architecture (as-is)
 
-```puml
+```plantuml
 @startuml
 skinparam monochrome true
 
@@ -280,7 +280,7 @@ end note
 
 ## Target Architecture (to-be)
 
-```puml
+```plantuml
 @startuml
 skinparam monochrome true
 

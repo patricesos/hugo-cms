@@ -215,7 +215,7 @@ onConfirm={() => {
 
 ## Schéma récapitulatif
 
-```puml
+```plantuml
 @startuml
 skinparam monochrome true
 skinparam rectangle {

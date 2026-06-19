@@ -237,7 +237,7 @@ jour `currentFrontmatter` + `tabs.update()` pour le tab courant.
 
 ## Diagramme PlantUML
 
-```puml
+```plantuml
 @startuml
 skinparam monochrome true
 skinparam rectangle {

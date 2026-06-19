@@ -174,7 +174,7 @@ Même code, mais `tab.content = body` (sauvé proprement avant).
 
 ## Diagramme PlantUML
 
-```puml
+```plantuml
 @startuml
 skinparam monochrome true
 skinparam rectangle {

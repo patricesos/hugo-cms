@@ -110,7 +110,7 @@ montage, `buildEditor(content)` initialise Tiptap avec le bon body. Le
 
 ## Diagramme
 
-```puml
+```plantuml
 @startuml
 skinparam monochrome true
 skinparam rectangle {
