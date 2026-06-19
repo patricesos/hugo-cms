@@ -202,6 +202,29 @@ describe('ModeSync — toRawFromWysiwyg / toWysiwygFromRaw', () => {
 	});
 });
 
+describe('ModeSync — toggleToWysiwyg protection des shortcodes', () => {
+	let sync: ModeSync;
+
+	beforeEach(() => {
+		sync = new ModeSync();
+	});
+
+	it('protège les shortcodes lors du passage raw → wysiwyg', () => {
+		sync.rawContent = '---\ntitle: Test\n---\n\n{{< gallery >}}\n{{< img src="a.jpg" >}}\n{{< /gallery >}}';
+		const { body } = sync.toggleToWysiwyg();
+		expect(body).not.toContain('{{<');
+		expect(body).toContain('SH_OPEN_ANGLE');
+	});
+
+	it('toggleToWysiwyg et toWysiwygFromRaw produisent le même body', () => {
+		const raw = '---\ntitle: x\n---\n\n{{% note %}}texte{{% /note %}}';
+		sync.rawContent = raw;
+		const fromToggle = sync.toggleToWysiwyg();
+		const fromDirect = sync.toWysiwygFromRaw(raw);
+		expect(fromToggle.body).toBe(fromDirect.body);
+	});
+});
+
 describe('ModeSync — handleFrontmatterChange', () => {
 	let sync: ModeSync;
 

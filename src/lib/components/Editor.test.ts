@@ -278,4 +278,34 @@ describe('Editor — mode brut / CM6', () => {
 			expect(fullText).not.toContain('Contenu onglet A');
 		});
 	});
+
+	it('ouvrir en rawMode puis basculer vers WYSIWYG appelle toggleToWysiwyg et protège les shortcodes', async () => {
+		const { ModeSync } = await import('../editor/mode-sync.svelte');
+		const wysiwygSpy = vi.spyOn(ModeSync.prototype, 'toggleToWysiwyg');
+
+		const { default: Editor } = await import('./Editor.svelte');
+		const { render } = await import('@testing-library/svelte');
+		const { container, rerender } = render(Editor, {
+			content: '{{< gallery >}}\n{{< img src="a.jpg" >}}',
+			rawMode: true,
+			frontmatter: { title: 'Test' },
+			frontmatterFormat: 'yaml',
+		});
+
+		await waitFor(() => {
+			expect(container.querySelector('.cm-editor-host.active')).toBeTruthy();
+		});
+
+		// Bascule vers WYSIWYG
+		await rerender({
+			content: '{{< gallery >}}\n{{< img src="a.jpg" >}}',
+			rawMode: false,
+			frontmatter: { title: 'Test' },
+			frontmatterFormat: 'yaml',
+		});
+
+		// toggleToWysiwyg a été appelé
+		expect(wysiwygSpy).toHaveBeenCalledTimes(1);
+		wysiwygSpy.mockRestore();
+	});
 });

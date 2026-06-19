@@ -164,8 +164,8 @@ export class ModeSync {
 	 * Bascule vers le mode WYSIWYG : extrait le body depuis rawContent.
 	 */
 	toggleToWysiwyg(): { body: string } {
-		const { frontmatter: _, body, format: __ } = splitRawContent(this.rawContent);
-		return { body: protectShortcodes(body) };
+		const { body } = this.toWysiwygFromRaw(this.rawContent);
+		return { body };
 	}
 
 	/**
