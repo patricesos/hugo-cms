@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { EditorView } from '@codemirror/view';
 	import { EditorState, EditorSelection } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
@@ -58,15 +58,18 @@
 	$effect(() => {
 		if (!active || !cmContainer) {
 			if (cmView) {
+				console.log('[RawEditor] Destroy CM view (inactive/no container)');
 				cmView.destroy();
 				cmView = null;
 			}
 			return;
 		}
+		const docContent = untrack(() => content);
 		const isDark = document.documentElement.dataset.theme === 'dark';
+		console.log('[RawEditor] Create CM view', { contentLength: docContent.length, isDark });
 		const view = new EditorView({
 			state: EditorState.create({
-				doc: content,
+				doc: docContent,
 				extensions: [
 					basicSetup(),
 					markdown(),
@@ -87,6 +90,7 @@
 		});
 		cmView = view;
 		return () => {
+			console.log('[RawEditor] Cleanup: destroy CM view');
 			view.destroy();
 			if (cmView === view) cmView = null;
 		};
@@ -96,7 +100,10 @@
 	$effect(() => {
 		if (!cmView || cmUpdating) return;
 		const current = cmView.state.doc.toString();
-		if (current !== content) {
+		const shouldSync = current !== content;
+		console.log('[RawEditor] Sync $effect', { currentLen: current.length, contentLen: content?.length, shouldSync, cmUpdating });
+		if (shouldSync) {
+			console.log('[RawEditor] DISPATCHING sync', { from: 0, to: current.length, insertLen: content?.length });
 			cmUpdating = true;
 			cmView.dispatch({
 				changes: { from: 0, to: current.length, insert: content },
