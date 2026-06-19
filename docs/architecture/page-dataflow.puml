@@ -1,0 +1,56 @@
+@startuml
+skinparam monochrome true
+skinparam rectangle {
+  BorderColor black
+  FontColor black
+}
+
+rectangle "Utilisateur\n(clics, clavier)" as User
+rectangle "+page.svelte\n(orchestrateur)" as Page
+rectangle "editorStore" as EditorStore
+rectangle "settingsStore" as SettingsStore
+rectangle "fileTreeStore" as FileTreeStore
+rectangle "uiStore" as UiStore
+rectangle "gitStore" as GitStore
+rectangle "hugoStore" as HugoStore
+rectangle "API Serveur" as API
+rectangle "localStorage" as LS
+
+rectangle "Template\n(rendu conditionnel)" as Template {
+  rectangle "Sidebar" as Sidebar
+  rectangle "TabBar" as TabBar
+  rectangle "EditorComp\n(lazy)" as EditorComp
+  rectangle "Dialogues\n(lazy)" as Dialogs
+  rectangle "StatusBar" as StatusBar
+}
+
+User -right-> Page : événements
+
+Page --> EditorStore : loadFile, switchToTab,\nhandleSave, handleCloseTab
+Page --> SettingsStore : updateSettings, updateLayout,\npersist
+Page --> FileTreeStore : loadTree, loadAssetTree,\nupdateTreeFrontmatter
+Page --> UiStore : updateDialogs, closeCreateDialog
+Page --> GitStore : refresh, init, commit
+Page --> HugoStore : start, stop, check,\ntoggleLive
+
+EditorStore -down-> Template : $tabs, $currentSlug,\n$editorContent, $loading
+SettingsStore -down-> Template : $settings, $layout
+FileTreeStore -down-> Template : $tree, $assetTree,\n$archetypeTree, $configTree
+UiStore -down-> Template : $dialogs
+GitStore -down-> Template : $gitStatus
+HugoStore -down-> Template : $hugoStatus
+
+EditorStore -right-> API : GET/PUT/DELETE /api/content/*
+SettingsStore -up-> LS : localStorage\n"hugo-cms-state"
+SettingsStore -right-> API : PUT /api/user-settings
+
+EditorStore --> SettingsStore : persist ($effect sur $tabs)
+
+legend top
+  +page.svelte est le hub central.
+  Stores ←→ Template via réactivité Svelte.
+  Stores ←→ API pour les opérations CRUD.
+  SettingsStore ←→ localStorage pour la persistance.
+endlegend
+
+@enduml

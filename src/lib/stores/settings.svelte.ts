@@ -270,6 +270,8 @@ function createSettingsStore() {
     snapshot() {
       return { settings: get(settings), layout: get(layout) };
     },
+
+    persist,
   };
 }
 

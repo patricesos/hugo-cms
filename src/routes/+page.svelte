@@ -100,6 +100,12 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		}
 	});
 
+	// Sauvegarde les tabs dans localStorage à chaque changement (fermeture, etc.)
+	$effect(() => {
+		$tabs; // track
+		settingsStore.persist();
+	});
+
 	// --- Conflit : polling modifications externes ---
 	$effect(() => {
 		if ($currentSlug) {
