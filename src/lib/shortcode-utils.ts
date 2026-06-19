@@ -46,5 +46,8 @@ export function restoreShortcodes(text: string): string {
  * À appliquer après restoreShortcodes() sur la sortie du sérialiseur.
  */
 export function splitShortcodeLines(text: string): string {
-	return text.replace(/(%\}\}|>\}\})\s+(?=\{\{<|\{\{%)/g, '$1\n');
+	// Rétablit un saut de ligne entre shortcodes consécutifs fusionnés
+	// sur une même ligne par le sérialiseur. N'utilise QUE [ \t]+ pour
+	// ne PAS toucher aux lignes vides existantes (\n\n).
+	return text.replace(/(%\}\}|>\}\})([ \t]+)(?=\{\{<|\{\{%)/g, '$1\n');
 }

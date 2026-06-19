@@ -104,17 +104,26 @@ describe('splitShortcodeLines', () => {
 	it('laisse le texte sans shortcodes inchangé', () => {
 		expect(splitShortcodeLines('Un paragraphe normal.')).toBe('Un paragraphe normal.');
 	});
+
+	it('préserve les lignes vides entre groupes de shortcodes (régression round-trip)', () => {
+		const input = '{{< /gallery >}}\n\n{{< img >}}';
+		expect(splitShortcodeLines(input)).toBe(input);
+	});
 });
 
 describe('round-trip', () => {
-	it('raw → protected → serialisé → restored → split revient à l\'original', () => {
+	it('raw → protected → restored → split : les shortcodes adjacents gagnent un \\n\\n', () => {
+		// protectShortcodes insère \n\n entre shortcodes sur des lignes
+		// adjacentes (pour le rendu markdown-it/Tiptap). splitShortcodeLines
+		// ne doit PAS le retirer — il ne touche qu'au cas « sur la même ligne ».
 		const original = '{{< gallery >}}\n{{< img src="a.jpg" >}}\n{{< img src="b.jpg" >}}\n{{< /gallery >}}';
+		const expected = '{{< gallery >}}\n\n{{< img src="a.jpg" >}}\n\n{{< img src="b.jpg" >}}\n\n{{< /gallery >}}';
 
 		const protected_text = protectShortcodes(original);
 		const restored = restoreShortcodes(protected_text);
 		const result = splitShortcodeLines(restored);
 
-		expect(result).toBe(original);
+		expect(result).toBe(expected);
 	});
 
 	it('round-trip préserve le texte normal autour des shortcodes', () => {
@@ -141,8 +150,10 @@ describe('round-trip', () => {
 	});
 
 	it('round-trip préserve un mélange de {{< >}} et {{% %}} (M-001)', () => {
+		// protectShortcodes ajoute \n\n entre shortcodes adjacents
 		const original = '{{% alert warning %}}\n{{< figure src="img.jpg" >}}\n{{% /alert %}}';
-		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(original);
+		const expected = '{{% alert warning %}}\n\n{{< figure src="img.jpg" >}}\n\n{{% /alert %}}';
+		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(expected);
 	});
 
 	it('round-trip préserve {{% %}} seul sur une ligne (M-001)', () => {
@@ -151,7 +162,9 @@ describe('round-trip', () => {
 	});
 
 	it('round-trip préserve shortcodes % consécutifs (M-001)', () => {
+		// protectShortcodes ajoute \n\n entre shortcodes adjacents
 		const original = '{{% a %}}\n{{% b %}}\n{{% c %}}';
-		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(original);
+		const expected = '{{% a %}}\n\n{{% b %}}\n\n{{% c %}}';
+		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(expected);
 	});
 });
