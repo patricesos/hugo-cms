@@ -21,6 +21,7 @@
 		editorMaxWidthCustom?: number;
 		historyDepth?: number;
 		saveRequest?: number;
+		themeKey?: number;
 		getContent?: (fn: () => string) => void;
 		onSave?: (markdown: string) => void;
 		onFrontmatterChange?: (fm: Record<string, unknown>) => void;
@@ -30,7 +31,7 @@
 		onRawModeChange?: (rawMode: boolean) => void;
 	}
 
-	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent, onRawModeChange }: EditorProps = $props();
+	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, themeKey = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent, onRawModeChange }: EditorProps = $props();
 
 	let sync = $state<ModeSync | null>(null);
 	let prevContent = '';
@@ -332,6 +333,7 @@
 		bind:this={rawEditor}
 		content={sync?.rawContent ?? ''}
 		active={rawMode}
+		{themeKey}
 		onchange={(c) => { console.log('[Editor] Raw onchange', { len: c.length, rawMode }); if (sync) sync.rawContent = c; markRawUnsaved(); }}
 	/>
 

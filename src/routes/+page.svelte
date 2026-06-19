@@ -62,6 +62,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	// Snapshots settings pour detecter les changements dans SettingsDialog
 	let savedPathConfig = $state({ useDotEnv: true, customPath: '' });
+	let themeKey = $derived($settings.theme.charCodeAt(0) || 0);
 	let savedTrashDir = $state('_trash');
 	let savedCmsPort = $state(1703);
 
@@ -571,6 +572,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 											editorMaxWidthCustom={$settings.editorMaxWidthCustom}
 											historyDepth={$settings.historyDepth}
 											saveRequest={$saveRequest}
+											themeKey={themeKey}
 											getContent={(fn: () => string) => { editorStore.setEditorGetContent(fn); }}
 											onSetContent={(fn: (content: string) => void) => { editorStore.setEditorSetContent(fn); }}
 											onSave={handleSave}

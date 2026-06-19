@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { EditorView } from '@codemirror/view';
-	import { EditorState, EditorSelection } from '@codemirror/state';
+	import { Compartment, EditorState, EditorSelection } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
-	import { oneDark } from '@codemirror/theme-one-dark';
+	import { getCmTheme } from '$lib/editor/codemirror-themes';
 	import { undo, redo, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 	import { lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
 	import { foldGutter, indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldKeymap } from '@codemirror/language';
@@ -46,12 +46,14 @@
 		content?: string;
 		active?: boolean;
 		onchange?: (content: string) => void;
+		themeKey?: number;
 	}
 
-	let { content = '', active = false, onchange }: RawEditorProps = $props();
+	let { content = '', active = false, onchange, themeKey = 0 }: RawEditorProps = $props();
 
 	let cmView = $state<EditorView | null>(null);
 	let cmContainer = $state<HTMLDivElement | undefined>();
+	let themeComp = $state<Compartment | null>(null);
 	let cmUpdating = false;
 
 	// Cycle de vie CM6 : création quand actif, destruction quand inactif
@@ -67,13 +69,15 @@
 		const docContent = untrack(() => content);
 		const isDark = document.documentElement.dataset.theme === 'dark';
 		console.log('[RawEditor] Create CM view', { contentLength: docContent.length, isDark });
+		const tc = new Compartment();
+		themeComp = tc;
 		const view = new EditorView({
 			state: EditorState.create({
 				doc: docContent,
 				extensions: [
 					basicSetup(),
 					markdown(),
-					isDark ? oneDark : [],
+					tc.of(getCmTheme(isDark)),
 					EditorView.updateListener.of(update => {
 						if (update.docChanged && !cmUpdating) {
 							onchange?.(update.state.doc.toString());
@@ -110,6 +114,15 @@
 			});
 			cmUpdating = false;
 		}
+	});
+
+	// Sync theme : reconfiguration via Compartment quand le thème (light/dark) change
+	$effect(() => {
+		themeKey;
+		if (!cmView || !themeComp) return;
+		const isDark = document.documentElement.dataset.theme === 'dark';
+		console.log('[RawEditor] Theme reconfigure', { isDark, themeKey });
+		themeComp.reconfigure(getCmTheme(isDark));
 	});
 
 	export function cmDispatch(changes: { from: number; to: number; insert: string }[], selectionPos?: number) {
