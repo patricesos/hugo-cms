@@ -17,7 +17,7 @@ if (-not (Test-Path "$iconDir/icon-16.png")) {
 }
 
 Write-Host "=== 3. Build .ico file ===" -ForegroundColor Cyan
-python "$root/scripts/make-ico.py"
+python "$PSScriptRoot/make-ico.py"
 
 Write-Host "=== 4. Bundle server with esbuild ===" -ForegroundColor Cyan
 npx esbuild build/index.js --bundle --platform=node --format=esm --outfile=$distDir/bundle.mjs --external:stream --external:fs --external:path --external:os --external:crypto --external:child_process --external:module --external:url --external:util --external:assert --external:events --external:tty --banner:js="import { createRequire } from 'module'; var require = createRequire(import.meta.url);"
@@ -28,15 +28,17 @@ if (Test-Path "$root/build/client") {
     Copy-Item -Recurse "$root/build/client" "$distDir/client"
 }
 
-Write-Host "=== 6. Copy icon to dist root ===" -ForegroundColor Cyan
-Copy-Item "$iconDir/hugo-cms.ico" "$distDir/hugo-cms.ico" -Force
+Write-Host "=== 6. Copy icons to dist root ===" -ForegroundColor Cyan
+foreach ($ico in @('hugo-cms.ico', 'hugo-cms-active.ico', 'hugo-cms-inactive.ico')) {
+    Copy-Item "$iconDir/$ico" "$distDir/$ico" -Force
+}
 
 Write-Host "=== 6b. Copy .env.example ===" -ForegroundColor Cyan
 Copy-Item "$root/.env.example" "$distDir/.env.example" -Force
 
 Write-Host "=== 7. Compile C# tray launcher ===" -ForegroundColor Cyan
 $csc = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-$sourceFile = Join-Path (Join-Path $root "scripts") "tray-launcher.cs"
+$sourceFile = Join-Path $PSScriptRoot "tray-launcher.cs"
 & $csc /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /win32icon:$iconDir/hugo-cms.ico /out:$distDir/hugo-cms.exe $sourceFile 2>&1
 if (-not $?) { throw "Compilation du tray launcher échouée" }
 

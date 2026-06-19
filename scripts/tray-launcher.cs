@@ -59,11 +59,6 @@ class TrayLauncher : Form
     [DllImport("user32.dll")]
     private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 
-    // Nécessaire pour DestroyIcon : éviter la fuite de handles GDI natifs créés
-    // par Icon.FromHandle() — le GC .NET ne libère pas ces handles natifs.
-    [DllImport("user32.dll")]
-    private static extern bool DestroyIcon(IntPtr hIcon);
-
     private const int SW_HIDE = 0;
     private const int SW_SHOW = 5;
 
@@ -83,7 +78,9 @@ class TrayLauncher : Form
     private bool consoleVisible = false;
 
     // --- US-120 : État ---
-    private Icon _baseIcon;                // icône originale depuis le fichier .ico
+    private Icon _iconNormal;              // hugo-cms.ico (couleurs normales)
+    private Icon _iconActive;              // hugo-cms-active.ico (normal + cercle vert)
+    private Icon _iconInactive;            // hugo-cms-inactive.ico (monochrome)
     private ServerState _currentState = ServerState.Stopped;
     private bool _listeningOnFound = false; // true quand "Listening on" est repéré dans stdout
 
@@ -102,7 +99,7 @@ class TrayLauncher : Form
     {
         appDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         nodePath = FindNode();
-        _baseIcon = LoadIcon(); // icône de base cachée une fois pour toutes (US-120)
+        LoadIcons();
 
         logWindow = new LogWindow();
         logWindow.FormClosing += (s, e) =>
@@ -142,7 +139,7 @@ class TrayLauncher : Form
         // --- Tray icon ---
         trayIcon = new NotifyIcon();
         trayIcon.Text = "Hugo CMS — Arrêté";
-        trayIcon.Icon = _baseIcon;
+        trayIcon.Icon = _iconInactive; // état initial : arrêté -> inactif
         trayIcon.ContextMenuStrip = trayMenu;
         trayIcon.Visible = true;
         trayIcon.DoubleClick += OnOpen;
@@ -153,13 +150,32 @@ class TrayLauncher : Form
         StartServer();
     }
 
-    /// <summary>Charge l'icône .ico depuis le dossier de l'exe.</summary>
-    private Icon LoadIcon()
+    /// <summary>
+    /// Charge les trois icônes pré-générées par make-ico.py.
+    /// Chaque icône est forcée à SmallIconSize (16×16) pour éviter le
+    /// downscale du systray. Pas de fallback SystemIcons.
+    /// </summary>
+    private void LoadIcons()
     {
-        string icoPath = Path.Combine(appDir, "hugo-cms.ico");
-        if (File.Exists(icoPath))
-            return new Icon(icoPath);
-        return SystemIcons.Application;
+        string normalPath   = Path.Combine(appDir, "hugo-cms.ico");
+        string activePath   = Path.Combine(appDir, "hugo-cms-active.ico");
+        string inactivePath = Path.Combine(appDir, "hugo-cms-inactive.ico");
+
+        using (Icon full = new Icon(normalPath))
+            _iconNormal = new Icon(full, SystemInformation.SmallIconSize);
+
+        using (Icon full = new Icon(activePath))
+            _iconActive = new Icon(full, SystemInformation.SmallIconSize);
+
+        if (File.Exists(inactivePath))
+        {
+            using (Icon full = new Icon(inactivePath))
+                _iconInactive = new Icon(full, SystemInformation.SmallIconSize);
+        }
+        else
+        {
+            _iconInactive = _iconNormal;
+        }
     }
 
     /// <summary>
@@ -202,98 +218,21 @@ class TrayLauncher : Form
         return "node.exe";
     }
 
-    // =========================================================================
-    // US-120 : Génération d'icône avec badge de couleur
-    // =========================================================================
-
-    /// <summary>
-    /// Superpose un badge de couleur (cercle) en bas à droite de l'icône de base.
-    /// Gris = arrêté, Orange = démarrage, Vert = actif, Rouge = erreur.
-    /// Les couleurs sont cohérentes avec les tokens --c-* de l'app web.
-    /// </summary>
-    private Icon BuildIconForState(Icon baseIcon, ServerState state)
-    {
-        if (state == ServerState.Stopped)
-            return baseIcon;
-
-        // Choix de la couleur du badge selon l'état. C# 5 ne supporte pas
-        // les switch expressions, on utilise un switch classique.
-        Color badgeColor;
-        switch (state)
-        {
-            case ServerState.Running:  badgeColor = Color.FromArgb(34, 197, 94); break;   // vert  -> --c-success
-            case ServerState.Starting: badgeColor = Color.FromArgb(245, 158, 11); break; // orange -> --c-warning
-            case ServerState.Error:    badgeColor = Color.FromArgb(239, 68, 68); break;   // rouge  -> --c-danger
-            default:                   badgeColor = Color.Transparent; break;
-        }
-
-        // Créer un bitmap 32bpp ARGB pour garantir la compatibilité GDI+.
-        // Icon.ToBitmap() peut échouer sur certains formats .ico compressés.
-        using (Bitmap bmp = new Bitmap(baseIcon.Width, baseIcon.Height,
-            System.Drawing.Imaging.PixelFormat.Format32bppArgb))
-        using (Graphics g = Graphics.FromImage(bmp))
-        {
-            // Dessiner l'icône de base sur le bitmap
-            g.DrawIcon(baseIcon, 0, 0);
-
-            // Badge en bas à droite, taille 50% de l'icône pour être
-            // visible même à 16×16 dans la barre des tâches.
-            int badgeSize = Math.Max(7, (int)Math.Round(bmp.Width * 0.5));
-            int margin = 1;
-            Rectangle badgeRect = new Rectangle(
-                bmp.Width - badgeSize - margin,
-                bmp.Height - badgeSize - margin,
-                badgeSize, badgeSize);
-
-            // Cercle blanc externe pour le contraste sur le fond rose du logo
-            using (Pen whitePen = new Pen(Color.White, 1.5f))
-            {
-                g.DrawEllipse(whitePen, badgeRect);
-            }
-
-            using (Brush brush = new SolidBrush(badgeColor))
-            {
-                g.FillEllipse(brush,
-                    badgeRect.X + 2, badgeRect.Y + 2,
-                    badgeRect.Width - 4, badgeRect.Height - 4);
-            }
-
-            // Icon.FromHandle crée un handle GDI natif qui n'est PAS géré par
-            // le GC .NET — il faut appeler DestroyIcon explicitement (cf.
-            // DestroyIconSafe et UpdateTrayIcon).
-            return Icon.FromHandle(bmp.GetHicon());
-        }
-    }
-
     /// <summary>
     /// Met à jour l'icône du tray, le texte du tooltip, et l'état du menu.
-    /// Appelée à chaque changement d'état du serveur.
-    ///
-    /// ATTENTION — fuite de handles GDI : à chaque changement d'état,
-    /// l'ancienne icône (celle créée par BuildIconForState -> Icon.FromHandle)
-    /// doit être détruite via DestroyIcon. L'icône de base (_baseIcon) ne doit
-    /// JAMAIS être détruite ici — elle est possédée par le constructeur et sera
-    /// libérée dans Dispose().
+    /// Swap entre les trois icônes pré-générées — zéro GDI+ à l'exécution.
     /// </summary>
     private void UpdateTrayIcon(ServerState newState)
     {
         _currentState = newState;
         _listeningOnFound = false;
 
-        Icon oldIcon = trayIcon.Icon;
+        if (newState == ServerState.Running || newState == ServerState.Starting)
+            trayIcon.Icon = newState == ServerState.Running ? _iconActive : _iconNormal;
+        else
+            trayIcon.Icon = _iconInactive;
 
-        // Construire la nouvelle icône avec le badge approprié
-        trayIcon.Icon = BuildIconForState(_baseIcon, newState);
-
-        // Mettre à jour le tooltip avec le libellé d'état
         trayIcon.Text = string.Format("Hugo CMS — {0}", StateLabel(newState));
-
-        // Détruire l'ancienne icône si ce n'est pas l'icône de base
-        // (l'icône de base persistée dans _baseIcon ne doit pas être libérée ici)
-        if (oldIcon != null && oldIcon != _baseIcon)
-        {
-            DestroyIconSafe(oldIcon);
-        }
 
         UpdateMenuState();
     }
@@ -310,31 +249,6 @@ class TrayLauncher : Form
         }
     }
 
-    /// <summary>
-    /// Détruit proprement un handle GDI natif créé par Icon.FromHandle.
-    /// Icon.Dispose() ne libère PAS le handle natif — c'est un wrapper managé
-    /// qui ne prend pas possession du handle. Sans cet appel, chaque changement
-    /// d'icône laisse fuir un handle, ce qui dégrade les performances système
-    /// sur une session longue.
-    /// </summary>
-    private void DestroyIconSafe(Icon icon)
-    {
-        if (icon == null) return;
-        try
-        {
-            DestroyIcon(icon.Handle);
-        }
-        catch
-        {
-            // Ignorer — un double DestroyIcon sur un handle déjà libéré
-            // est un no-op côté user32.
-        }
-    }
-
-    /// <summary>
-    /// Active/désactive les items de menu selon l'état du serveur.
-    /// Le bouton stopMenuItem bascule entre "Démarrer" et "Arrêter".
-    /// </summary>
     /// <summary>
     /// Met à jour l'état du menu en fonction de l'état du processus.
     /// Protégé contre InvalidOperationException : HasExited échoue si le
@@ -366,8 +280,9 @@ class TrayLauncher : Form
 
     /// <summary>
     /// Démarre le processus Node (bundle.mjs ou build/index.js).
-    /// Passe l'icône en orange (Starting), puis dès que le message "Listening on"
-    /// est détecté dans stdout, passe en vert (Running).
+    /// Passe l'icône en normale (Starting), puis dès que le message "Listening on"
+    /// est détecté dans stdout, reste en normale (Running).
+    /// Un arrêt/inactivité repasse en monochrome.
     ///
     /// Note : serverProcess.Kill() (dans StopServer) cible uniquement le PID
     /// de ce Process.Start() — jamais un taskkill /IM node.exe. Aucun risque
@@ -437,7 +352,7 @@ class TrayLauncher : Form
                         DateTime.Now.ToString("HH:mm:ss"), e.Data, Environment.NewLine));
             };
 
-            // US-120 : arrêt inattendu -> rouge
+            // US-120 : arrêt inattendu -> monochrome
             // US-121 : notification système
             serverProcess.Exited += (s, e) =>
             {
@@ -654,21 +569,19 @@ class TrayLauncher : Form
 
             if (trayIcon != null)
             {
-                // Détruire l'icône non-base avant de disposer le NotifyIcon,
-                // sinon le handle GDI natif fuit.
-                Icon currentIcon = trayIcon.Icon;
                 trayIcon.Icon = null;
                 trayIcon.Dispose();
-                if (currentIcon != null && currentIcon != _baseIcon)
-                    DestroyIconSafe(currentIcon);
             }
 
             if (trayMenu != null)
                 trayMenu.Dispose();
             if (logWindow != null && !logWindow.IsDisposed)
                 logWindow.Dispose();
-            if (_baseIcon != null)
-                _baseIcon.Dispose();
+
+            if (_iconNormal != null)   _iconNormal.Dispose();
+            if (_iconActive != null)   _iconActive.Dispose();
+            if (_iconInactive != null && _iconInactive != _iconNormal)
+                _iconInactive.Dispose();
         }
         base.Dispose(disposing);
     }

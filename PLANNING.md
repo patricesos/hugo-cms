@@ -272,6 +272,15 @@
 
 ---
 
+### EPIC TRAY — Tray launcher Windows (systray serveur Node)
+
+- [x] **US-120** — Icône systray avec badge GDI+ coloré (gris/orange/vert/rouge) selon l'état du serveur Node. Détection Running via "Listening on" dans stdout. DestroyIcon natif pour éviter fuite handles GDI.
+- [x] **US-121** — Notification balloon (ShowBalloonTip) sur crash inattendu du serveur. Flag `_isStoppingIntentionally` pour distinguer arrêt volontaire.
+- [x] **US-122** — Menu contextuel : toggle Arrêter/Démarrer, Ouvrir/Redémarrer désactivés quand serveur arrêté.
+- [ ] **US-123** — Fix icône Running/Starting/Error : forcer `_baseIcon` à 16×16 (SmallIconSize) pour que le bitmap GDI+ reste à la bonne résolution du systray.
+
+---
+
 ### Ancien backlog (future lointain)
 
 - [ ] Split view 50/50 éditeur + aperçu (auto-reload sur sauvegarde)
