@@ -139,7 +139,6 @@ function create() {
 				editorContent.set(tab.content);
 				currentFrontmatter.set({ ...tab.frontmatter });
 				currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml');
-				_editorSetContent?.(tab.content);
 			} else if (tab.kind === 'archetype') {
 				currentArchetype.set(tab.slug);
 			} else if (tab.kind === 'config') {
@@ -191,7 +190,6 @@ function create() {
 					if (nextTab.kind === 'content') {
 						editorContent.set(nextTab.content);
 						currentFrontmatter.set({ ...nextTab.frontmatter });
-						_editorSetContent?.(nextTab.content);
 					}
 				} else {
 					currentSlug.set(null);
@@ -318,7 +316,6 @@ function create() {
 					editorContent.set(body);
 					currentFrontmatter.set({ ...frontmatter });
 					currentFmFormat.set(frontmatterLanguage);
-					_editorSetContent?.(body);
 				}
 			} catch { /* ignore */ }
 		},

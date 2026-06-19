@@ -1,0 +1,47 @@
+@startuml
+skinparam monochrome true
+skinparam rectangle {
+  BorderColor black
+  FontColor black
+}
+
+rectangle "Sidebar\n(Sidebar.svelte)" as Sidebar
+rectangle "TreeNode\n(TreeNode.svelte)" as TreeNode
+rectangle "+page.svelte" as Page {
+  rectangle "loadFile()" as LoadFile
+}
+rectangle "editorStore" as Store {
+  rectangle "tabs\nwritable" as Tabs
+  rectangle "currentSlug\nwritable" as CurSlug
+  rectangle "editorContent\nwritable" as EdContent
+  rectangle "loadFile" as StoreLoad
+  rectangle "switchToTab" as StoreSwitch
+}
+rectangle "Editor.svelte" as Editor {
+  rectangle "$effect\ncontent prop" as EffContent
+  rectangle "editor.commands\n.setContent()" as SetContent
+  rectangle "onSetContent" as SetCont
+  note right of SetCont
+    Only for {#key} recreation,
+    NOT for tab switches
+  endnote
+}
+
+Sidebar --> TreeNode : onLoadFile
+TreeNode --> Page : onLoadFile(slug)
+Page --> StoreLoad : editorStore.loadFile()
+StoreLoad --> StoreSwitch : switchToTab()
+StoreLoad -right-> Tabs : tabs.update([...t, tab])
+StoreSwitch --> CurSlug : currentSlug.set()
+StoreSwitch --> EdContent : editorContent.set()  [single path]
+EdContent -down-> Editor : content={$editorContent}
+EffContent --> SetContent : editor.commands.setContent()
+
+legend top
+  Single update path: editorContent.set() triggers
+  $effect which calls editor.commands.setContent().
+  No buildEditor() on tab switch — Tiptap state
+  (undo history, selection) is preserved.
+endlegend
+
+@enduml

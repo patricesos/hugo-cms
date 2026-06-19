@@ -1,0 +1,62 @@
+@startuml
+skinparam monochrome true
+skinparam rectangle {
+  BorderColor black
+  FontColor black
+}
+
+rectangle "Sidebar\n(Sidebar.svelte)" as Sidebar
+rectangle "TreeNode\n(TreeNode.svelte)" as TreeNode
+rectangle "+page.svelte" as Page {
+  rectangle "loadFile()" as LoadFile
+  rectangle "switchToTab()\n(local wrapper)" as LocalSwitch
+}
+rectangle "editorStore" as Store {
+  rectangle "tabs\nwritable" as Tabs
+  rectangle "currentSlug\nwritable" as CurSlug
+  rectangle "editorContent\nwritable" as EdContent
+  rectangle "loadFile" as StoreLoad
+  rectangle "switchToTab" as StoreSwitch
+  rectangle "_getContent" as GetCont
+  rectangle "_setContent" as SetCont
+}
+rectangle "Editor.svelte" as Editor {
+  rectangle "$effect\ncontent prop" as EffContent
+  rectangle "buildEditor()\n= destroy + create" as BuildEd
+  rectangle "onMount\nregister callbacks" as OnMount
+}
+
+Sidebar --> TreeNode : onLoadFile
+TreeNode --> Page : onLoadFile(slug)
+Page --> LoadFile : loadFile(slug)
+LoadFile --> StoreLoad : editorStore.loadFile()
+StoreLoad --> StoreSwitch : switchToTab() [if exists]
+StoreLoad -right-> Tabs : tabs.update([...t, tab]) [if new]
+StoreLoad --> StoreSwitch : switchToTab() [if new]
+StoreSwitch -right-> GetCont : _editorGetContent()?
+StoreSwitch --> CurSlug : currentSlug.set()
+StoreSwitch --> EdContent : editorContent.set()   (1)
+StoreSwitch -right-> SetCont : _editorSetContent() (2)
+EdContent -down-> Editor : content={$editorContent}
+EffContent --> BuildEd : content changed (WYSIWYG)
+SetCont -down-> Editor : _editorSetContent callback
+OnMount --> SetCont : registers callback
+
+note right of EdContent
+  Path 1 (store): editorContent.set()
+  triggers $effect on content prop,
+  which calls editor.commands.setContent()
+end note
+
+note right of SetCont
+  Path 2 (callback): _editorSetContent
+  calls buildEditor(content) which
+  destroys and recreates Tiptap
+end note
+
+legend top
+  Red vertical bars = two concurrent update paths
+  carrying identical content through different mechanisms
+endlegend
+
+@enduml
