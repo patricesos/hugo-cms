@@ -26,32 +26,32 @@ describe('protectShortcodes', () => {
 			.toBe('Un peu de texte **gras** et *italique*.');
 	});
 
-	it('insère un \\n\\n entre shortcodes consécutifs', () => {
+	it('laisse les \\n simples entre shortcodes consécutifs (pas de \\n\\n ajouté)', () => {
 		const input = '{{< gallery >}}\n{{< img src="a.jpg" >}}\n{{< img src="b.jpg" >}}\n{{< /gallery >}}';
 		const result = protectShortcodes(input);
 		expect(result).toBe(
-			'SH_OPEN_ANGLE gallery SH_CLOSE_ANGLE\n\nSH_OPEN_ANGLE img src="a.jpg" SH_CLOSE_ANGLE\n\nSH_OPEN_ANGLE img src="b.jpg" SH_CLOSE_ANGLE\n\nSH_OPEN_ANGLE /gallery SH_CLOSE_ANGLE',
+			'SH_OPEN_ANGLE gallery SH_CLOSE_ANGLE\nSH_OPEN_ANGLE img src="a.jpg" SH_CLOSE_ANGLE\nSH_OPEN_ANGLE img src="b.jpg" SH_CLOSE_ANGLE\nSH_OPEN_ANGLE /gallery SH_CLOSE_ANGLE',
 		);
 	});
 
-	it('insère un \\n\\n entre shortcodes % consécutifs', () => {
+	it('laisse les \\n simples entre shortcodes % consécutifs', () => {
 		const input = '{{% a %}}\n{{% b %}}\n{{% /c %}}';
 		const result = protectShortcodes(input);
 		expect(result).toBe(
-			'SH_OPEN_PERCENT a SH_CLOSE_PERCENT\n\nSH_OPEN_PERCENT b SH_CLOSE_PERCENT\n\nSH_OPEN_PERCENT /c SH_CLOSE_PERCENT',
+			'SH_OPEN_PERCENT a SH_CLOSE_PERCENT\nSH_OPEN_PERCENT b SH_CLOSE_PERCENT\nSH_OPEN_PERCENT /c SH_CLOSE_PERCENT',
 		);
 	});
 
-	it('ne duplique pas les \\n\\n existants', () => {
+	it('préserve les \\n\\n existants (pas ajoutés non plus)', () => {
 		const input = '{{< a >}}\n\n{{< b >}}';
 		const result = protectShortcodes(input);
 		expect(result).toBe('SH_OPEN_ANGLE a SH_CLOSE_ANGLE\n\nSH_OPEN_ANGLE b SH_CLOSE_ANGLE');
 	});
 
-	it('gère les espaces après le close', () => {
+	it('gère les espaces après le close (sans insérer \\n\\n)', () => {
 		const input = '{{< a >}} \n {{< b >}}';
 		const result = protectShortcodes(input);
-		expect(result).toBe('SH_OPEN_ANGLE a SH_CLOSE_ANGLE\n\n SH_OPEN_ANGLE b SH_CLOSE_ANGLE');
+		expect(result).toBe('SH_OPEN_ANGLE a SH_CLOSE_ANGLE \n SH_OPEN_ANGLE b SH_CLOSE_ANGLE');
 	});
 
 	it('laisse les \\n normaux dans le texte non-shortcode', () => {
@@ -112,18 +112,16 @@ describe('splitShortcodeLines', () => {
 });
 
 describe('round-trip', () => {
-	it('raw → protected → restored → split : les shortcodes adjacents gagnent un \\n\\n', () => {
-		// protectShortcodes insère \n\n entre shortcodes sur des lignes
-		// adjacentes (pour le rendu markdown-it/Tiptap). splitShortcodeLines
-		// ne doit PAS le retirer — il ne touche qu'au cas « sur la même ligne ».
+	it('raw → protected → restored → split : round-trip identique à l\'original', () => {
+		// protectShortcodes n'insère plus \n\n : le round-trip est
+		// parfait pour des shortcodes sur des lignes adjacentes.
 		const original = '{{< gallery >}}\n{{< img src="a.jpg" >}}\n{{< img src="b.jpg" >}}\n{{< /gallery >}}';
-		const expected = '{{< gallery >}}\n\n{{< img src="a.jpg" >}}\n\n{{< img src="b.jpg" >}}\n\n{{< /gallery >}}';
 
 		const protected_text = protectShortcodes(original);
 		const restored = restoreShortcodes(protected_text);
 		const result = splitShortcodeLines(restored);
 
-		expect(result).toBe(expected);
+		expect(result).toBe(original);
 	});
 
 	it('round-trip préserve le texte normal autour des shortcodes', () => {
@@ -150,10 +148,8 @@ describe('round-trip', () => {
 	});
 
 	it('round-trip préserve un mélange de {{< >}} et {{% %}} (M-001)', () => {
-		// protectShortcodes ajoute \n\n entre shortcodes adjacents
 		const original = '{{% alert warning %}}\n{{< figure src="img.jpg" >}}\n{{% /alert %}}';
-		const expected = '{{% alert warning %}}\n\n{{< figure src="img.jpg" >}}\n\n{{% /alert %}}';
-		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(expected);
+		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(original);
 	});
 
 	it('round-trip préserve {{% %}} seul sur une ligne (M-001)', () => {
@@ -162,9 +158,7 @@ describe('round-trip', () => {
 	});
 
 	it('round-trip préserve shortcodes % consécutifs (M-001)', () => {
-		// protectShortcodes ajoute \n\n entre shortcodes adjacents
 		const original = '{{% a %}}\n{{% b %}}\n{{% c %}}';
-		const expected = '{{% a %}}\n\n{{% b %}}\n\n{{% c %}}';
-		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(expected);
+		expect(splitShortcodeLines(restoreShortcodes(protectShortcodes(original)))).toBe(original);
 	});
 });

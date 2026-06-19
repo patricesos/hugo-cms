@@ -12,21 +12,17 @@ const SH_OPEN = `(?:${SH_OPEN_ANGLE}|${SH_OPEN_PERCENT})`;
 
 /**
  * Protège les shortcodes Hugo ({{< … >}}, {{% … %}}) avant passage
- * dans markdown-it en remplaçant les délimiteurs par des tokens
- * texte sûr. Insère aussi un \n\n entre shortcodes consécutifs
- * pour que markdown-it crée un paragraphe par shortcode.
+ * dans l'éditeur Tiptap en remplaçant les délimiteurs par des tokens
+ * texte sûr. N'insère PAS de \n\n entre shortcodes — le pipeline Tiptap
+ * gère les paragraphes via son serialiseur markdown ; splitShortcodeLines
+ * rétablit les sauts de ligne pour le cas « sur une même ligne ».
  */
 export function protectShortcodes(text: string): string {
-	let result = text
+	return text
 		.replace(/\{\{</g, SH_OPEN_ANGLE)
 		.replace(/\{\{%/g, SH_OPEN_PERCENT)
 		.replace(/>\}\}/g, SH_CLOSE_ANGLE)
 		.replace(/%\}\}/g, SH_CLOSE_PERCENT);
-	result = result.replace(
-		new RegExp(`(${SH_CLOSE})\\s*\\n(?!\\n)(\\s*)(${SH_OPEN})`, 'g'),
-		'$1\n\n$2$3',
-	);
-	return result;
 }
 
 /**
