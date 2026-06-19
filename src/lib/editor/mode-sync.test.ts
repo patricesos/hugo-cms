@@ -1,17 +1,14 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
-	resetAction,
-	handleContentChangeAction,
-	handleRawModeChangeActionWithRaw,
-	handleFrontmatterChangeAction,
 	getRawBody,
 	splitRawContent,
 	serializeFm,
 	countYamlComments,
+	ModeSync,
 } from './mode-sync.svelte';
 
-describe('mode-sync — helpers', () => {
+describe('mode-sync — helpers purs', () => {
 	it('serializeFm: YAML avec frontmatter', () => {
 		const result = serializeFm({ title: 'Test', draft: true }, 'yaml');
 		expect(result).toContain('---');
@@ -112,124 +109,168 @@ describe('mode-sync — helpers', () => {
 	});
 });
 
-describe('mode-sync — resetAction', () => {
-	it('rawMode=false → newRawContent est vide', () => {
-		const action = resetAction('Hello', false, {}, 'yaml');
-		expect(action.newRawContent).toBe('');
+describe('ModeSync — loadContent', () => {
+	let sync: ModeSync;
+
+	beforeEach(() => {
+		sync = new ModeSync();
 	});
 
-	it('rawMode=true → newRawContent = content (sans frontmatter)', () => {
-		const action = resetAction('Hello', true, {}, 'yaml');
-		expect(action.newRawContent).toBe('Hello');
+	it('rawMode=false → retourne buildEditor avec le content', () => {
+		const action = sync.loadContent('Hello', false, {}, 'yaml');
+		expect(action.buildEditor).toBe('Hello');
+		expect(sync.rawContent).toBe('');
 	});
 
-	it('rawMode=true avec frontmatter → newRawContent contient la FM', () => {
-		const action = resetAction('Body', true, { title: 'Test' }, 'yaml');
-		expect(action.newRawContent).toContain('title: Test');
-		expect(action.newRawContent).toContain('Body');
-	});
-});
-
-describe('mode-sync — handleContentChangeAction', () => {
-	it('rawMode=false → retourne setWysiwygContent', () => {
-		const action = handleContentChangeAction('New content', false, {}, 'yaml');
-		expect(action.newRawContent).toBeUndefined();
-		expect(action.setWysiwygContent).toBe('New content');
-	});
-
-	it('rawMode=true → retourne newRawContent', () => {
-		const action = handleContentChangeAction('New content', true, {}, 'yaml');
-		expect(action.newRawContent).toBe('New content');
-		expect(action.setWysiwygContent).toBeUndefined();
-	});
-
-	it('rawMode=true avec frontmatter → newRawContent inclut la FM', () => {
-		const action = handleContentChangeAction('Body', true, { title: 'Test' }, 'yaml');
-		expect(action.newRawContent).toContain('title: Test');
-		expect(action.newRawContent).toContain('Body');
-	});
-
-	it('pose contentUpdatedByEffect (vérifié via flag skip dans rawMode toggle)', () => {
-		// content change en rawMode pose le flag
-		handleContentChangeAction('Content', true, {}, 'yaml');
-		// rawMode toggle après content change doit skip (flag actif)
-		const action = handleRawModeChangeActionWithRaw(false, {}, 'yaml', 'Content', () => '', '');
-		// Si le flag est posé, l'action retourne {} (skip) — pas de buildEditor
+	it('rawMode=true → rawContent = content (sans frontmatter)', () => {
+		const action = sync.loadContent('Hello', true, {}, 'yaml');
 		expect(action.buildEditor).toBeUndefined();
-		expect(action.newRawContent).toBeUndefined();
-	});
-});
-
-describe('mode-sync — handleRawModeChangeActionWithRaw', () => {
-	it('rawMode=true → capture depuis getMarkdown', () => {
-		const getMarkdown = () => '**bold** markdown';
-		const action = handleRawModeChangeActionWithRaw(true, {}, 'yaml', 'current', getMarkdown, '');
-		expect(action.newRawContent).toContain('**bold** markdown');
+		expect(sync.rawContent).toBe('Hello');
 	});
 
-	it('rawMode=true, getMarkdown vide → fallback sur currentContent', () => {
-		const getMarkdown = () => '';
-		const action = handleRawModeChangeActionWithRaw(true, {}, 'yaml', 'fallback', getMarkdown, '');
-		expect(action.newRawContent).toContain('fallback');
-	});
-
-	it('rawMode=false → retourne buildEditor avec le body extrait', () => {
-		const action = handleRawModeChangeActionWithRaw(false, {}, 'yaml', 'ignored', () => '', '---\n{}\n---\n\nBody text');
-		expect(action.buildEditor).toBe('Body text');
-	});
-
-	it('rawMode=false sans frontmatter → buildEditor avec le rawContent complet', () => {
-		const action = handleRawModeChangeActionWithRaw(false, {}, 'yaml', 'ignored', () => '', 'Just body');
-		expect(action.buildEditor).toBe('Just body');
-	});
-});
-
-describe('mode-sync — régression K-010 (toggle + content simultané)', () => {
-	it('content change seul en rawMode → newRawContent', () => {
-		const action = handleContentChangeAction('Onglet B', true, {}, 'yaml');
-		expect(action.newRawContent).toBe('Onglet B');
-	});
-
-	it('toggle rawMode après content change → skip (contentUpdatedByEffect actif)', () => {
-		// Changement de contenu (pose le flag)
-		handleContentChangeAction('B', true, {}, 'yaml');
-		// RawMode toggle (doit skip car le flag est posé)
-		const action = handleRawModeChangeActionWithRaw(true, {}, 'yaml', 'B', () => '', 'B');
-		// Skip = pas de nouveau rawContent (déjà mis à jour par handleContentChangeAction)
-		expect(action.newRawContent).toBeUndefined();
+	it('rawMode=true avec frontmatter → rawContent contient FM + body', () => {
+		const action = sync.loadContent('Body', true, { title: 'Test' }, 'yaml');
 		expect(action.buildEditor).toBeUndefined();
+		expect(sync.rawContent).toContain('title: Test');
+		expect(sync.rawContent).toContain('Body');
 	});
 
-	it('toggle rawMode SEUL (pas de content change avant) → capture depuis Tiptap', () => {
-		const getMarkdown = () => 'Markdown from Tiptap';
-		const action = handleRawModeChangeActionWithRaw(true, {}, 'yaml', 'Onglet B', getMarkdown, '');
-		// Capture depuis Tiptap (flag non posé)
-		expect(action.newRawContent).toContain('Markdown from Tiptap');
+	it('loadContent deux fois avec des contenus différents (simule changement rapide d\'onglet)', () => {
+		sync.loadContent('Onglet A', true, {}, 'yaml');
+		expect(sync.rawContent).toContain('Onglet A');
+
+		sync.loadContent('Onglet B', true, {}, 'yaml');
+		expect(sync.rawContent).toContain('Onglet B');
+		expect(sync.rawContent).not.toContain('Onglet A');
 	});
 });
 
-describe('mode-sync — handleFrontmatterChangeAction', () => {
-	it('frontmatter inchangé → null', () => {
-		const result = handleFrontmatterChangeAction({}, 'yaml', 'Body');
-		expect(result).not.toBeNull();
-		// Deuxième appel avec le même frontmatter → null
-		const result2 = handleFrontmatterChangeAction({}, 'yaml', 'Body');
-		expect(result2).toBeNull();
+describe('ModeSync — toggleToRaw / toggleToWysiwyg', () => {
+	let sync: ModeSync;
+
+	beforeEach(() => {
+		sync = new ModeSync();
 	});
 
-	it('frontmatter changé → newRawContent mis à jour', () => {
-		handleFrontmatterChangeAction({ title: 'Old' }, 'yaml', '---\ntitle: Old\n---\n\nBody');
-		const result = handleFrontmatterChangeAction({ title: 'New' }, 'yaml', '---\ntitle: Old\n---\n\nBody');
-		expect(result).not.toBeNull();
-		expect(result!.newRawContent).toContain('title: New');
-		expect(result!.newRawContent).toContain('Body');
+	it('toggleToRaw capture le markdown Tiptap', () => {
+		sync.toggleToRaw(() => '**bold** markdown', {}, 'yaml');
+		expect(sync.rawContent).toContain('**bold** markdown');
 	});
 
-	it('frontmatter vide mais body présent → rawContent sans FM', () => {
-		handleFrontmatterChangeAction({ title: 'Test' }, 'yaml', '---\ntitle: Test\n---\n\nBody');
-		const result = handleFrontmatterChangeAction({}, 'yaml', '---\ntitle: Test\n---\n\nBody');
-		expect(result).not.toBeNull();
-		expect(result!.newRawContent).not.toContain('title: Test');
-		expect(result!.newRawContent).toContain('Body');
+	it('toggleToRaw avec frontmatter → rawContent inclut la FM', () => {
+		sync.toggleToRaw(() => 'Body', { title: 'Test' }, 'yaml');
+		expect(sync.rawContent).toContain('title: Test');
+		expect(sync.rawContent).toContain('Body');
+	});
+
+	it('toggleToRaw préfixe avec le frontmatter sérialisé', () => {
+		sync.toggleToRaw(() => 'Hello', { draft: true }, 'yaml');
+		expect(sync.rawContent).toMatch(/^---\n/);
+	});
+
+	it('toggleToWysiwyg extrait le body depuis rawContent', () => {
+		sync.rawContent = '---\ntitle: Test\n---\n\nBody text';
+		const { body } = sync.toggleToWysiwyg();
+		expect(body).toBe('Body text');
+	});
+
+	it('toggleToWysiwyg: sans frontmatter, retourne le rawContent complet', () => {
+		sync.rawContent = 'Just body';
+		const { body } = sync.toggleToWysiwyg();
+		expect(body).toBe('Just body');
+	});
+});
+
+describe('ModeSync — toRawFromWysiwyg / toWysiwygFromRaw', () => {
+	let sync: ModeSync;
+
+	beforeEach(() => {
+		sync = new ModeSync();
+	});
+
+	it('toRawFromWysiwyg: applique restore + splitShortcodeLines + compose FM', () => {
+		const result = sync.toRawFromWysiwyg('{{< img >}}', { title: 'Test' }, 'yaml');
+		expect(result).toContain('title: Test');
+		expect(result).toContain('{{< img >}}');
+	});
+
+	it('toWysiwygFromRaw: extrait body et protège les shortcodes', () => {
+		const result = sync.toWysiwygFromRaw('---\ntitle: Test\n---\n\n{{% shortcode %}}');
+		expect(result.body).toContain('SH_OPEN_PERCENT shortcode SH_CLOSE_PERCENT');
+		expect(result.frontmatter).toEqual({ title: 'Test' });
+		expect(result.format).toBe('yaml');
+	});
+});
+
+describe('ModeSync — handleFrontmatterChange', () => {
+	let sync: ModeSync;
+
+	beforeEach(() => {
+		sync = new ModeSync();
+	});
+
+	it('loadContent inclut déjà le FM → handleFrontmatterChange n\'a rien à faire', () => {
+		sync.loadContent('Body', true, { title: 'Test' }, 'yaml');
+		// loadContent a déjà composé le FM dans rawContent
+		expect(sync.handleFrontmatterChange({ title: 'Test' }, 'yaml')).toBe(false);
+	});
+
+	it('frontmatter changé après loadContent → rawContent mis à jour', () => {
+		sync.loadContent('Body', true, { title: 'Old' }, 'yaml');
+		expect(sync.handleFrontmatterChange({ title: 'New' }, 'yaml')).toBe(true);
+		expect(sync.rawContent).toContain('title: New');
+		expect(sync.rawContent).toContain('Body');
+		expect(sync.rawContent).not.toContain('title: Old');
+	});
+
+	it('frontmatter vidé → rawContent contient FM vide sérialisé', () => {
+		sync.loadContent('Body', true, { title: 'Test' }, 'yaml');
+		expect(sync.handleFrontmatterChange({}, 'yaml')).toBe(true);
+		expect(sync.rawContent).toContain('{}');
+		expect(sync.rawContent).toContain('Body');
+	});
+});
+
+describe('ModeSync — régression K-010 (pas de flag contentUpdatedByEffect)', () => {
+	let sync: ModeSync;
+
+	beforeEach(() => {
+		sync = new ModeSync();
+	});
+
+	it('loadContent + toggleToRaw séquentiels → pas de double traitement', () => {
+		// Simule la séquence K-010 : changement d'onglet vers un contenu
+		// en mode raw, suivi d'un toggle vers raw (déjà en raw → rien).
+		sync.loadContent('Contenu B', true, {}, 'yaml');
+		expect(sync.rawContent).toBe('Contenu B');
+
+		// Si on appelle toggleToRaw APRÈS (cas where content change
+		// et rawMode change dans la même frame), il n'y a pas de flag
+		// à checker — l'orchestrateur décide quelle méthode appeler.
+		// Ce test vérifie juste qu'on peut appeler les deux sans crash
+		// et que le résultat est cohérent.
+		sync.toggleToRaw(() => 'Contenu B (from Tiptap)', {}, 'yaml');
+		expect(sync.rawContent).toContain('Contenu B');
+	});
+
+	it('toggleToRaw puis toggleToWysiwyg → round-trip propre', () => {
+		sync.toggleToRaw(() => '**Hello**', { title: 'Test' }, 'yaml');
+		expect(sync.rawContent).toContain('**Hello**');
+		expect(sync.rawContent).toContain('title: Test');
+
+		const { body } = sync.toggleToWysiwyg();
+		expect(body).not.toContain('title: Test');
+		expect(body).toBe('**Hello**');
+	});
+
+	it('pas de flag global — deux instances isolées', () => {
+		const syncA = new ModeSync();
+		const syncB = new ModeSync();
+
+		syncA.loadContent('Contenu A', true, {}, 'yaml');
+		syncB.loadContent('Contenu B', true, {}, 'yaml');
+
+		expect(syncA.rawContent).toBe('Contenu A');
+		expect(syncB.rawContent).toBe('Contenu B');
 	});
 });

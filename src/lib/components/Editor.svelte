@@ -12,7 +12,7 @@
 	import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
 	import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
 	import { EditorState, EditorSelection } from '@codemirror/state';
-	import { resetAction, handleContentChangeAction, handleRawModeChangeActionWithRaw, handleFrontmatterChangeAction, serializeFm, splitRawContent, getRawBody } from '$lib/editor/mode-sync.svelte';
+	import { ModeSync, getRawBody, splitRawContent } from '$lib/editor/mode-sync.svelte';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import { undo, redo, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -87,6 +87,7 @@
 	let prevRawMode = false;
 	let cmContainer = $state<HTMLDivElement | undefined>();
 	let cmUpdating = false;
+	let sync = $state<ModeSync | null>(null);
 
 	let showImagePicker = $state(false);
 	let pendingImageInsert = $state<{ editor: TiptapEditor; range: import('@tiptap/core').Range } | null>(null);
@@ -249,11 +250,12 @@
 		}
 		window.addEventListener('slash:image', onSlashImage);
 
-		const initAction = resetAction(content, rawMode, frontmatter, frontmatterFormat);
-		if (initAction.newRawContent !== undefined) rawContent = initAction.newRawContent;
+		sync = new ModeSync();
+		const initAction = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
+		rawContent = sync.rawContent;
 
-		if (!rawMode) {
-			buildEditor(content);
+		if (initAction.buildEditor) {
+			buildEditor(initAction.buildEditor);
 		}
 		onSaveState?.('saved');
 		getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
@@ -273,38 +275,52 @@
 		};
 	});
 
-	// $effect unique de coordination content + rawMode.
-	// La logique de décision est déléguée à mode-sync.svelte.ts qui retourne
-	// des actions (ContentAction). Editor.svelte applique l'action localement.
+	// Coordination content + rawMode via ModeSync.
+	// L'API est explicite : loadContent pour le changement de contenu,
+	// toggleToRaw/toggleToWysiwyg pour le changement de mode.
+	// Quand les deux changent simultanément (K-010), loadContent
+	// met déjà rawContent à jour — on ne capture PAS depuis Tiptap.
 	$effect(() => {
+		if (!sync) return;
 		if (content === prevContent && rawMode === prevRawMode) return;
 
 		const cChanged = content !== prevContent;
 		const rChanged = rawMode !== prevRawMode;
 
 		if (cChanged) {
-			const action = handleContentChangeAction(content, rawMode, frontmatter, frontmatterFormat);
-			if (action.newRawContent !== undefined) rawContent = action.newRawContent;
-			if (action.setWysiwygContent !== undefined) editor?.commands.setContent(protectShortcodes(action.setWysiwygContent));
+			const action = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
+			rawContent = sync.rawContent;
+			const body = action.buildEditor ?? action.setWysiwygContent;
+			if (body) {
+				if (editor) {
+					editor.commands.setContent(protectShortcodes(body));
+				} else {
+					buildEditor(protectShortcodes(body));
+				}
+				updateStats();
+			}
 		}
 		if (rChanged) {
-			const action = handleRawModeChangeActionWithRaw(
-				rawMode, frontmatter, frontmatterFormat, content,
-				() => getMarkdown(), rawContent,
-			);
-			if (action.newRawContent !== undefined) rawContent = action.newRawContent;
-			if (action.buildEditor !== undefined) {
-				if (!editor) {
-					buildEditor(protectShortcodes(action.buildEditor));
+			if (rawMode) {
+				// Bascule vers raw : capturer depuis Tiptap SEULEMENT si
+				// le contenu n'a pas déjà mis rawContent à jour (K-010).
+				if (!cChanged) {
+					sync.toggleToRaw(() => getMarkdown(), frontmatter, frontmatterFormat);
+					rawContent = sync.rawContent;
+				}
+			} else {
+				// Bascule vers WYSIWYG : extraire le body depuis rawContent.
+				const { body } = sync.toggleToWysiwyg();
+				if (editor) {
+					editor.commands.setContent(protectShortcodes(body));
 				} else {
-					editor.commands.setContent(protectShortcodes(action.buildEditor));
+					buildEditor(protectShortcodes(body));
 				}
 				updateStats();
 			}
 		}
 
 		if (cChanged && !rChanged) updateStats();
-
 		if (cChanged) prevContent = content;
 		if (rChanged) prevRawMode = rawMode;
 	});
@@ -335,9 +351,10 @@
 
 	// Quand le frontmatter change en mode raw, rafraîchir rawContent.
 	$effect(() => {
-		if (!rawMode) return;
-		const action = handleFrontmatterChangeAction(frontmatter, frontmatterFormat, rawContent);
-		if (action?.newRawContent !== undefined) rawContent = action.newRawContent;
+		if (!rawMode || !sync) return;
+		if (sync.handleFrontmatterChange(frontmatter, frontmatterFormat)) {
+			rawContent = sync.rawContent;
+		}
 	});
 
 	// CM6 lifecycle : création/destruction selon rawMode uniquement

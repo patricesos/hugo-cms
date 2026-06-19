@@ -1,19 +1,10 @@
 import yaml from 'js-yaml';
 import { parse, stringify } from '@iarna/toml';
+import type { EditorView } from '@codemirror/view';
+import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
 
 // =============================================================================
-// Flags de coordination internes — mode-sync n'exporte PAS de $state pour
-// éviter les erreurs "Cannot assign to import" de Svelte 5.
-// Editor.svelte garde rawContent comme $state local et reçoit des retours
-// d'action depuis cette API.
-// =============================================================================
-
-// Flags de coordination internes
-let contentUpdatedByEffect = false;
-let prevFmSnapshot = '';
-
-// =============================================================================
-// Helpers de manipulation frontmatter
+// Helpers purs (exportés, sans état)
 // =============================================================================
 
 /**
@@ -75,13 +66,8 @@ export function splitRawContent(text: string): { frontmatter: Record<string, unk
 		const endIdx = trimmed.indexOf('---', 3);
 		if (endIdx === -1) return { frontmatter: null, body: text, format: 'yaml' };
 		const yamlBlock = trimmed.slice(3, endIdx).trim();
-		// Normalisation : le trimStart() perd l'espacement original entre FM et
-		// body. Les fonctions d'action (resetAction, handleContentChangeAction)
-		// utilisent \n\n fixe à la reconstruction. Choix délibéré — voir M-004.
 		const rest = trimmed.slice(endIdx + 3).trimStart();
 		if (!yamlBlock) return { frontmatter: null, body: rest, format: 'yaml' };
-		// M-002 : les commentaires YAML (# ...) sont perdus par yaml.load()/dump().
-		// On avertit l'utilisateur à la première détection.
 		const commentCount = countYamlComments(yamlBlock);
 		if (commentCount > 0) {
 			console.warn(
@@ -107,101 +93,102 @@ export function getRawBody(text: string): string {
 }
 
 // =============================================================================
-// Types d'actions retournées par les fonctions de décision
+// Store de coordination — une instance par éditeur
 // =============================================================================
-
-export interface ContentAction {
-	/** rawContent a changé — Editor.svelte doit assigner sa $state locale */
-	newRawContent?: string;
-	/** setContent sur Tiptap */
-	setWysiwygContent?: string;
-	/** build/rebuild Tiptap */
-	buildEditor?: string;
-}
-
-// =============================================================================
-// API publique — fonctions pures qui retournent des actions
-// =============================================================================
-
-export function resetAction(
-	content: string,
-	rawMode: boolean,
-	frontmatter: Record<string, unknown>,
-	frontmatterFormat: 'yaml' | 'toml',
-): ContentAction {
-	contentUpdatedByEffect = false;
-	prevFmSnapshot = '';
-
-	if (rawMode) {
-		const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
-			? serializeFm(frontmatter, frontmatterFormat)
-			: '';
-		// Normalisation volontaire : on force \n\n entre FM et body.
-		// La fonction splitRawContent() strip le whitespace à la lecture
-		// via trimStart(), donc l'espacement original est perdu de toute
-		// façon. Voir M-004 dans PLANNING.md.
-		return { newRawContent: fmString ? `${fmString}\n\n${content}` : content };
-	}
-	return { newRawContent: '' };
-}
-
-export function handleContentChangeAction(
-	newContent: string,
-	rawMode: boolean,
-	frontmatter: Record<string, unknown>,
-	frontmatterFormat: 'yaml' | 'toml',
-): ContentAction {
-	contentUpdatedByEffect = true;
-
-	if (rawMode) {
-		const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
-			? serializeFm(frontmatter, frontmatterFormat)
-			: '';
-		// Normalisation volontaire : \n\n fixe entre FM et body. Voir M-004.
-		const newRawContent = fmString ? `${fmString}\n\n${newContent}` : newContent;
-		return { newRawContent };
-	}
-	return { setWysiwygContent: newContent };
-}
 
 /**
- * Version de handleRawModeChangeAction qui accepte rawContent en paramètre
- * pour le switch vers WYSIWYG (extraction du body depuis rawContent).
+ * Assemble le frontmatter sérialisé et le body en une string brute.
  */
-export function handleRawModeChangeActionWithRaw(
-	newRawMode: boolean,
-	frontmatter: Record<string, unknown>,
-	frontmatterFormat: 'yaml' | 'toml',
-	currentContent: string,
-	getMarkdown: () => string,
-	rawContent: string,
-): ContentAction {
-	if (contentUpdatedByEffect) {
-		contentUpdatedByEffect = false;
-		return {};
-	}
-	if (newRawMode) {
-		const body = getMarkdown() || currentContent;
-		const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
-			? serializeFm(frontmatter, frontmatterFormat)
-			: '';
-		return { newRawContent: fmString ? `${fmString}\n\n${body}` : body };
-	}
-	return { buildEditor: getRawBody(rawContent) };
+function composeRaw(fm: Record<string, unknown>, format: 'yaml' | 'toml', body: string): string {
+	const fmString = Object.keys(fm).length > 0 ? serializeFm(fm, format) : '';
+	return fmString ? `${fmString}\n\n${body}` : body;
 }
 
-export function handleFrontmatterChangeAction(
-	frontmatter: Record<string, unknown>,
-	frontmatterFormat: 'yaml' | 'toml',
-	rawContent: string,
-): { newRawContent: string } | null {
-	const snapshot = JSON.stringify(frontmatter) + '|' + frontmatterFormat;
-	if (snapshot === prevFmSnapshot) return null;
-	prevFmSnapshot = snapshot;
+export class ModeSync {
+	/** Contenu brut complet (FM + body) quand en mode raw */
+	rawContent = $state('');
 
-	const body = getRawBody(rawContent);
-	const fmString = serializeFm(frontmatter, frontmatterFormat);
-	const newContent = fmString ? `${fmString}\n\n${body}` : body;
-	if (newContent === rawContent) return null;
-	return { newRawContent: newContent };
+	/** Instance CodeMirror 6, créée/détruite par RawEditor */
+	cmView = $state<EditorView | null>(null);
+
+	private _prevFmSnapshot = '';
+
+	/**
+	 * Convertit le markdown Tiptap en représentation brute.
+	 * Applique restoreShortcodes() + splitShortcodeLines(), puis
+	 * préfixe avec le frontmatter sérialisé.
+	 */
+	toRawFromWysiwyg(tiptapMarkdown: string, fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
+		const body = splitShortcodeLines(restoreShortcodes(tiptapMarkdown));
+		return composeRaw(fm, format, body);
+	}
+
+	/**
+	 * Extrait le body protégé depuis une string brute pour le WYSIWYG.
+	 * Applique protectShortcodes() sur le body extrait.
+	 */
+	toWysiwygFromRaw(raw: string): { body: string; frontmatter: Record<string, unknown> | null; format: 'yaml' | 'toml' } {
+		const { frontmatter, body, format } = splitRawContent(raw);
+		return { body: protectShortcodes(body), frontmatter, format };
+	}
+
+	/**
+	 * Charge un nouveau contenu depuis l'extérieur (changement d'onglet,
+	 * initialisation). Appelé EXPLICITEMENT par l'orchestrateur, pas via
+	 * un $effect qui devine. Met à jour rawContent si nécessaire.
+	 *
+	 * Retourne une action à appliquer sur le DOM Tiptap :
+	 *  - { setWysiwygContent } : setContent sur un éditeur existant
+	 *  - { buildEditor } : créer/remplacer l'éditeur Tiptap
+	 *  - {} : rien à faire (mode raw)
+	 */
+	loadContent(content: string, rawMode: boolean, fm: Record<string, unknown>, format: 'yaml' | 'toml'): { setWysiwygContent?: string; buildEditor?: string } {
+		// On réinitialise le snapshot pour que handleFrontmatterChange
+		// puisse faire une première passe de sérialisation (ex : FM vide
+		// → `---\n{}\n---`). Sans ça, le FM $effect ne voyait pas de
+		// changement et ne sérialisait jamais le frontmatter initial.
+		this._prevFmSnapshot = '';
+		if (rawMode) {
+			this.rawContent = composeRaw(fm, format, content);
+			return {};
+		}
+		this.rawContent = '';
+		return { buildEditor: content };
+	}
+
+	/**
+	 * Bascule vers le mode raw : capture le markdown depuis Tiptap et
+	 * le stocke dans rawContent.
+	 */
+	toggleToRaw(getTiptapMarkdown: () => string, fm: Record<string, unknown>, format: 'yaml' | 'toml'): void {
+		this.rawContent = this.toRawFromWysiwyg(getTiptapMarkdown(), fm, format);
+	}
+
+	/**
+	 * Bascule vers le mode WYSIWYG : extrait le body depuis rawContent.
+	 */
+	toggleToWysiwyg(): { body: string } {
+		return { body: getRawBody(this.rawContent) };
+	}
+
+	/**
+	 * Met à jour rawContent quand le frontmatter change en mode raw.
+	 * Retourne true si rawContent a été modifié.
+	 */
+	handleFrontmatterChange(frontmatter: Record<string, unknown>, format: 'yaml' | 'toml'): boolean {
+		const snapshot = JSON.stringify(frontmatter) + '|' + format;
+		if (snapshot === this._prevFmSnapshot) return false;
+		this._prevFmSnapshot = snapshot;
+
+		const body = getRawBody(this.rawContent);
+		// Toujours sérialiser le FM, même vide → `---\n{}\n---`.
+		// composeRaw() saute le FM vide pour les chargements initiaux,
+		// mais handleFrontmatterChange doit préserver l'ancien comportement
+		// où le FM $effect sérialisait même `{}`.
+		const fmString = serializeFm(frontmatter, format);
+		const newContent = `${fmString}\n\n${body}`;
+		if (newContent === this.rawContent) return false;
+		this.rawContent = newContent;
+		return true;
+	}
 }

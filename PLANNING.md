@@ -244,7 +244,7 @@
 > **Problème :** `Editor.svelte` (839 lignes) entremêle CodeMirror, Tiptap, shortcodes, frontmatter — c'est la cause racine des bugs de coordination (K-010, L-001). Deux systèmes d'effects qui se chevauchent.
 > **Solution :** 3 couches — store (`mode-sync.svelte.ts` seul endroit qui connaît la conversion), deux vues (`RawEditor.svelte`, `WysiwygEditor.svelte` ignorantes l'une de l'autre), un orchestrateur réduit (`Editor.svelte` ~150-250 lignes).
 
-- [ ] **US-110** — 🔴 Créer le store `mode-sync.svelte.ts` avec API explicite (pas de `$effect` qui devine, pas de flag `_contentUpdatedByEffect`). Fonctions : `toRawFromWysiwyg()`, `toWysiwygFromRaw()`, `loadExternalContent()` appelée directement. Ses tests (sans DOM, ciblent le store seul).
+- [x] **US-110** — 🔴 Store `mode-sync.svelte.ts` en classe `ModeSync` avec `$state` et API explicite (`loadContent`, `toggleToRaw`, `toggleToWysiwyg`, `handleFrontmatterChange`). Plus de flag `_contentUpdatedByEffect`. 34 tests (34 sans DOM). Editor.svelte adapté : orchestration explicite dans le `$effect` combiné. 325 tests verts.
 
 - [ ] **US-111** — 🔴 Extraire `RawEditor.svelte` : montage/démontage CM6, extensions, `cmView`/`cmUpdating`. Contrat : `content` en prop, `onChange` en sortie. Ignore Tiptap, shortcodes, frontmatter.
 
