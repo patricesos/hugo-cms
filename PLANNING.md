@@ -197,7 +197,7 @@
 > whitespace normalisé, commentaires YAML effacés. Hugo ne signale pas d'erreur
 > pour les shortcodes — le site s'affiche avec un rendu plat.
 
-- [ ] **M-001** — 🔴 Shortcodes `{{% %}}` corrompus en `{{< >}}` au round-trip.
+- [x] **M-001** — 🔴 Shortcodes `{{% %}}` corrompus en `{{< >}}` au round-trip.
   **Cause :** `protectShortcodes()` mappe `>}}` ET `%}}` sur le même token
   `SH_CLOSE_SH`. `restoreShortcodes()` ne peut pas distinguer → restaure
   toujours `>}}`. **Fix :** deux tokens distincts (`SH_CLOSE_ANGLE`,
@@ -205,20 +205,20 @@
   **Tests :** round-trip `%` seul, mélange `%` + `<`, shortcodes imbriqués dans
   le body.
 
-- [ ] **M-002** — 🟡 Commentaires YAML dans le frontmatter perdus silencieusement
+- [x] **M-002** — 🟡 Commentaires YAML dans le frontmatter perdus silencieusement
   au round-trip. **Cause :** `yaml.load()` / `yaml.dump()` ne préserve pas les
   commentaires. **Fix :** détection à l'ouverture + avertissement non bloquant
   dans la console éditeur. Résolution complète nécessiterait un parseur YAML
   préservant les commentaires.
 
-- [ ] **M-003** — 🟡 Dates reformatées au round-trip (ex : `2026-06-19` →
+- [x] **M-003** — 🟡 Dates reformatées au round-trip (ex : `2026-06-19` →
   `2026-06-19T00:00:00.000Z`). **Cause :** `yaml.dump()` sérialise les objets
   `Date` en ISO, la valeur Hugo en YAML était une string brute.
   **Fix :** normaliser les valeurs `Date` en string `YYYY-MM-DD` avant
   `yaml.dump()` dans `serializeFm()`. Clés Hugo concernées : `date`,
   `lastmod`, `publishDate`, `expiryDate`.
 
-- [ ] **M-004** — 🟢 Whitespace entre frontmatter et corps normalisé
+- [x] **M-004** — 🟢 Whitespace entre frontmatter et corps normalisé
   silencieusement. La logique `splitRawContent()` force `\n\n` fixe. Ce n'est
   pas un bug mais un choix de normalisation non documenté.
   **Fix :** commentaire dans le code + documentation (`ARCHITECTURE.md` ou
@@ -236,6 +236,32 @@
 - [x] **L-004** — 🟢 Tests de régression K-010 : "toggle rawMode après content change → skip (contentUpdatedByEffect actif)", "content change seul en rawMode → newRawContent", "toggle rawMode SEUL → capture depuis Tiptap".
 
 ---
+
+### EPIC N — Isoler RawEditor / WysiwygEditor + store de coordination
+
+> **Branche :** `audit/pattern-violations` (après EPIC M)
+> **Prérequis :** EPIC M (M-001 à M-004) terminé — ce refactor déplace du code, il ne doit pas aussi corriger des bugs.
+> **Problème :** `Editor.svelte` (839 lignes) entremêle CodeMirror, Tiptap, shortcodes, frontmatter — c'est la cause racine des bugs de coordination (K-010, L-001). Deux systèmes d'effects qui se chevauchent.
+> **Solution :** 3 couches — store (`mode-sync.svelte.ts` seul endroit qui connaît la conversion), deux vues (`RawEditor.svelte`, `WysiwygEditor.svelte` ignorantes l'une de l'autre), un orchestrateur réduit (`Editor.svelte` ~150-250 lignes).
+
+- [ ] **US-110** — 🔴 Créer le store `mode-sync.svelte.ts` avec API explicite (pas de `$effect` qui devine, pas de flag `_contentUpdatedByEffect`). Fonctions : `toRawFromWysiwyg()`, `toWysiwygFromRaw()`, `loadExternalContent()` appelée directement. Ses tests (sans DOM, ciblent le store seul).
+
+- [ ] **US-111** — 🔴 Extraire `RawEditor.svelte` : montage/démontage CM6, extensions, `cmView`/`cmUpdating`. Contrat : `content` en prop, `onChange` en sortie. Ignore Tiptap, shortcodes, frontmatter.
+
+- [ ] **US-112** — 🔴 Extraire `WysiwygEditor.svelte` : `buildEditor`, bubble/slash menu. `getMarkdown()` retourne le markdown Tiptap brut sans `restoreShortcodes` — c'est le store qui applique la conversion.
+
+- [ ] **US-113** — 🔴 Réduire `Editor.svelte` à l'orchestrateur : bascule `<RawEditor>`/`<WysiwygEditor>`, auto-save (transverse), image picker/shortcode dialog (transverse), appel explicite à `loadExternalContent()` au changement d'onglet.
+
+- [ ] **US-114** — 🔴 Migrer les tests : les 4 tests WYSIWYG → `WysiwygEditor.test.ts` ; les tests CM6 purs → `RawEditor.test.ts` ; les tests de bascule → orchestrateur ou (mieux) store `mode-sync.test.ts`. Checklist des 13 tests existants.
+
+**Décisions architecturales documentées dans le backlog complet :**
+- `WysiwygEditor` ne doit PAS appliquer `restoreShortcodes`/`splitShortcodeLines` — c'est le rôle du store
+- `RawEditor` reçoit la string déjà composée fm+body — pas de connaissance du frontmatter
+- L'image picker et le shortcode dialog restent au niveau orchestrateur (transverse aux deux modes)
+- Le store `createModeSync()` peut être instancié par `Editor.svelte` (pas global — un store par instance d'éditeur)
+- `_contentUpdatedByEffect` DOIT disparaître — si l'API du store le réclame, c'est que l'API n'est pas assez explicite
+
+**Ordre :** US-110 → US-111 + US-112 (parallèle) → US-113 → US-114. `npx vitest run` vert à chaque étape.
 
 ### EPIC THEME — Installation de thème en un clic (liste fixe pré-testée)
 
