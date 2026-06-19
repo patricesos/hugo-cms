@@ -186,6 +186,44 @@
 
 ---
 
+---
+
+### EPIC M — Round-trip raw ↔ WYSIWYG fiable
+
+> **Branche :** `audit/pattern-violations`
+> **Statut :** 4 problèmes identifiés, ordre d'implémentation : 1 → 3 → 4 → 2
+> **Contexte :** Le round-trip raw ↔ WYSIWYG altère silencieusement le contenu :
+> shortcodes `%` perdus (les plus graves car silencieux), dates reformatées,
+> whitespace normalisé, commentaires YAML effacés. Hugo ne signale pas d'erreur
+> pour les shortcodes — le site s'affiche avec un rendu plat.
+
+- [ ] **M-001** — 🔴 Shortcodes `{{% %}}` corrompus en `{{< >}}` au round-trip.
+  **Cause :** `protectShortcodes()` mappe `>}}` ET `%}}` sur le même token
+  `SH_CLOSE_SH`. `restoreShortcodes()` ne peut pas distinguer → restaure
+  toujours `>}}`. **Fix :** deux tokens distincts (`SH_CLOSE_ANGLE`,
+  `SH_CLOSE_PERCENT`), adapter `splitShortcodeLines()`.
+  **Tests :** round-trip `%` seul, mélange `%` + `<`, shortcodes imbriqués dans
+  le body.
+
+- [ ] **M-002** — 🟡 Commentaires YAML dans le frontmatter perdus silencieusement
+  au round-trip. **Cause :** `yaml.load()` / `yaml.dump()` ne préserve pas les
+  commentaires. **Fix :** détection à l'ouverture + avertissement non bloquant
+  dans la console éditeur. Résolution complète nécessiterait un parseur YAML
+  préservant les commentaires.
+
+- [ ] **M-003** — 🟡 Dates reformatées au round-trip (ex : `2026-06-19` →
+  `2026-06-19T00:00:00.000Z`). **Cause :** `yaml.dump()` sérialise les objets
+  `Date` en ISO, la valeur Hugo en YAML était une string brute.
+  **Fix :** normaliser les valeurs `Date` en string `YYYY-MM-DD` avant
+  `yaml.dump()` dans `serializeFm()`. Clés Hugo concernées : `date`,
+  `lastmod`, `publishDate`, `expiryDate`.
+
+- [ ] **M-004** — 🟢 Whitespace entre frontmatter et corps normalisé
+  silencieusement. La logique `splitRawContent()` force `\n\n` fixe. Ce n'est
+  pas un bug mais un choix de normalisation non documenté.
+  **Fix :** commentaire dans le code + documentation (`ARCHITECTURE.md` ou
+  `LIMITATIONS.md`). Aucun changement de comportement.
+
 ### EPIC L — Refactor coordination raw/wysiwyg (après fix K-010)
 
 > **Ne PAS faire en même temps que K-010.** Refactor séparé, dans son propre commit, une fois le fix validé.

@@ -8,6 +8,7 @@ import {
 	getRawBody,
 	splitRawContent,
 	serializeFm,
+	countYamlComments,
 } from './mode-sync.svelte';
 
 describe('mode-sync — helpers', () => {
@@ -27,6 +28,27 @@ describe('mode-sync — helpers', () => {
 	it('serializeFm: YAML vide retourne --- avec contenu vide', () => {
 		const result = serializeFm({}, 'yaml');
 		expect(result).toBe('---\n{}\n---');
+	});
+
+	it('serializeFm: normalise les dates en YYYY-MM-DD (M-003)', () => {
+		const fm = { title: 'Test', date: new Date('2026-06-19'), lastmod: new Date('2026-06-18') };
+		const result = serializeFm(fm, 'yaml');
+		expect(result).toContain("date: '2026-06-19'");
+		expect(result).toContain("lastmod: '2026-06-18'");
+		expect(result).not.toContain('T00:00:00.000Z');
+	});
+
+	it('serializeFm: normalise les dates dans les objets imbriqués (M-003)', () => {
+		const fm = { metadata: { published: new Date('2025-01-15') } };
+		const result = serializeFm(fm, 'yaml');
+		expect(result).toContain("published: '2025-01-15'");
+	});
+
+	it('serializeFm: normalise les dates dans les tableaux (M-003)', () => {
+		const fm = { dates: [new Date('2026-01-01'), new Date('2026-06-15')] };
+		const result = serializeFm(fm, 'yaml');
+		expect(result).toContain("- '2026-01-01'");
+		expect(result).toContain("- '2026-06-15'");
 	});
 
 	it('splitRawContent: extrait body et frontmatter YAML', () => {
@@ -59,6 +81,34 @@ describe('mode-sync — helpers', () => {
 	it('getRawBody: sans frontmatter, retourne le texte entier', () => {
 		const body = getRawBody('Just body');
 		expect(body).toBe('Just body');
+	});
+
+	it('countYamlComments: détecte les commentaires YAML', () => {
+		expect(countYamlComments('# ceci est un commentaire\ntitle: Test')).toBe(1);
+	});
+
+	it('countYamlComments: commentaires avec indentation', () => {
+		expect(countYamlComments('  # commentaire indenté\ntitle: Test')).toBe(1);
+	});
+
+	it('countYamlComments: pas de commentaire → 0', () => {
+		expect(countYamlComments('title: Test\ndraft: true')).toBe(0);
+	});
+
+	it('countYamlComments: bloc vide → 0', () => {
+		expect(countYamlComments('')).toBe(0);
+	});
+
+	it('countYamlComments: plusieurs commentaires', () => {
+		expect(countYamlComments('# titre\n# auteur\ntitle: Test\ndate: 2026-01-01')).toBe(2);
+	});
+
+	it('splitRawContent: les commentaires YAML sont perdus après parse+serialize (M-002)', () => {
+		const original = '---\n# Note: ceci sera perdu\ntitle: Test\n---\n\nBody';
+		const { frontmatter } = splitRawContent(original);
+		const result = serializeFm(frontmatter!, 'yaml');
+		expect(result).not.toContain('# Note');
+		expect(result).toContain('title: Test');
 	});
 });
 
