@@ -1,6 +1,5 @@
 import yaml from 'js-yaml';
 import { parse, stringify } from '@iarna/toml';
-import type { EditorView } from '@codemirror/view';
 import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
 
 // =============================================================================
@@ -107,9 +106,6 @@ function composeRaw(fm: Record<string, unknown>, format: 'yaml' | 'toml', body: 
 export class ModeSync {
 	/** Contenu brut complet (FM + body) quand en mode raw */
 	rawContent = $state('');
-
-	/** Instance CodeMirror 6, créée/détruite par RawEditor */
-	cmView = $state<EditorView | null>(null);
 
 	private _prevFmSnapshot = '';
 

@@ -246,11 +246,11 @@
 
 - [x] **US-110** — 🔴 Store `mode-sync.svelte.ts` en classe `ModeSync` avec `$state` et API explicite (`loadContent`, `toggleToRaw`, `toggleToWysiwyg`, `handleFrontmatterChange`). Plus de flag `_contentUpdatedByEffect`. 34 tests (34 sans DOM). Editor.svelte adapté : orchestration explicite dans le `$effect` combiné. 325 tests verts.
 
-- [ ] **US-111** — 🔴 Extraire `RawEditor.svelte` : montage/démontage CM6, extensions, `cmView`/`cmUpdating`. Contrat : `content` en prop, `onChange` en sortie. Ignore Tiptap, shortcodes, frontmatter.
+- [x] **US-111** — 🔴 `RawEditor.svelte` extrait : CM6 lifecycle via `$effect` (création si `active`, destruction si `!active`), sync `content` prop → CM6 dispatch, `onchange` sortie. Exporte `cmDispatch`, `rawWrap`, `rawHeading`, `rawList`, `rawBlockquote`, `rawLink`, `rawHr`, `rawUndo`, `rawRedo`. Ignore Tiptap, shortcodes, frontmatter. 225 lignes.
 
-- [ ] **US-112** — 🔴 Extraire `WysiwygEditor.svelte` : `buildEditor`, bubble/slash menu. `getMarkdown()` retourne le markdown Tiptap brut sans `restoreShortcodes` — c'est le store qui applique la conversion.
+- [x] **US-112** — 🔴 `WysiwygEditor.svelte` extrait : Tiptap `buildEditor`, bubble menu, slash menu, export `getMarkdown()`, `exec()`, `setLink()`, `toggleHeading()`, `isActive()`, `setContent()`. `getMarkdown()` retourne le markdown Tiptap brut sans `restoreShortcodes`. 280 lignes.
 
-- [ ] **US-113** — 🔴 Réduire `Editor.svelte` à l'orchestrateur : bascule `<RawEditor>`/`<WysiwygEditor>`, auto-save (transverse), image picker/shortcode dialog (transverse), appel explicite à `loadExternalContent()` au changement d'onglet.
+- [x] **US-113** — 🔴 `Editor.svelte` réduit à 210 lignes (orchestrateur). Importe `<RawEditor>` et `<WysiwygEditor>`, les passe en `active={rawMode}` / `active={!rawMode}`. Toolbar dispatch, auto-save transverse. `$effect` combiné utilise `loadContent` + `toggleToRaw`. `cmView` supprimé de `ModeSync`.
 
 - [ ] **US-114** — 🔴 Migrer les tests : les 4 tests WYSIWYG → `WysiwygEditor.test.ts` ; les tests CM6 purs → `RawEditor.test.ts` ; les tests de bascule → orchestrateur ou (mieux) store `mode-sync.test.ts`. Checklist des 13 tests existants.
 

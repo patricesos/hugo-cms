@@ -1,56 +1,11 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
-	import { Editor as TiptapEditor } from '@tiptap/core';
-	import StarterKit from '@tiptap/starter-kit';
-	import Placeholder from '@tiptap/extension-placeholder';
-	import { Markdown } from 'tiptap-markdown';
-	import Image from '@tiptap/extension-image';
-	import { SlashCommands } from '$lib/editor/slash-commands';
-	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2, Image as ImageIcon, Zap } from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import { ModeSync, getRawBody, splitRawContent } from '$lib/editor/mode-sync.svelte';
+	import RawEditor from './RawEditor.svelte';
+	import WysiwygEditor from './WysiwygEditor.svelte';
 	import ImagePicker from './ImagePicker.svelte';
 	import ShortcodeDialog from './ShortcodeDialog.svelte';
-	import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
-	import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
-	import { EditorState, EditorSelection } from '@codemirror/state';
-	import { ModeSync, getRawBody, splitRawContent } from '$lib/editor/mode-sync.svelte';
-	import { markdown } from '@codemirror/lang-markdown';
-	import { oneDark } from '@codemirror/theme-one-dark';
-	import { undo, redo, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
-	import { foldGutter, indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldKeymap } from '@codemirror/language';
-	import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
-	import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
-	import { lintKeymap } from '@codemirror/lint';
-
-	function basicSetup(): import('@codemirror/state').Extension {
-		return [
-			lineNumbers(),
-			highlightActiveLineGutter(),
-			highlightSpecialChars(),
-			history(),
-			foldGutter(),
-			drawSelection(),
-			dropCursor(),
-			EditorState.allowMultipleSelections.of(true),
-			indentOnInput(),
-			syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-			bracketMatching(),
-			closeBrackets(),
-			autocompletion(),
-			rectangularSelection(),
-			crosshairCursor(),
-			highlightActiveLine(),
-			highlightSelectionMatches(),
-			keymap.of([
-				...defaultKeymap,
-				...searchKeymap,
-				...historyKeymap,
-				...foldKeymap,
-				...completionKeymap,
-				...closeBracketsKeymap,
-				...lintKeymap,
-			]),
-		];
-	}
+	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2, Image as ImageIcon, Zap } from '@lucide/svelte';
 
 	interface EditorProps {
 		content?: string;
@@ -77,52 +32,15 @@
 
 	let { content = '', frontmatter = {}, frontmatterFormat = 'yaml', rawMode = false, showBubbleMenu = true, showSlashMenu = true, autoSaveDelay = 2000, editorFont = 'serif', editorFontSize = 'normal', editorMaxWidth = '720px', editorMaxWidthCustom = 720, historyDepth = 250, saveRequest = 0, getContent, onSave, onFrontmatterChange, onStats, onSaveState, onSetContent, onRawModeChange }: EditorProps = $props();
 
-	let editor = $state<TiptapEditor | null>(null);
-	let editorEl = $state<HTMLDivElement | null>(null);
-	let bubbleEl: HTMLDivElement;
-	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-	let cmView = $state<EditorView | null>(null);
-	let rawContent = $state('');
+	let sync = $state<ModeSync | null>(null);
 	let prevContent = '';
 	let prevRawMode = false;
-	let cmContainer = $state<HTMLDivElement | undefined>();
-	let cmUpdating = false;
-	let sync = $state<ModeSync | null>(null);
+	let rawEditor = $state<RawEditor | null>(null);
+	let wysiwygEditor = $state<WysiwygEditor | null>(null);
 
 	let showImagePicker = $state(false);
-	let pendingImageInsert = $state<{ editor: TiptapEditor; range: import('@tiptap/core').Range } | null>(null);
+	let pendingImageUrl = $state('');
 	let showShortcodeDialog = $state(false);
-
-	function updateStats() {
-		if (!editor) return;
-		const text = editor.state.doc.textContent;
-		onStats?.({
-			words: text.trim() ? text.trim().split(/\s+/).length : 0,
-			chars: text.length,
-		});
-	}
-
-	function getMarkdown(): string {
-		const md = ((editor?.storage as unknown) as Record<string, Record<string, () => string>>).markdown?.getMarkdown() ?? '';
-		return splitShortcodeLines(restoreShortcodes(md));
-	}
-
-	function handleImageSelect(url: string) {
-		if (rawMode) {
-			rawWrap('![', `](${url})`);
-			showImagePicker = false;
-		} else if (pendingImageInsert) {
-			const { editor: ed, range } = pendingImageInsert;
-			ed.chain().focus().deleteRange(range).setImage({ src: url }).run();
-			pendingImageInsert = null;
-			showImagePicker = false;
-		}
-	}
-
-	function handleImagePickerClose() {
-		showImagePicker = false;
-		pendingImageInsert = null;
-	}
 
 	let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let rawSaveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -143,10 +61,10 @@
 	}
 
 	async function doAutoSave() {
-		if (!editor) return;
+		if (!wysiwygEditor) return;
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		await onSave?.(getMarkdown());
+		await onSave?.(wysiwygEditor.getMarkdown());
 		if (version !== saveVersion) return;
 		onSaveState?.('saved');
 		autoSaveTimeout = null;
@@ -155,7 +73,7 @@
 	async function doRawAutoSave() {
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		const { frontmatter: fm, body } = splitRawContent(rawContent);
+		const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
 		if (fm) onFrontmatterChange?.(fm);
 		await onSave?.(body);
 		if (version !== saveVersion) return;
@@ -176,278 +94,40 @@
 		++saveVersion;
 		onSaveState?.('saving');
 		if (rawMode) {
-			const { frontmatter: fm, body } = splitRawContent(rawContent);
+			const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
 			if (fm) onFrontmatterChange?.(fm);
 			await onSave?.(body);
-		} else if (editor) {
-			await onSave?.(getMarkdown());
+		} else if (wysiwygEditor) {
+			await onSave?.(wysiwygEditor.getMarkdown());
 		}
 		onSaveState?.('saved');
 	}
 
-	function getSelectionRect(): DOMRect | null {
-		const sel = window.getSelection();
-		if (!sel || sel.rangeCount === 0) return null;
-		return sel.getRangeAt(0).getBoundingClientRect();
+	function updateStats() {
+		if (!wysiwygEditor) return;
+		const md = wysiwygEditor.getMarkdown();
+		onStats?.({
+			words: md.trim() ? md.trim().split(/\s+/).length : 0,
+			chars: md.length,
+		});
 	}
 
-	function buildEditor(initContent: string) {
-		clearAutoSave();
-		if (editor) editor.destroy();
-		editor = new TiptapEditor({
-			element: editorEl,
-			extensions: [
-				StarterKit.configure({
-					heading: { levels: [1, 2, 3] },
-					undoRedo: { depth: historyDepth },
-				}),
-				Placeholder.configure({ placeholder: 'Commencez à écrire…' }),
-				Markdown.configure({
-					html: true,
-					linkify: true,
-					breaks: false,
-				}),
-				Image,
-				...(showSlashMenu ? [SlashCommands] : []),
-			],
-			content: protectShortcodes(initContent),
-			onUpdate: markUnsaved,
-			onSelectionUpdate: () => {
-				if (!editor || !bubbleEl || !showBubbleMenu) return;
-				const { empty } = editor.state.selection;
-				const { from: selFrom, to: selTo } = editor.state.selection;
-				const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
-				if (hasText) {
-					const rect = getSelectionRect();
-					if (rect) {
-						bubbleEl.style.display = 'flex';
-						bubbleEl.style.top = `${rect.top - bubbleEl.offsetHeight - 8}px`;
-						bubbleEl.style.left = `${rect.left + (rect.width - bubbleEl.offsetWidth) / 2}px`;
-					}
-				} else {
-					bubbleEl.style.display = 'none';
-				}
-			},
-			onBlur: () => {
-				if (bubbleEl) bubbleEl.style.display = 'none';
-			},
-			onFocus: () => {
-				if (!editor || !bubbleEl || !showBubbleMenu) return;
-				const { empty } = editor.state.selection;
-				const { from: selFrom, to: selTo } = editor.state.selection;
-				const hasText = !empty && editor.state.doc.textBetween(selFrom, selTo, ' ', ' ').trim().length > 0;
-				if (!hasText) bubbleEl.style.display = 'none';
-			},
-		});
-		updateStats();
+	function handleImageSelect(url: string) {
+		if (rawMode) {
+			rawEditor?.rawWrap('![', `](${url})`);
+		} else {
+			wysiwygEditor?.exec('setImage', { src: url });
+		}
+		showImagePicker = false;
 	}
 
-	onMount(() => {
-		function onSlashImage(e: Event) {
-			const detail = (e as CustomEvent).detail as { editor: TiptapEditor; range: import('@tiptap/core').Range };
-			pendingImageInsert = detail;
-			showImagePicker = true;
-		}
-		window.addEventListener('slash:image', onSlashImage);
-
-		sync = new ModeSync();
-		const initAction = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
-		rawContent = sync.rawContent;
-
-		if (initAction.buildEditor) {
-			buildEditor(initAction.buildEditor);
-		}
-		onSaveState?.('saved');
-		getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
-		onSetContent?.((c: string) => {
-			if (rawMode) {
-				rawContent = c;
-			} else {
-				buildEditor(c);
-			}
-		});
-
-		return () => {
-			window.removeEventListener('slash:image', onSlashImage);
-			editor?.destroy();
-			clearAutoSave();
-			if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
-		};
-	});
-
-	// Coordination content + rawMode via ModeSync.
-	// L'API est explicite : loadContent pour le changement de contenu,
-	// toggleToRaw/toggleToWysiwyg pour le changement de mode.
-	// Quand les deux changent simultanément (K-010), loadContent
-	// met déjà rawContent à jour — on ne capture PAS depuis Tiptap.
-	$effect(() => {
-		if (!sync) return;
-		if (content === prevContent && rawMode === prevRawMode) return;
-
-		const cChanged = content !== prevContent;
-		const rChanged = rawMode !== prevRawMode;
-
-		if (cChanged) {
-			const action = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
-			rawContent = sync.rawContent;
-			const body = action.buildEditor ?? action.setWysiwygContent;
-			if (body) {
-				if (editor) {
-					editor.commands.setContent(protectShortcodes(body));
-				} else {
-					buildEditor(protectShortcodes(body));
-				}
-				updateStats();
-			}
-		}
-		if (rChanged) {
-			if (rawMode) {
-				// Bascule vers raw : capturer depuis Tiptap SEULEMENT si
-				// le contenu n'a pas déjà mis rawContent à jour (K-010).
-				if (!cChanged) {
-					sync.toggleToRaw(() => getMarkdown(), frontmatter, frontmatterFormat);
-					rawContent = sync.rawContent;
-				}
-			} else {
-				// Bascule vers WYSIWYG : extraire le body depuis rawContent.
-				const { body } = sync.toggleToWysiwyg();
-				if (editor) {
-					editor.commands.setContent(protectShortcodes(body));
-				} else {
-					buildEditor(protectShortcodes(body));
-				}
-				updateStats();
-			}
-		}
-
-		if (cChanged && !rChanged) updateStats();
-		if (cChanged) prevContent = content;
-		if (rChanged) prevRawMode = rawMode;
-	});
-
-	$effect(() => {
-		if (bubbleEl) {
-			bubbleEl.style.display = showBubbleMenu && !rawMode ? '' : 'none';
-		}
-	});
-
-	$effect(() => {
-		if (!editor) return;
-		const ed = editor;
-		function handleClick(e: MouseEvent) {
-			const target = e.target as HTMLElement;
-			if ((e.metaKey || e.ctrlKey) && target.tagName === 'A') {
-				const href = (target as HTMLAnchorElement).getAttribute('href');
-				if (href) window.open(href, '_blank');
-			}
-		}
-		ed.view.dom.addEventListener('click', handleClick);
-		return () => {
-			if (!ed.isDestroyed && ed.view.dom) {
-				ed.view.dom.removeEventListener('click', handleClick);
-			}
-		};
-	});
-
-	// Quand le frontmatter change en mode raw, rafraîchir rawContent.
-	$effect(() => {
-		if (!rawMode || !sync) return;
-		if (sync.handleFrontmatterChange(frontmatter, frontmatterFormat)) {
-			rawContent = sync.rawContent;
-		}
-	});
-
-	// CM6 lifecycle : création/destruction selon rawMode uniquement
-	// Ne PAS tracker rawContent ici (untrack) — les mises à jour de contenu
-	// sont gérées par le $effect de sync ci-dessous, pour éviter les cycles
-	// de destruction/création qui dupliquent le contenu (voir #duplication-bug).
-	$effect(() => {
-		if (!rawMode || !cmContainer) {
-			const existing = untrack(() => cmView);
-			if (existing) {
-				existing.destroy();
-				cmView = null;
-			}
-			return;
-		}
-		const isDark = document.documentElement.dataset.theme === 'dark';
-		const docValue = untrack(() => rawContent);
-		const view = new EditorView({
-			state: EditorState.create({
-				doc: docValue,
-				extensions: [
-					basicSetup(),
-					markdown(),
-					isDark ? oneDark : [],
-					EditorView.updateListener.of(update => {
-						if (update.docChanged && !cmUpdating) {
-							rawContent = update.state.doc.toString();
-							markRawUnsaved();
-						}
-					}),
-					EditorView.theme({
-						'&': { height: '100%' },
-						'.cm-scroller': { overflow: 'auto', fontFamily: 'inherit' },
-						'.cm-content': { padding: '24px 32px', fontFamily: 'var(--editor-font, var(--font-mono))', fontSize: 'var(--editor-font-size, 14px)' },
-					}),
-				],
-			}),
-			parent: cmContainer,
-		});
-		cmView = view;
-		return () => {
-			view.destroy();
-			const lastView = untrack(() => cmView);
-			if (lastView === view) cmView = null;
-		};
-	});
-
-	// Sync CM6 ← rawContent quand modifié de l'extérieur (frontmatter, etc.)
-	$effect(() => {
-		if (!cmView || !rawMode || cmUpdating) return;
-		const current = cmView.state.doc.toString();
-		if (current !== rawContent) {
-			cmUpdating = true;
-			cmView.dispatch({
-				changes: { from: 0, to: current.length, insert: rawContent },
-			});
-			cmUpdating = false;
-		}
-	});
-
-	let prevSaveRequest = $state(0);
-
-	$effect(() => {
-		if (saveRequest !== prevSaveRequest && saveRequest > 0) {
-			handleManualSave();
-			prevSaveRequest = saveRequest;
-		}
-	});
-
-	function exec(fn: string, ...args: unknown[]) {
-		const chain = editor?.chain().focus() as Record<string, (...a: unknown[]) => unknown>;
-		const cmd = chain?.[fn];
-		if (!cmd) {
-			console.error(`Editor command not found: ${fn}`);
-			return;
-		}
-		const result = cmd(...args) as Record<string, () => boolean>;
-		result?.run();
-	}
-
-	function setLink() {
-		const url = window.prompt('URL du lien:');
-		if (url) exec('setLink', { href: url });
+	function handleImagePickerClose() {
+		showImagePicker = false;
 	}
 
 	function toolbarImage() {
-		if (rawMode) {
-			showImagePicker = true;
-		} else if (editor) {
-			const { from, to } = editor.state.selection;
-			pendingImageInsert = { editor, range: { from, to } };
-			showImagePicker = true;
-		}
+		pendingImageUrl = '';
+		showImagePicker = true;
 	}
 
 	function toolbarShortcode() {
@@ -456,110 +136,91 @@
 
 	function handleShortcodeInsert(shortcode: string) {
 		if (rawMode) {
-			rawWrapInner(shortcode);
-		} else if (editor) {
-			const { from, to } = editor.state.selection;
-			editor.chain().focus().deleteRange({ from, to }).insertContent([{ type: 'text', text: shortcode }]).run();
+			rawEditor?.rawWrapInner(shortcode);
+		} else {
+			wysiwygEditor?.exec('insertContent', shortcode);
 		}
 		showShortcodeDialog = false;
 	}
 
 	function toggleHeading(level: 1 | 2 | 3) {
-		if (editor?.isActive('heading', { level })) {
-			exec('setParagraph');
+		if (rawMode) {
+			rawEditor?.rawHeading(level);
 		} else {
-			exec('toggleHeading', { level });
+			wysiwygEditor?.toggleHeading(level);
 		}
 	}
 
-	function cmDispatch(changes: { from: number; to: number; insert: string }[], selectionPos?: number) {
-		if (!cmView) return;
-		cmView.dispatch({
-			changes: changes.map(c => ({ from: c.from, to: c.to, insert: c.insert })),
-			...(selectionPos !== undefined ? { selection: EditorSelection.cursor(selectionPos) } : {}),
-		});
-		cmView.focus();
-		markRawUnsaved();
+	function handleBold() {
+		if (rawMode) {
+			rawEditor?.rawWrap('**', '**');
+		} else {
+			wysiwygEditor?.exec('toggleBold');
+		}
 	}
 
-	function rawWrap(prefix: string, suffix: string) {
-		if (!cmView) return;
-		const sel = cmView.state.selection.main;
-		const start = sel.from;
-		const end = sel.to;
-		const text = cmView.state.doc.toString();
-		const selected = text.substring(start, end);
-		const wrapped = selected ? `${prefix}${selected}${suffix}` : `${prefix}${suffix}`;
-		cmDispatch(
-			[{ from: start, to: end, insert: wrapped }],
-			selected ? start : start + prefix.length,
-		);
+	function handleItalic() {
+		if (rawMode) {
+			rawEditor?.rawWrap('*', '*');
+		} else {
+			wysiwygEditor?.exec('toggleItalic');
+		}
 	}
 
-	function rawWrapInner(text: string) {
-		if (!cmView) return;
-		const pos = cmView.state.selection.main.from;
-		cmDispatch([{ from: pos, to: pos, insert: text }], pos + text.length);
+	function handleCode() {
+		if (rawMode) {
+			rawEditor?.rawWrap('`', '`');
+		} else {
+			wysiwygEditor?.exec('toggleCode');
+		}
 	}
 
-	function rawHeading(level: number) {
-		if (!cmView) return;
-		const pos = cmView.state.selection.main.from;
-		const doc = cmView.state.doc;
-		const line = doc.lineAt(pos);
-		const lineText = line.text;
-		const prefix = '#'.repeat(level) + ' ';
-		const stripped = lineText.replace(/^#{1,6}\s*/, '');
-		const newLine = `${prefix}${stripped}`;
-		cmDispatch([{ from: line.from, to: line.to, insert: newLine }], line.from + prefix.length);
+	function handleLink() {
+		if (rawMode) {
+			rawEditor?.rawLink();
+		} else {
+			wysiwygEditor?.setLink();
+		}
 	}
 
-	function rawList(ordered: boolean) {
-		if (!cmView) return;
-		const pos = cmView.state.selection.main.from;
-		const doc = cmView.state.doc;
-		const line = doc.lineAt(pos);
-		const lineText = line.text;
-		const stripped = lineText.replace(/^(\s*)(\d+\.\s|[-*+]\s)/, '$1');
-		const prefix = ordered ? '1. ' : '- ';
-		const indent = stripped.match(/^\s*/)?.[0] || '';
-		const content = stripped.replace(/^\s*/, '');
-		const result = content ? `${indent}${prefix}${content}` : `${indent}${prefix}`;
-		cmDispatch([{ from: line.from, to: line.to, insert: result }], line.from + result.length);
+	function handleBlockquote() {
+		if (rawMode) {
+			rawEditor?.rawBlockquote();
+		} else {
+			wysiwygEditor?.exec('toggleBlockquote');
+		}
 	}
 
-	function rawBlockquote() {
-		if (!cmView) return;
-		const pos = cmView.state.selection.main.from;
-		const doc = cmView.state.doc;
-		const line = doc.lineAt(pos);
-		const lineText = line.text;
-		const newLine = lineText.startsWith('> ') ? lineText.slice(2) : `> ${lineText}`;
-		cmDispatch([{ from: line.from, to: line.to, insert: newLine }], line.from + newLine.length);
+	function handleList(ordered: boolean) {
+		if (rawMode) {
+			rawEditor?.rawList(ordered);
+		} else {
+			wysiwygEditor?.exec(ordered ? 'toggleOrderedList' : 'toggleBulletList');
+		}
 	}
 
-	function rawLink() {
-		const url = window.prompt('URL du lien:');
-		if (!url) return;
-		rawWrap('[', `](${url})`);
+	function handleHr() {
+		if (rawMode) {
+			rawEditor?.rawHr();
+		} else {
+			wysiwygEditor?.exec('setHorizontalRule');
+		}
 	}
 
-	function rawHr() {
-		if (!cmView) return;
-		const pos = cmView.state.selection.main.from;
-		const doc = cmView.state.doc.toString();
-		const before = doc.substring(0, pos);
-		const nl = before.endsWith('\n') || before === '' ? '' : '\n';
-		const insert = `${nl}---\n\n`;
-		cmDispatch([{ from: pos, to: pos, insert }], pos + insert.length);
+	function handleUndo() {
+		if (rawMode) {
+			rawEditor?.rawUndo();
+		} else {
+			wysiwygEditor?.exec('undo');
+		}
 	}
 
-	function rawUndo() {
-		if (cmView) { undo(cmView); return; }
-	}
-
-	function rawRedo() {
-		if (cmView) { redo(cmView); return; }
+	function handleRedo() {
+		if (rawMode) {
+			rawEditor?.rawRedo();
+		} else {
+			wysiwygEditor?.exec('redo');
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -572,43 +233,114 @@
 			onRawModeChange?.(!rawMode);
 		}
 	}
+
+	onMount(() => {
+		sync = new ModeSync();
+		const initAction = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
+		onSaveState?.('saved');
+		getContent?.(() => rawMode ? getRawBody(sync?.rawContent ?? '') : wysiwygEditor?.getMarkdown() ?? '');
+		onSetContent?.((c: string) => {
+			if (rawMode) {
+				if (sync) sync.rawContent = c;
+			} else {
+				wysiwygEditor?.setContent(c);
+			}
+		});
+
+		return () => {
+			clearAutoSave();
+			if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
+		};
+	});
+
+	// Coordination content + rawMode via ModeSync
+	$effect(() => {
+		if (!sync) return;
+		if (content === prevContent && rawMode === prevRawMode) return;
+
+		const cChanged = content !== prevContent;
+		const rChanged = rawMode !== prevRawMode;
+
+		if (cChanged) {
+			const action = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
+			const body = action.buildEditor ?? action.setWysiwygContent;
+			if (body) {
+				wysiwygEditor?.setContent(body);
+			}
+		}
+		if (rChanged) {
+			if (rawMode) {
+				if (!cChanged) {
+					sync.toggleToRaw(() => wysiwygEditor?.getMarkdown() ?? '', frontmatter, frontmatterFormat);
+				}
+			}
+		}
+
+		if (cChanged && !rChanged) updateStats();
+		if (cChanged) prevContent = content;
+		if (rChanged) prevRawMode = rawMode;
+	});
+
+	// Frontmatter change → met à jour rawContent
+	$effect(() => {
+		if (!rawMode || !sync) return;
+		if (sync.handleFrontmatterChange(frontmatter, frontmatterFormat)) {
+			// rawContent a changé, RawEditor le voit via sa prop content
+		}
+	});
+
+	let prevSaveRequest = $state(0);
+
+	$effect(() => {
+		if (saveRequest !== prevSaveRequest && saveRequest > 0) {
+			handleManualSave();
+			prevSaveRequest = saveRequest;
+		}
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="editor-container" style="--editor-font: var(--font-{editorFont}); --editor-font-size: {editorFontSize === 'small' ? '14px' : editorFontSize === 'large' ? '18px' : '16px'}; --editor-max-width: {editorMaxWidth === 'custom' ? editorMaxWidthCustom + 'px' : editorMaxWidth}">
 	<div class="editor-toolbar">
-		<button onclick={rawMode ? rawUndo : () => editor?.commands.undo()} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
-		<button onclick={rawMode ? rawRedo : () => editor?.commands.redo()} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
+		<button onclick={handleUndo} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
+		<button onclick={handleRedo} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={rawMode ? () => rawHeading(1) : () => toggleHeading(1)} class:active={!rawMode && editor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
-		<button onclick={rawMode ? () => rawHeading(2) : () => toggleHeading(2)} class:active={!rawMode && editor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
-		<button onclick={rawMode ? () => rawHeading(3) : () => toggleHeading(3)} class:active={!rawMode && editor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
+		<button onclick={() => toggleHeading(1)} class:active={!rawMode && wysiwygEditor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
+		<button onclick={() => toggleHeading(2)} class:active={!rawMode && wysiwygEditor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
+		<button onclick={() => toggleHeading(3)} class:active={!rawMode && wysiwygEditor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={rawMode ? () => rawWrap('**', '**') : () => exec('toggleBold')} class:active={!rawMode && editor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
-		<button onclick={rawMode ? () => rawWrap('*', '*') : () => exec('toggleItalic')} class:active={!rawMode && editor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
-		<button onclick={rawMode ? () => rawWrap('`', '`') : () => exec('toggleCode')} class:active={!rawMode && editor?.isActive('code')} title="Code"><Code size={15} /></button>
-		<button onclick={rawMode ? rawLink : setLink} title="Lien"><Link size={15} /></button>
+		<button onclick={handleBold} class:active={!rawMode && wysiwygEditor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
+		<button onclick={handleItalic} class:active={!rawMode && wysiwygEditor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
+		<button onclick={handleCode} class:active={!rawMode && wysiwygEditor?.isActive('code')} title="Code"><Code size={15} /></button>
+		<button onclick={handleLink} title="Lien"><Link size={15} /></button>
 		<button onclick={toolbarImage} title="Image"><ImageIcon size={15} /></button>
 		<button onclick={toolbarShortcode} title="Shortcode Hugo"><Zap size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={rawMode ? rawBlockquote : () => exec('toggleBlockquote')} class:active={!rawMode && editor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
-		<button onclick={rawMode ? () => rawList(false) : () => exec('toggleBulletList')} class:active={!rawMode && editor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
-		<button onclick={rawMode ? () => rawList(true) : () => exec('toggleOrderedList')} class:active={!rawMode && editor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
-		<button onclick={rawMode ? rawHr : () => exec('setHorizontalRule')} title="Ligne horizontale"><Minus size={15} /></button>
+		<button onclick={handleBlockquote} class:active={!rawMode && wysiwygEditor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
+		<button onclick={() => handleList(false)} class:active={!rawMode && wysiwygEditor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
+		<button onclick={() => handleList(true)} class:active={!rawMode && wysiwygEditor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
+		<button onclick={handleHr} title="Ligne horizontale"><Minus size={15} /></button>
 		<span class="sep"></span>
 		<button class:toggle-active={rawMode} onclick={() => onRawModeChange?.(!rawMode)} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
 	</div>
 
-	<div bind:this={cmContainer} class="cm-editor-host" class:active={rawMode} role="textbox" aria-label="Contenu brut"></div>
-	<div bind:this={editorEl} class="editor-content" class:active={!rawMode} role="textbox" aria-label="Éditeur de contenu"></div>
+	<RawEditor
+		bind:this={rawEditor}
+		content={sync?.rawContent ?? ''}
+		active={rawMode}
+		onchange={(c) => { if (sync) sync.rawContent = c; markRawUnsaved(); }}
+	/>
 
-	<div bind:this={bubbleEl} class="bubble-menu">
-		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleBold().run(); }} class:active={editor?.isActive('bold')} title="Gras"><Bold size={14} /></button>
-		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleItalic().run(); }} class:active={editor?.isActive('italic')} title="Italique"><Italic size={14} /></button>
-		<button onmousedown={(e) => { e.preventDefault(); editor?.chain().focus().toggleCode().run(); }} class:active={editor?.isActive('code')} title="Code"><Code size={14} /></button>
-		<button onmousedown={(e) => { e.preventDefault(); const url = window.prompt('URL du lien:'); if (url) editor?.chain().focus().setLink({ href: url }).run(); }} class:active={editor?.isActive('link')} title="Lien"><Link size={14} /></button>
-	</div>
+	<WysiwygEditor
+		bind:this={wysiwygEditor}
+		content={content}
+		active={!rawMode}
+		{showBubbleMenu}
+		{showSlashMenu}
+		{historyDepth}
+		onchange={markUnsaved}
+	/>
 </div>
 
 <ImagePicker
@@ -640,7 +372,7 @@
 		flex-shrink: 0;
 	}
 
-	.editor-toolbar button, .bubble-menu button {
+	.editor-toolbar button {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -655,12 +387,12 @@
 		transition: all 0.12s;
 	}
 
-	.editor-toolbar button:hover, .bubble-menu button:hover {
+	.editor-toolbar button:hover {
 		background: var(--c-bg-muted);
 		color: var(--c-text);
 	}
 
-	.editor-toolbar button.active, .bubble-menu button.active {
+	.editor-toolbar button.active {
 		background: var(--c-primary-light);
 		color: var(--c-primary);
 	}
@@ -676,114 +408,5 @@
 		background: var(--c-border);
 		margin: 0 4px;
 		flex-shrink: 0;
-	}
-
-	.editor-content {
-		flex: 1;
-		padding: 32px 48px;
-		max-width: var(--editor-max-width, 740px);
-		margin: 0 auto;
-		width: 100%;
-		outline: none;
-		font-family: var(--editor-font, var(--font-serif));
-		font-size: var(--editor-font-size, 16px);
-		line-height: 1.8;
-		overflow-y: auto;
-		display: none;
-	}
-
-	.editor-content.active {
-		display: block;
-	}
-
-	.editor-content :global(h1) { font-size: 2em; margin: 0.67em 0; font-weight: 700; color: var(--c-text); }
-	.editor-content :global(h2) { font-size: 1.5em; margin: 0.75em 0; font-weight: 600; color: var(--c-text); }
-	.editor-content :global(h3) { font-size: 1.17em; margin: 0.83em 0; font-weight: 600; color: var(--c-text); }
-	.editor-content :global(p) { margin: 0.5em 0; }
-	.editor-content :global(blockquote) {
-		border-left: 3px solid var(--c-border);
-		margin: 1em 0;
-		padding: 0.5em 1em 0.5em 1.2em;
-		color: var(--c-text-secondary);
-		font-style: italic;
-	}
-	.editor-content :global(pre) {
-		/* Bloc de code toujours en thème sombre, indépendant du thème de l'app — convention éditeur */
-		background: #1e1e2e;
-		color: #cdd6f4;
-		padding: 16px;
-		border-radius: var(--radius-lg);
-		font-family: var(--font-mono);
-		font-size: 14px;
-		overflow-x: auto;
-	}
-	.editor-content :global(code) {
-		background: var(--c-bg-muted);
-		padding: 2px 6px;
-		border-radius: var(--radius-sm);
-		font-family: var(--font-mono);
-		font-size: 0.9em;
-	}
-	.editor-content :global(pre code) {
-		background: transparent;
-		padding: 0;
-	}
-	.editor-content :global(ul), .editor-content :global(ol) {
-		padding-left: 1.5em;
-		margin: 0.5em 0;
-	}
-	.editor-content :global(hr) {
-		border: none;
-		border-top: 2px solid var(--c-border);
-		margin: 2em 0;
-	}
-	.editor-content :global(img) {
-		max-width: 100%;
-		height: auto;
-		border-radius: var(--radius-md);
-	}
-	.editor-content :global(a) {
-		color: var(--c-primary);
-		text-decoration: underline;
-	}
-	.editor-content :global(p.is-editor-empty:first-child::before) {
-		color: var(--c-text-muted);
-		content: attr(data-placeholder);
-		float: left;
-		height: 0;
-		pointer-events: none;
-	}
-
-	.cm-editor-host {
-		flex: 1;
-		width: 100%;
-		overflow: hidden;
-		display: none;
-		border: none;
-		outline: none;
-	}
-
-	.cm-editor-host.active {
-		display: block;
-	}
-
-	.cm-editor-host :global(.cm-editor) {
-		height: 100%;
-	}
-
-	.cm-editor-host :global(.cm-editor.cm-focused) {
-		outline: none;
-	}
-
-	.bubble-menu {
-		display: none;
-		position: fixed;
-		z-index: 100;
-		gap: 2px;
-		padding: 6px;
-		background: var(--c-bg);
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-md);
 	}
 </style>
