@@ -46,14 +46,12 @@
 		content?: string;
 		active?: boolean;
 		onchange?: (content: string) => void;
-		themeKey?: number;
 	}
 
-	let { content = '', active = false, onchange, themeKey = 0 }: RawEditorProps = $props();
+	let { content = '', active = false, onchange }: RawEditorProps = $props();
 
 	let cmView = $state<EditorView | null>(null);
 	let cmContainer = $state<HTMLDivElement | undefined>();
-	let themeComp = $state<Compartment | null>(null);
 	let cmUpdating = false;
 
 	// Cycle de vie CM6 : création quand actif, destruction quand inactif
@@ -70,7 +68,6 @@
 		const isDark = document.documentElement.dataset.theme === 'dark';
 		console.log('[RawEditor] Create CM view', { contentLength: docContent.length, isDark });
 		const tc = new Compartment();
-		themeComp = tc;
 		const view = new EditorView({
 			state: EditorState.create({
 				doc: docContent,
@@ -93,8 +90,16 @@
 			parent: cmContainer,
 		});
 		cmView = view;
+
+		// Observe data-theme sur <html> → reconfigure le thème CM6 sans destroy
+		const themeObs = new MutationObserver(() => {
+			view.dispatch(tc.reconfigure(getCmTheme(document.documentElement.dataset.theme === 'dark')));
+		});
+		themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
 		return () => {
 			console.log('[RawEditor] Cleanup: destroy CM view');
+			themeObs.disconnect();
 			view.destroy();
 			if (cmView === view) cmView = null;
 		};
@@ -114,15 +119,6 @@
 			});
 			cmUpdating = false;
 		}
-	});
-
-	// Sync theme : reconfiguration via Compartment quand le thème (light/dark) change
-	$effect(() => {
-		themeKey;
-		if (!cmView || !themeComp) return;
-		const isDark = document.documentElement.dataset.theme === 'dark';
-		console.log('[RawEditor] Theme reconfigure', { isDark, themeKey });
-		themeComp.reconfigure(getCmTheme(isDark));
 	});
 
 	export function cmDispatch(changes: { from: number; to: number; insert: string }[], selectionPos?: number) {
