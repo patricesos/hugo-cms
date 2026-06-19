@@ -9,11 +9,10 @@
 	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2, Image as ImageIcon, Zap } from '@lucide/svelte';
 	import ImagePicker from './ImagePicker.svelte';
 	import ShortcodeDialog from './ShortcodeDialog.svelte';
-	import yaml from 'js-yaml';
-	import { parse, stringify } from '@iarna/toml';
 	import { protectShortcodes, restoreShortcodes, splitShortcodeLines } from '$lib/shortcode-utils';
 	import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
 	import { EditorState, EditorSelection } from '@codemirror/state';
+	import { resetAction, handleContentChangeAction, handleRawModeChangeActionWithRaw, handleFrontmatterChangeAction, serializeFm, splitRawContent, getRawBody } from '$lib/editor/mode-sync.svelte';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import { undo, redo, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -82,9 +81,10 @@
 	let editorEl = $state<HTMLDivElement | null>(null);
 	let bubbleEl: HTMLDivElement;
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-	let rawContent = $state('');
-
 	let cmView = $state<EditorView | null>(null);
+	let rawContent = $state('');
+	let prevContent = '';
+	let prevRawMode = false;
 	let cmContainer = $state<HTMLDivElement | undefined>();
 	let cmUpdating = false;
 
@@ -249,10 +249,12 @@
 		}
 		window.addEventListener('slash:image', onSlashImage);
 
+		const initAction = resetAction(content, rawMode, frontmatter, frontmatterFormat);
+		if (initAction.newRawContent !== undefined) rawContent = initAction.newRawContent;
+
 		if (!rawMode) {
 			buildEditor(content);
 		}
-		prevContent = content;
 		onSaveState?.('saved');
 		getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
 		onSetContent?.((c: string) => {
@@ -271,58 +273,40 @@
 		};
 	});
 
-	let prevRawMode = false;
-	let prevContent = '';
-
-	// Flag de communication entre $effect(content) et $effect(rawMode).
-	// Quand $effect(content) met à jour le contenu (changement d'onglet),
-	// il pose ce flag. $effect(rawMode) le vérifie : si posé, il ne capte
-	// PAS le body depuis Tiptap (qui a encore l'ancien contenu), car
-	// $effect(content) a déjà tout mis à jour.
-	let _contentUpdatedByEffect = false;
-
-	// Réagit aux changements externes du prop `content` (changement d'onglet, restoration,
-	// recréation après settingsKey). C'est le filet de sécurité quand onSetContent
-	// n'a pas pu être appelé (callback pas encore enregistré, ou périmé après {#key}).
+	// $effect unique de coordination content + rawMode.
+	// La logique de décision est déléguée à mode-sync.svelte.ts qui retourne
+	// des actions (ContentAction). Editor.svelte applique l'action localement.
 	$effect(() => {
-		if (content === prevContent) return;
-		prevContent = content;
-		_contentUpdatedByEffect = true;
-		if (rawMode) {
-			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
-				? serializeFm(frontmatter, frontmatterFormat)
-				: '';
-			const newContent = fmString ? `${fmString}\n\n${content}` : content;
-			if (rawContent !== newContent) rawContent = newContent;
-		} else if (editor) {
-			editor.commands.setContent(protectShortcodes(content));
+		if (content === prevContent && rawMode === prevRawMode) return;
+
+		const cChanged = content !== prevContent;
+		const rChanged = rawMode !== prevRawMode;
+
+		if (cChanged) {
+			const action = handleContentChangeAction(content, rawMode, frontmatter, frontmatterFormat);
+			if (action.newRawContent !== undefined) rawContent = action.newRawContent;
+			if (action.setWysiwygContent !== undefined) editor?.commands.setContent(protectShortcodes(action.setWysiwygContent));
 		}
-	});
-
-	$effect(() => {
-		if (rawMode === prevRawMode) return;
-		if (_contentUpdatedByEffect) {
-			// Changement d'onglet : $effect(content) a déjà mis à jour
-			// rawContent ou Tiptap. Ne pas surcharger.
-			_contentUpdatedByEffect = false;
-		} else if (rawMode) {
-			// Bascule rawMode dans le même onglet : capturer depuis Tiptap
-			const fmString = (frontmatter && Object.keys(frontmatter).length > 0)
-				? serializeFm(frontmatter, frontmatterFormat)
-				: '';
-			const body = editor ? getMarkdown() : content;
-			rawContent = fmString ? `${fmString}\n\n${body}` : body;
-		} else {
-			// Bascule WYSIWYG dans le même onglet : extraire depuis rawContent
-			const { body } = splitRawContent(rawContent);
-			if (!editor) {
-				buildEditor(protectShortcodes(body));
-			} else {
-				editor.commands.setContent(protectShortcodes(body));
+		if (rChanged) {
+			const action = handleRawModeChangeActionWithRaw(
+				rawMode, frontmatter, frontmatterFormat, content,
+				() => getMarkdown(), rawContent,
+			);
+			if (action.newRawContent !== undefined) rawContent = action.newRawContent;
+			if (action.buildEditor !== undefined) {
+				if (!editor) {
+					buildEditor(protectShortcodes(action.buildEditor));
+				} else {
+					editor.commands.setContent(protectShortcodes(action.buildEditor));
+				}
+				updateStats();
 			}
-			updateStats();
 		}
-		prevRawMode = rawMode;
+
+		if (cChanged && !rChanged) updateStats();
+
+		if (cChanged) prevContent = content;
+		if (rChanged) prevRawMode = rawMode;
 	});
 
 	$effect(() => {
@@ -349,18 +333,11 @@
 		};
 	});
 
-	// when frontmatter changes in raw mode, refresh the CM6 content
-	let prevFmSnapshot = $state('');
+	// Quand le frontmatter change en mode raw, rafraîchir rawContent.
 	$effect(() => {
 		if (!rawMode) return;
-		const snapshot = JSON.stringify(frontmatter) + '|' + frontmatterFormat;
-		if (snapshot === prevFmSnapshot) return;
-		prevFmSnapshot = snapshot;
-		const body = getRawBody(rawContent);
-		const fmString = serializeFm(frontmatter, frontmatterFormat);
-		const newContent = fmString ? `${fmString}\n\n${body}` : body;
-		if (newContent === rawContent) return;
-		rawContent = newContent;
+		const action = handleFrontmatterChangeAction(frontmatter, frontmatterFormat, rawContent);
+		if (action?.newRawContent !== undefined) rawContent = action.newRawContent;
 	});
 
 	// CM6 lifecycle : création/destruction selon rawMode uniquement
@@ -420,51 +397,6 @@
 			cmUpdating = false;
 		}
 	});
-
-	function serializeFm(fm: Record<string, unknown>, format: 'yaml' | 'toml'): string {
-		if (format === 'toml') {
-			return `+++\n${stringify(fm as unknown as import('@iarna/toml').JsonMap)}+++`;
-		}
-		return `---\n${yaml.dump(fm, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false }).trim()}\n---`;
-	}
-
-	function splitRawContent(text: string): { frontmatter: Record<string, unknown> | null; body: string; format: 'yaml' | 'toml' } {
-		const trimmed = text.trimStart();
-		if (trimmed.startsWith('+++')) {
-			const endIdx = trimmed.indexOf('+++', 3);
-			if (endIdx === -1) return { frontmatter: null, body: text, format: 'toml' };
-			const block = trimmed.slice(3, endIdx).trim();
-			const rest = trimmed.slice(endIdx + 3).trimStart();
-			if (!block) return { frontmatter: null, body: rest, format: 'toml' };
-			try {
-				const parsed = parse(block) as Record<string, unknown>;
-				if (parsed && typeof parsed === 'object') {
-					return { frontmatter: parsed, body: rest, format: 'toml' };
-				}
-			} catch { /* ignore */ }
-			return { frontmatter: null, body: text, format: 'toml' };
-		}
-		if (trimmed.startsWith('---')) {
-			const endIdx = trimmed.indexOf('---', 3);
-			if (endIdx === -1) return { frontmatter: null, body: text, format: 'yaml' };
-			const yamlBlock = trimmed.slice(3, endIdx).trim();
-			const rest = trimmed.slice(endIdx + 3).trimStart();
-			if (!yamlBlock) return { frontmatter: null, body: rest, format: 'yaml' };
-			try {
-				const parsed = yaml.load(yamlBlock);
-				if (parsed && typeof parsed === 'object') {
-					return { frontmatter: parsed as Record<string, unknown>, body: rest, format: 'yaml' };
-				}
-			} catch { /* ignore */ }
-			return { frontmatter: null, body: text, format: 'yaml' };
-		}
-		return { frontmatter: null, body: text, format: 'yaml' };
-	}
-
-	function getRawBody(text: string): string {
-		const { frontmatter: _, body } = splitRawContent(text);
-		return body;
-	}
 
 	let prevSaveRequest = $state(0);
 

@@ -102,7 +102,7 @@
 
 > Branche : `audit/pattern-violations`
 > Statut : 47 issues identifiées — 3 critiques, 25 moyennes, 19 basses
-> Fixes appliqués : 19/47 (3 critiques, 11 moyennes, 5 basses)
+> Fixes appliqués : 23/47 (3 critiques, 14 moyennes, 6 basses)
 
 ---
 
@@ -192,10 +192,10 @@
 > Contexte : K-010 est le 2e bug dans la même zone de `Editor.svelte` (body perdu en rawMode était le 1er).
 > La fragilité vient du mélange `let` brut + `$state` + flags de coordination manuels entre 4 `$effect`.
 
-- [ ] **L-001** — 🟡 Extraire la logique de synchronisation raw/wysiwyg dans `src/lib/editor/mode-sync.svelte.ts`. Encapsuler `cmView`, `rawContent`, flags de coordination en `$state` cohérent. API : `switchToRaw(content)`, `switchToWysiwyg(content)`, `syncFromExternalContent(content)`.
-- [ ] **L-002** — 🟡 Supprimer les 4 `$effect` entremêlés d'`Editor.svelte` (content ~287, rawMode ~302, lifecycle CM6 ~370, sync CM ~410), les remplacer par un appel unique à l'API du store dans un seul `$effect`.
-- [ ] **L-003** — 🟢 Rendre la logique testable indépendamment du DOM (pas besoin de monter `Editor.svelte` complet pour tester un cas de coordination).
-- [ ] **L-004** — 🟢 Valider que K-010 ne peut plus se reproduire en écrivant un test unitaire (pas DOM) qui reproduit la séquence "toggle + changement content → bon contenu affiché".
+- [x] **L-001** — 🟡 Extraire la logique de synchronisation raw/wysiwyg dans `src/lib/editor/mode-sync.svelte.ts`. API : `resetAction()`, `handleContentChangeAction()`, `handleRawModeChangeActionWithRaw()`, `handleFrontmatterChangeAction()`. Pas de `$state` exporté (évite "Cannot assign to import"). Retourne des `ContentAction` que Editor.svelte applique.
+- [x] **L-002** — 🟡 Les 3 `$effect` entremêlés d'`Editor.svelte` (content + rawMode + frontmatter) sont remplacés par 2 `$effect` qui délèguent à mode-sync. Plus de flags de coordination manuels entre effets. Le `$effect` unique combine content+rawMode dans le bon ordre.
+- [x] **L-003** — 🟢 25 tests unitaires sur mode-sync (helpers + actions + régressions), `@vitest-environment node`, 0 DOM.
+- [x] **L-004** — 🟢 Tests de régression K-010 : "toggle rawMode après content change → skip (contentUpdatedByEffect actif)", "content change seul en rawMode → newRawContent", "toggle rawMode SEUL → capture depuis Tiptap".
 
 ---
 
