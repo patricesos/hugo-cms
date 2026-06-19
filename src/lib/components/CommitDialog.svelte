@@ -338,7 +338,7 @@
 
 	.file-kind.added { background: var(--c-success-bg); color: var(--c-success); }
 	.file-kind.deleted { background: var(--c-danger-bg); color: var(--c-danger); }
-	.file-kind.renamed { background: #faf5ff; color: #9333ea; }
+	.file-kind.renamed { background: var(--c-renamed-bg); color: var(--c-renamed); }
 	.file-kind.untracked { background: var(--c-bg-muted); color: var(--c-text-muted); }
 
 	.file-path {

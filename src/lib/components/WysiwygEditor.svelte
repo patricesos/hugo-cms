@@ -194,8 +194,8 @@
 		font-style: italic;
 	}
 	.editor-content :global(pre) {
-		background: #1e1e2e;
-		color: #cdd6f4;
+		background: var(--c-code-bg);
+		color: var(--c-code-text);
 		padding: 16px;
 		border-radius: var(--radius-lg);
 		font-family: var(--font-mono);

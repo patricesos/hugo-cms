@@ -98,7 +98,7 @@
 </script>
 
 {#if show}
-	<div class="console-panel" style="height:{consoleHeight}px">
+	<div class="console-panel" data-theme="dark" style="height:{consoleHeight}px">
 		<div class="console-resize-handle" role="presentation" onpointerdown={startResize}></div>
 		<div class="console-header">
 			<span class="console-title">
@@ -136,7 +136,7 @@
 	/* Console toujours en thème sombre, indépendant du thème de l'app — convention terminal */
 	.console-panel {
 		border-top: 1px solid var(--c-border);
-		background: #1a1b1e;
+		background: var(--c-bg);
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
@@ -164,8 +164,8 @@
 		align-items: center;
 		gap: 8px;
 		padding: 6px 12px;
-		border-bottom: 1px solid #2a2b2e;
-		background: #121314;
+		border-bottom: 1px solid var(--c-border);
+		background: var(--c-bg-subtle);
 		flex-shrink: 0;
 	}
 
@@ -175,12 +175,12 @@
 		gap: 6px;
 		font-size: 12px;
 		font-weight: 500;
-		color: #a0a0a0;
+		color: var(--c-text-muted);
 	}
 
 	.log-count {
 		font-size: 11px;
-		color: #555;
+		color: var(--c-text-muted);
 		margin-right: auto;
 	}
 
@@ -200,14 +200,14 @@
 		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
-		color: #666;
+		color: var(--c-text-muted);
 		font-size: 15px;
 		transition: all 0.12s;
 	}
 
 	.console-btn:hover {
-		background: #2a2b2e;
-		color: #ccc;
+		background: var(--c-bg-muted);
+		color: var(--c-text);
 	}
 
 	.console-body {
@@ -221,7 +221,7 @@
 
 	.console-empty {
 		padding: 16px;
-		color: #555;
+		color: var(--c-text-muted);
 		text-align: center;
 		font-size: 12px;
 		font-family: inherit;
@@ -231,25 +231,25 @@
 		display: flex;
 		gap: 8px;
 		padding: 1px 12px;
-		color: #c0c0c0;
+		color: var(--c-text);
 		white-space: pre-wrap;
 		word-break: break-all;
 	}
 
 	.log-line.stderr {
 		background: rgba(239, 68, 68, 0.08);
-		color: #f87171;
+		color: var(--c-danger);
 	}
 
 	.log-time {
-		color: #555;
+		color: var(--c-text-muted);
 		flex-shrink: 0;
 		font-size: 11px;
 		width: 64px;
 	}
 
 	.log-stream {
-		color: #555;
+		color: var(--c-text-muted);
 		flex-shrink: 0;
 		font-family: inherit;
 	}

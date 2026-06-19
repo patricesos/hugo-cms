@@ -486,7 +486,7 @@
 	.icon-modified { color: var(--c-warning); }
 	.icon-added { color: var(--c-success); }
 	.icon-deleted { color: var(--c-danger); }
-	.icon-renamed { color: #9333ea; }
+	.icon-renamed { color: var(--c-renamed); }
 	.icon-untracked { color: var(--c-text-muted); }
 
 	.loading-state {
@@ -647,12 +647,12 @@
 
 	.btn.danger {
 		background: var(--c-danger);
-		color: #fff;
+		color: var(--c-text-on-primary);
 		border-color: var(--c-danger);
 	}
 
 	.btn.danger:hover {
-		background: #dc2626;
+		background: var(--c-danger-hover);
 	}
 
 	.overlay {

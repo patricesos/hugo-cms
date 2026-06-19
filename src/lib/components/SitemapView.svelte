@@ -175,7 +175,7 @@
 	}
 
 	.meta-item.draft {
-		color: #92400e;
+		color: var(--c-draft);
 	}
 
 	.meta-dot {

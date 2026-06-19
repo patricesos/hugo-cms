@@ -785,7 +785,7 @@
 
 	.raw-btn.primary {
 		background: var(--c-primary);
-		color: #fff;
+		color: var(--c-text-on-primary);
 		border-color: var(--c-primary);
 	}
 

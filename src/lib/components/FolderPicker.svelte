@@ -261,7 +261,7 @@
 	}
 	.select-btn:hover {
 		background: var(--c-primary);
-		color: #fff;
+		color: var(--c-text-on-primary);
 		border-color: var(--c-primary);
 	}
 	.footer {
@@ -287,7 +287,7 @@
 		border: none;
 		border-radius: var(--radius-md);
 		background: var(--c-primary);
-		color: #fff;
+		color: var(--c-text-on-primary);
 		font-size: 12px;
 		font-family: inherit;
 		cursor: pointer;
