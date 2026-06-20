@@ -89,26 +89,23 @@ async function loadFile(slug: string) {
 
 ### Step 5: Editor.svelte — content reception
 
-**Path A — $effect on `content` prop** (lines 279-291):
+**Path A — $effect on `content` prop** (lines 257-285):
 ```ts
 $effect(() => {
-    if (content === prevContent) return;
-    prevContent = content;
-    if (rawMode) {
-        // Merge frontmatter + body → rawContent
-    } else if (editor) {
-        editor.commands.setContent(protectShortcodes(content));
-    }
+    if (!sync) return;
+    if (content === prevContent && rawMode === prevRawMode) return;
+    // ...
 });
 ```
 
-**Path B — `_editorSetContent` callback** (lines 257-263):
+**Path B — `_editorSetContent` callback** (lines 241-248):
 ```ts
+getContent?.(() => rawMode ? getRawBody(sync?.rawContent ?? '') : ...);
 onSetContent?.((c: string) => {
     if (rawMode) {
-        rawContent = c;
+        if (sync) sync.rawContent = c;
     } else {
-        buildEditor(c);  // Destroys & recreates Tiptap!
+        wysiwygEditor?.setContent(c);
     }
 });
 ```
@@ -352,7 +349,8 @@ end note
 | File | Lines of Interest |
 |------|-------------------|
 | `src/lib/stores/editor.svelte.ts` | `loadFile` (83-105), `switchToTab` (123-149), `handleSave` (151-175), `handleCloseTab` (177-202), `reloadFileFromDisk` (304-324) |
-| `src/lib/components/Editor.svelte` | `_editorSetContent` registration (257-263), `content` $effect (279-291), `buildEditor` (192-241), CM6 lifecycle (355-405), CM6 sync (395-405) |
+| `src/lib/components/Editor.svelte` | `_editorSetContent` registration (241-248), `_editorGetContent` registration (241), coordination `$effect` (257-285), frontmatter `$effect` (287-293), `buildEditor` (192-241) |
 | `src/routes/+page.svelte` | `loadFile` (193-198), `switchToTab` local wrapper (199-210), EditorComp props (583-603), `settingsKey` mechanism (714-718) |
 | `src/lib/components/Sidebar.svelte` | `onLoadFile` plumbing (23, 115) |
 | `src/lib/components/TreeNode.svelte` | `handleClick` (~60), `onLoadFile?.(slug)` |
+| `src/lib/editor/tiptap-image-block.ts` | Extension Image Tiptap avec `closeBlock(node)` pour préserver les `\n\n` entre images consécutives |

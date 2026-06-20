@@ -71,10 +71,11 @@ flowchart LR
 
   %% === EDITOR ===
   subgraph editor["Éditeur (src/lib/components/ + editor/)"]
-    eorchest["Editor.svelte<br/><i>Orchestrateur 210 lignes</i>"]
+    eorchest["Editor.svelte<br/><i>Orchestrateur 415 lignes</i>"]
     raww["RawEditor.svelte<br/><i>CodeMirror 6, prop active</i>"]
     wysi["WysiwygEditor.svelte<br/><i>Tiptap + bubble/slash menu</i>"]
     msync["mode-sync.svelte.ts<br/><i>Classe ModeSync $state</i>"]
+    imgblock["tiptap-image-block.ts<br/><i>Extension Image avec closeBlock()</i>"]
   end
 
   %% === UI ===
@@ -299,14 +300,15 @@ flowchart TD
     end
 
     subgraph "Éditeur (src/lib/components/ + editor/)"
-        EDITOR["Editor.svelte (orchestrateur ~210 lignes)"]
+        EDITOR["Editor.svelte (orchestrateur ~415 lignes)"]
         EDITOR --> MSYNC["mode-sync.svelte.ts (classe ModeSync)"]
-        EDITOR --> RAW["RawEditor.svelte (CodeMirror 6, ~225 lignes)"]
-        EDITOR --> WYSI["WysiwygEditor.svelte (Tiptap, ~280 lignes)"]
+        EDITOR --> RAW["RawEditor.svelte (CodeMirror 6, ~241 lignes)"]
+        EDITOR --> WYSI["WysiwygEditor.svelte (Tiptap, ~278 lignes)"]
         RAW -->|"$effect lifecycle"| CM6["EditorView CM6"]
         WYSI -->|"buildEditor()"| TIPTAP["Editor Tiptap"]
         WYSI -->|"bubbleMenu"| BUBBLE["BubbleMenu.svelte"]
         WYSI -->|"slashCommands"| SLASH["slash-commands.ts"]
+        WYSI -.->|"custom serialize"| IMGBLOCK["tiptap-image-block.ts"]
     end
 
     subgraph "UI Components (+page.svelte + composants)"

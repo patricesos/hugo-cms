@@ -1,11 +1,19 @@
 # RawMode ↔ Tab Switch Dataflow
 
-## Problème
+## Problème (résolu — commit 5588068)
 
 Quand l'utilisateur toggles `rawMode` (Ctrl+R ou bouton `</>` dans la toolbar)
-puis clique sur un autre onglet, l'éditeur peut afficher un contenu corrompu
-(double frontmatter) ou ne pas se mettre à jour. Ce document trace le flux
-complet et identifie les causes racines.
+puis clique sur un autre onglet, l'éditeur pouvait afficher un contenu corrompu
+(double frontmatter) ou ne pas se mettre à jour.
+
+**Cause racine** : en rawMode, `_editorGetContent()` retournait `rawContent`
+(frontmatter + body) au lieu du body seul → `tab.content` contenait le
+frontmatter → au retour sur l'onglet, le `$effect` le re-prépenait →
+**double frontmatter**.
+
+**Fix** (Approche B du document original) : le getter utilise désormais
+`getRawBody(rawContent)` qui extrait le body seul, même en rawMode.
+`tab.content` ne contient **jamais** de frontmatter, quel que soit le mode.
 
 ---
 
@@ -14,16 +22,16 @@ complet et identifie les causes racines.
 ### Local override — pas de propagation au parent
 
 ```ts
-// Editor.svelte:78
+// Editor.svelte:33
 let { rawMode = false }: EditorProps = $props();
 ```
 
 ```ts
-// Editor.svelte:634
+// Editor.svelte:330
 <button onclick={() => rawMode = !rawMode} title="Mode Markdown brut">
 ```
 
-Le toggle `rawMode = !rawMode` (l.606/634) est un **local override** — il mute
+Le toggle `rawMode = !rawMode` (l.330) est un **local override** — il mute
 la variable `$props()` locale sans remonter au parent. La valeur du parent
 (`$settings.defaultRawMode`) ne change pas.
 
@@ -42,9 +50,9 @@ passe la même valeur `rawMode={$settings.defaultRawMode}`.
 ## Flux : toggle rawMode (Ctrl+R)
 
 ```
-1. Ctrl+R → handleKeydown (l.604-607)
+1. Ctrl+R → handleKeydown (l.226-228)
    → rawMode = !rawMode
-2. Svelte flush → $effect(rawMode) (l.293-311)
+2. Svelte flush → coordination $effect (l.257-285)
 3a. Si passage en rawMode :
     - getMarkdown() ou content → body
     - serializeFm(frontmatter) → fm string
@@ -62,7 +70,7 @@ grâce au guard `if (rawMode === prevRawMode) return`.
 
 ---
 
-## Flux : switchToTab depuis rawMode (le bug)
+## Flux : switchToTab depuis rawMode (le bug ❌ → ✅ fixé)
 
 ### Étape 1 : sauvegarde du tab sortant
 
@@ -70,7 +78,7 @@ grâce au guard `if (rawMode === prevRawMode) return`.
 // editor.svelte.ts:128-136
 if (tab.kind === 'content') {
     if (_editorGetContent) {
-        const savedContent = _editorGetContent();
+        const savedContent = _editorGetContent();  // ← getRawBody() extrait body seul
         // ...
         tabs.update(t => t.map(ti =>
             ti.slug === curSlug && ti.kind === 'content'
@@ -81,54 +89,39 @@ if (tab.kind === 'content') {
 ```
 
 ```ts
-// Editor.svelte:256 (dans onMount)
-getContent?.(() => rawMode ? rawContent : getMarkdown());
-//                              ^^^^^^^^^
-//       rawContent = frontmatter + body (texte complet CM6)
+// Editor.svelte:241 (dans onMount)
+getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
+//                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+//       getRawBody(rawContent) = body extrait via splitRawContent()
 ```
 
-⚠️ **En rawMode, `_editorGetContent()` retourne `rawContent`** — qui contient
-**déjà le frontmatter** (ex: `---\ntitle: Mon Article\n---\n\nContenu...`).
-
-Ce texte complet est sauvé dans `tab.content`.
+✅ **Depuis le fix** : même en rawMode, `_editorGetContent()` retourne du **body seul**.
+`splitRawContent()` détecte YAML (`---...---`) ou TOML (`+++...+++`), extrait le body,
+et retourne le reste. `tab.content` ne contient jamais de frontmatter.
 
 ### Étape 2 : chargement du tab entrant
 
 ```ts
 // editor.svelte.ts:138-141
 currentSlug.set(tab.slug);
-editorContent.set(tab.content);   // ← contient frontmatter + body
+editorContent.set(tab.content);   // ← body seulement
 currentFrontmatter.set({ ...tab.frontmatter });
 ```
 
-### Étape 3 : `$effect(content)` dans Editor.svelte
+### Étape 3 : coordination `$effect` dans Editor.svelte
 
 ```ts
-// Editor.svelte:279-291
+// Editor.svelte:257-285
 $effect(() => {
-    if (content === prevContent) return;
-    prevContent = content;
-    if (rawMode) {
-        const fmString = serializeFm(frontmatter, frontmatterFormat);
-        const newContent = fmString ? `${fmString}\n\n${content}` : content;
-        if (rawContent !== newContent) rawContent = newContent;
-        //                        ^^^^^^^^
-        // rawContent = newContent = fm + "\n\n" + (fm + body)
-        //                          ▲              ▲
-        //                          frontmatter    tab.content qui contient DÉJÀ fm+body
-    }
+    if (!sync) return;
+    if (content === prevContent && rawMode === prevRawMode) return;
+    // ...
 });
 ```
 
-🔴 **DOUBLE FRONTMATTER** : `content` vaut déjà `fm + "\n\n" + body`
-(parce que `tab.content` a été sauvé depuis `rawContent` à l'étape 1).
-Le `$effect` re-sérialise le frontmatter et le prépende → `rawContent = fm + fm + body`.
-
-### Étape 4 : le guard `rawContent !== newContent`
-
-Le guard **rate** si `rawContent` n'est pas égal à `newContent` — mais dans ce
-cas, `rawContent` contient l'ancien contenu (du tab précédent) et `newContent`
-contient `fm + (fm + body)`. La condition est vraie → **l'assignation se fait**.
+✅ `content` vaut `body` (propre, sans frontmatter). Le `$effect` gère la fusion
+frontmatter + body proprement si on est en rawMode, ou `setContent(body)` si
+on est en WYSIWYG. Plus de double frontmatter.
 
 ---
 
@@ -137,7 +130,7 @@ contient `fm + (fm + body)`. La condition est vraie → **l'assignation se fait*
 ### Étape 1 : sauvegarde du tab sortant
 
 ```ts
-getContent?.(() => rawMode ? rawContent : getMarkdown());
+getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
 //                                        ^^^^^^^^^^^^
 //    getMarkdown() = body sans frontmatter
 ```
@@ -148,12 +141,13 @@ getContent?.(() => rawMode ? rawContent : getMarkdown());
 
 Même code, mais `tab.content = body` (sauvé proprement avant).
 
-### Étape 3 : `$effect(content)` — cas WYSIWYG
+### Étape 3 : coordination `$effect` — cas WYSIWYG
 
 ```ts
-// Editor.svelte:288-289
-} else if (editor) {
-    editor.commands.setContent(protectShortcodes(content));
+// Editor.svelte:257-285 (coordination $effect)
+...
+} else if (wysiwygEditor) {
+    wysiwygEditor.commands.setContent(protectShortcodes(content));
     // content = body → setContent(body) → correct
 }
 ```
@@ -162,13 +156,14 @@ Même code, mais `tab.content = body` (sauvé proprement avant).
 
 ---
 
-## Résumé
+## Résumé (après fix)
 
-| Scénario | `_editorGetContent()` retourne | `tab.content` | `$effect(content)` | Résultat |
-|----------|-------------------------------|---------------|-------------------|----------|
-| Switch depuis WYSIWYG | `getMarkdown()` (body) | `body` | `setContent(body)` | ✅ |
-| Switch depuis rawMode | `rawContent` (fm+body) | `fm + "\n\n" + body` | re-prepend fm → `fm + fm + body` | 🔴 Double fm |
-| Toggle rawMode (même tab) | N/A (pas de save) | inchangé | `$effect(rawMode)` gère la fusion | ✅ |
+| Scénario | `_editorGetContent()` retourne | `tab.content` | Résultat |
+|----------|-------------------------------|---------------|----------|
+| Switch depuis WYSIWYG | `getMarkdown()` (body) | `body` | ✅ |
+| Switch depuis rawMode | `getRawBody(rawContent)` (body) | `body` | ✅ |
+| Toggle rawMode (même tab) | N/A (pas de save) | inchangé | ✅ |
+| **Avant le fix** : switch depuis rawMode | ~~`rawContent` (fm+body)~~ | ~~`fm+body`~~ | ~~🔴 Double fm~~ |
 
 ---
 
@@ -184,12 +179,11 @@ skinparam rectangle {
 
 rectangle "Editor.svelte\n(instance unique)" as Editor {
   rectangle "rawMode\n$props() local" as RawMode
-  rectangle "$effect(content)" as EffContent
-  rectangle "$effect(rawMode)" as EffRawMode
-  rectangle "getContent?.(() => rawMode\n  ? rawContent\n  : getMarkdown())" as GetContent
+  rectangle "coordination $effect\ncontent + rawMode" as EffCoord
+  rectangle "getContent?.(() => rawMode\n  ? getRawBody(rawContent)\n  : getMarkdown())" as GetContent #77FF77
   rectangle "buildEditor()\nTiptap" as Tiptap
   rectangle "CM6\nraw editor" as CM6
-  rectangle "rawContent\n$state" as RawContent
+  rectangle "rawContent\n$state (fm+body)" as RawContent
 }
 
 rectangle "editorStore\nswitchToTab()" as SwitchToTab {
@@ -199,58 +193,34 @@ rectangle "editorStore\nswitchToTab()" as SwitchToTab {
   rectangle "currentSlug.set()" as SetSlug
 }
 
-rectangle "Tab A" as TabA
-rectangle "Tab B" as TabB
+== Switch depuis n'importe quel mode ==
 
-== Raw Mode: Save & Switch ==
-
-RawMode --> GetContent : rawMode = true
+RawMode --> GetContent : rawMode = true/false
 SwitchToTab --> CallGet
 CallGet --> GetContent : _editorGetContent()
-GetContent --> CallGet : returns rawContent\n(= frontmatter + body)
-CallGet --> SaveTab : tab.content = frontmatter + body
-SwitchToTab --> SetEdContent : editorContent.set(tab.content)
-SetEdContent --> EffContent : content prop changes
-
-note right of EffContent
-  $effect(content):
-  content !== prevContent
-  → rawMode? → merge fm + content
-  → rawContent !== newContent?
-    → rawContent = newContent
-    ⚠️ frontmatter is prepended AGAIN
-    → double frontmatter!
-end note
-
-EffContent --> RawContent : rawContent = fm + (fm + body)
-
-== WYSIWYG Mode: Save & Switch ==
-
-RawMode --> GetContent : rawMode = false
-SwitchToTab --> CallGet : _editorGetContent()
-GetContent --> CallGet : returns getMarkdown()\n(= body only)
-CallGet --> SaveTab : tab.content = body
+GetContent --> CallGet : retourne TOUJOURS\nle body seul
+CallGet --> SaveTab : tab.content = body (propre)
 SwitchToTab --> SetEdContent : editorContent.set(body)
-SetEdContent --> EffContent : content prop changes
+SetEdContent --> EffCoord : content prop change
 
-note right of TabB
-  $effect(content):
-  body !== prevContent
-  → !rawMode → editor.commands
-    .setContent(body)
-  ✅ clean, no duplication
+note right of GetContent #77FF77
+  ✅ Fix appliqué (commit 5588068) :
+  getContent utilise getRawBody()
+  qui extrait le body de rawContent.
+  Même en rawMode, on sauvegarde
+  du body seul → plus jamais de
+  double frontmatter.
 end note
+
+EffCoord --> RawContent : rawMode ?\nserializeFm(fm) + body → rawContent
+EffCoord --> Tiptap : !rawMode ?\nsetContent(body)
 
 legend top
-  Le bug frontmatter double :
-  switchToTab depuis rawMode
-  sauvegarde rawContent (fm+body)
-  dans tab.content, puis le
-  $effect(content) re-prépende
-  le frontmatter → doublon.
-  Switch depuis WYSIWYG :
-  getMarkdown() retourne body
-  seul → tab.content propre.
+  ✅ Le fix : getContent retourne
+  TOUJOURS du body seul, quel que
+  soit le mode. tab.content = body.
+  Plus de double frontmatter.
+  L'invariant est garanti à la source.
 endlegend
 
 @enduml
@@ -258,69 +228,54 @@ endlegend
 
 ---
 
-## Correction possible
+## Fix appliqué
 
-Deux approches :
+**Approche choisie** : Nettoyer la sortie du getter à la source.
 
-### Approche A : Nettoyer `tab.content` au save
-
-Dans `switchToTab`, avant de sauvegarder `tab.content`, extraire le body :
-
-```ts
-// editor.svelte.ts — dans switchToTab, autour de la ligne 130
-if (_editorGetContent) {
-    const savedContent = _editorGetContent();
-    // Si on est en raw mode, savedContent contient frontmatter + body
-    // → on veut sauvegarder seulement le body dans tab.content
-    const savedFm = { ...get(currentFrontmatter) };
-    tabs.update(t => t.map(ti =>
-        ti.slug === curSlug && ti.kind === 'content'
-            ? { ...ti, content: savedContent, frontmatter: savedFm }
-            : ti
-    ));
-}
-```
-
-**Problème** : `switchToTab` ne sait pas si l'éditeur est en rawMode — ce flag
-est local à `Editor.svelte`. Il faudrait soit :
-- Exposer `rawMode` dans le store (remonter l'état)
-- Ou splitter `savedContent` dans `switchToTab` en détectant le frontmatter
-
-### Approche B : Storer body seulement dans le getter
-
-Modifier le getter pour toujours retourner le body, même en rawMode :
+Dans `Editor.svelte`, le getter de contenu utilise désormais `getRawBody()`
+pour extraire le body seul, même en rawMode :
 
 ```ts
-// Editor.svelte, ligne 256
+// Editor.svelte, ligne 241
 getContent?.(() => rawMode ? getRawBody(rawContent) : getMarkdown());
-//                        ^^^^^^^^^^^^^^^^^^^^^^^^^
-//            Toujours du body, jamais frontmatter + body
 ```
 
-**Problème** : d'autres appelants de `getContent` (ex: `_editorGetContent`
-pour sauvegarde via `handleSave`) pourraient dépendre du comportement actuel.
-Mais `handleSave` ne passe pas par `_editorGetContent` — il utilise `rawContent`
-directement à travers `onSave` et `doRawAutoSave`.
+**Pourquoi cette approche** :
 
-**Cette approche est la plus propre** : elle garantit que `tab.content` ne
-contient **jamais** de frontmatter, quel que soit le mode de l'éditeur.
+1. **Invariant respecté** : `tab.content` ne contient **jamais** de frontmatter,
+   quel que soit le mode de l'éditeur
+2. **Aucun changement dans switchToTab** : pas besoin d'exposer `rawMode` au store,
+   pas de logique de split côté store
+3. **Aucun régression** : `handleSave` ne passe pas par `_editorGetContent` — il
+   utilise `rawContent` directement via `onSave` et `doRawAutoSave`
+4. **Une seule source de vérité** : `getRawBody()` est déjà utilisé ailleurs
+   (dans le flux normal de toggle), la fonction est rodée
+
+**Risque écarté** : on pourrait craindre que d'autres appelants de `getContent`
+dépendent de la présence du frontmatter. La vérification du code montre que
+les seuls appelants sont `switchToTab` et `handleSave` — ce dernier ne passe
+pas par `getContent`. Zéro impact.
 
 ---
 
-## Invariants (à préserver)
+## Invariants (vérifiés et respectés ✅)
 
 1. **`tab.content` ne contient que le body**, jamais le frontmatter.
    - Vérifié au chargement depuis l'API (`data.body`)
    - Vérifié au reload depuis disque (`data.body`)
-   - **Non vérifié** au save depuis l'éditeur en rawMode ← le bug
+   - ✅ Vérifié au save depuis l'éditeur (getRawBody extrait le body, même en rawMode)
 
 2. **Le frontmatter est toujours dans `tab.frontmatter`**, jamais dans `tab.content`.
 
 3. **`rawContent` (état local de Editor.svelte) = frontmatter + body** —
-   c'est le seul endroit où la fusion existe. À ne pas propager dans le store.
+   c'est le seul endroit où la fusion existe. Plus jamais propagé dans le store.
 
 4. **`getMarkdown()` retourne toujours le body sans frontmatter** —
    `tiptap-markdown` ne connaît pas le frontmatter.
+
+5. **L'invariant est garanti à la source** — le getter (`getContent`) retourne
+   du body seul quel que soit le mode. Aucun appelant ne peut recevoir de
+   frontmatter dans `tab.content`.
 
 ---
 
@@ -328,7 +283,8 @@ contient **jamais** de frontmatter, quel que soit le mode de l'éditeur.
 
 | Fichier | Lignes clés | Rôle |
 |---------|-------------|------|
-| `src/lib/components/Editor.svelte` | 78, 256, 279-311, 604-607, 634 | rawMode local, getter, effets, toggle |
+| `src/lib/components/Editor.svelte` | 33, 241, 257-285, 330 | rawMode local, getter avec `getRawBody()`, coordination `$effect`, toggle button |
 | `src/lib/stores/editor.svelte.ts` | 123-148 | `switchToTab` : save + load tab.content |
-| `src/lib/components/Editor.svelte` | 103-106, 414-450 | `getMarkdown()`, `splitRawContent()`, `getRawBody()` |
 | `src/routes/+page.svelte` | 560-588 | Passage de `rawMode={$settings.defaultRawMode}` |
+
+

@@ -31,7 +31,7 @@ if (tab.kind === 'content') {
     }
 ```
 
-La closure `_editorGetContent` est enregistrée dans `Editor.svelte:256` :
+La closure `_editorGetContent` est enregistrée dans `Editor.svelte:241` :
 
 ```ts
 // Editor.svelte — dans onMount
@@ -73,29 +73,21 @@ Svelte.
 #### Cas A : Tiptap déjà monté
 
 ```ts
-// Editor.svelte:279-291
+// Editor.svelte:257-285
 $effect(() => {
-    if (content === prevContent) return;
-    prevContent = content;
-    if (rawMode) {
-        // Fusion frontmatter + body → rawContent
-        const fmString = serializeFm(frontmatter, frontmatterFormat);
-        const newContent = fmString ? `${fmString}\n\n${content}` : content;
-        if (rawContent !== newContent) rawContent = newContent;
-    } else if (editor) {
-        editor.commands.setContent(protectShortcodes(content));  // ← body dans Tiptap
-    }
+    if (!sync) return;
+    if (content === prevContent && rawMode === prevRawMode) return;
+    // ...
 });
 ```
 
-- **En WYSIWYG** : `editor.commands.setContent(body)` → Tiptap met à jour le contenu
-- **En rawMode** : `serializeFm()` + body = `rawContent` → la sync `$effect` (l.395)
-  pousse `rawContent` dans CM6
+- **En WYSIWYG** : si `content` a changé → `editor.commands.setContent(body)`
+- **En rawMode** : si `content` a changé → fusion frontmatter + body → `sync.rawContent` ; la sync `$effect` dans RawEditor.svelte (l.109-122) pousse dans CM6
 
 #### Cas B : Lazy mount (Editor pas encore chargé)
 
 ```ts
-// Editor.svelte:243-254 (onMount)
+// Editor.svelte:237-254 (onMount)
 if (!rawMode) {
     buildEditor(content);  // ← lit le content prop déjà à jour
 }
@@ -284,8 +276,8 @@ banner de conflit, il sait qu'il perd ses changements locaux.
 |---------|--------|------|
 | `src/lib/stores/editor.svelte.ts` | 123-148 | `switchToTab()` : SAVE + SWITCH |
 | `src/lib/stores/editor.svelte.ts` | 83-105 | `loadFile()` : fetch API + switch |
-| `src/lib/components/Editor.svelte` | 256 | `getContent` closure avec `getRawBody` |
-| `src/lib/components/Editor.svelte` | 279-291 | `$effect(content)` : RENDER phase |
-| `src/lib/components/Editor.svelte` | 192-241 | `buildEditor()` : création Tiptap |
-| `src/lib/components/Editor.svelte` | 243-271 | `onMount` : enregistrement callbacks |
+| `src/lib/components/Editor.svelte` | 241 | `getContent` closure avec `getRawBody` |
+| `src/lib/components/Editor.svelte` | 257-285 | coordination `$effect` : RENDER phase, fusion frontmatter + body, sync CM6 |
+| `src/lib/components/Editor.svelte` | 192-241 | `buildEditor()` : création Tiptap + enregistrement callbacks |
+| `src/lib/components/Editor.svelte` | 237-254 | `onMount` : initialisation éditeur |
 | `src/routes/+page.svelte` | 199-216 | `loadFile()` et `switchToTab()` wrapper |

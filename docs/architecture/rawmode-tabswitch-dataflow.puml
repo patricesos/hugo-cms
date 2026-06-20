@@ -7,12 +7,11 @@ skinparam rectangle {
 
 rectangle "Editor.svelte\n(instance unique)" as Editor {
   rectangle "rawMode\n$props() local" as RawMode
-  rectangle "$effect(content)" as EffContent #FFDDDD
-  rectangle "$effect(rawMode)" as EffRawMode
-  rectangle "getContent?.(() => rawMode\n  ? rawContent\n  : getMarkdown())" as GetContent #FFDDDD
+  rectangle "coordination $effect\ncontent + rawMode" as EffCoord
+  rectangle "getContent?.(() => rawMode\n  ? getRawBody(rawContent)\n  : getMarkdown())" as GetContent #77FF77
   rectangle "buildEditor()\nTiptap" as Tiptap
   rectangle "CM6\nraw editor" as CM6
-  rectangle "rawContent\n$state" as RawContent #FFDDDD
+  rectangle "rawContent\n$state (fm+body)" as RawContent
 }
 
 rectangle "editorStore\nswitchToTab()" as SwitchToTab {
@@ -26,33 +25,28 @@ rectangle "editorStore\nswitchToTab()" as SwitchToTab {
 RawMode --> GetContent : rawMode = true/false
 SwitchToTab --> CallGet
 CallGet --> GetContent : _editorGetContent()
-GetContent --> CallGet : returns content
-CallGet --> SaveTab
-SwitchToTab --> SetEdContent
-SetEdContent --> EffContent : triggers update
-EffContent --> RawContent : binds data
+GetContent --> CallGet : retourne TOUJOURS\nle body seul
+CallGet --> SaveTab : tab.content = body (propre)
+SwitchToTab --> SetEdContent : editorContent.set(body)
+SetEdContent --> EffCoord : content prop change
 
-note right of EffContent #FFDDDD
-  <color:red><font:bold>== Bug Scenario (Raw Mode) ==</font></color>
-  1. GetContent returns rawContent (fm + body)
-  2. SwitchToTab saves this into tab.content
-  3. SetEdContent updates content prop
-  4. EffContent prepends fm AGAIN → Duplication!
+note right of GetContent #77FF77
+  <color:green><font:bold>✅ Fix appliqué (commit 5588068)</font></color>
+  getContent utilise getRawBody()
+  qui extrait le body de rawContent.
+  Même en rawMode, on sauvegarde
+  du body seul → plus jamais de
+  double frontmatter.
 end note
 
-note right of SwitchToTab #DDFFDD
-  <color:green><font:bold>== Clean Scenario (WYSIWYG) ==</font></color>
-  1. GetContent returns body only
-  2. tab.content gets clean body
-  3. EffContent runs setContent(body)
-  4. Clean state preserved
-end note
+EffCoord --> RawContent : rawMode ?\nserializeFm(fm) + body → rawContent
+EffCoord --> Tiptap : !rawMode ?\nsetContent(body)
 
 legend top
-  <color:red><font:bold>Bug frontmatter double</font></color>
-  switchToTab depuis rawMode sauvegarde
-  rawContent (fm+body) dans tab.content,
-  puis le $effect(content) re-prépende
-  le frontmatter → doublon.
+  <color:green><font:bold>✅ Fix :</font></color>
+  getContent retourne TOUJOURS du body seul,
+  quel que soit le mode. tab.content = body.
+  Plus de double frontmatter.
+  L'invariant est garanti à la source.
 endlegend
 @enduml
