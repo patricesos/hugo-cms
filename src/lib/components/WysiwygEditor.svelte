@@ -4,7 +4,7 @@
 	import StarterKit from '@tiptap/starter-kit';
 	import Placeholder from '@tiptap/extension-placeholder';
 	import { Markdown } from 'tiptap-markdown';
-	import Image from '@tiptap/extension-image';
+	import ImageWithBlockMarkdown from '$lib/editor/tiptap-image-block';
 	import { SlashCommands } from '$lib/editor/slash-commands';
 	import { Bold, Code, Italic, Link } from '@lucide/svelte';
 	import { protectShortcodes } from '$lib/shortcode-utils';
@@ -45,7 +45,7 @@
 					linkify: true,
 					breaks: false,
 				}),
-				Image,
+				ImageWithBlockMarkdown,
 				...(showSlashMenu ? [SlashCommands] : []),
 			],
 			content: protectShortcodes(initContent),

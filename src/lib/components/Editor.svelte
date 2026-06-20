@@ -332,7 +332,7 @@
 		bind:this={rawEditor}
 		content={sync?.rawContent ?? ''}
 		active={rawMode}
-		onchange={(c) => { console.log('[Editor] Raw onchange', { len: c.length, rawMode }); if (sync) sync.rawContent = c; markRawUnsaved(); }}
+		onchange={(c) => { if (sync) sync.rawContent = c; markRawUnsaved(); }}
 	/>
 
 	<WysiwygEditor

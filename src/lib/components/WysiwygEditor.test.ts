@@ -30,7 +30,7 @@ vi.mock('@tiptap/core', () => {
 
 vi.mock('@tiptap/starter-kit', () => ({ default: { configure: () => ({}) } }));
 vi.mock('@tiptap/extension-placeholder', () => ({ default: { configure: () => ({}) } }));
-vi.mock('@tiptap/extension-image', () => ({ default: { configure: () => ({}) } }));
+vi.mock('@tiptap/extension-image', () => ({ default: { configure: () => ({}), extend: () => ({ addStorage: () => ({}) }) } }));
 vi.mock('tiptap-markdown', () => ({ Markdown: { configure: () => ({}) } }));
 vi.mock('$lib/editor/slash-commands', () => ({ SlashCommands: {} }));
 vi.mock('$lib/shortcode-utils', () => ({ protectShortcodes: (s: string) => s }));
