@@ -25,7 +25,7 @@ import shutil
 import argparse
 from io import BytesIO
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, UnidentifiedImageError
 
 
 # ── Chemins par défaut ──
@@ -79,18 +79,41 @@ def svg_to_png_cairosvg(svg_path: str, width: int, height: int) -> Image.Image:
 def render_svg(svg_path: str, width: int, height: int) -> Image.Image:
     """Render un SVG à la taille demandée.
 
-    Détection automatique du meilleur moteur disponible :
-      1. cairosvg (si importable)
-      2. PIL natif (fallback)
+    Moteurs disponibles (par ordre de préférence) :
+      1. cairosvg  — rendu professionnel, gère tous les SVG
+      2. PIL natif  — basique, échoue sur les chemins complexes (courbes Bézier)
+
+    Si cairosvg n'est pas installé et que PIL échoue, on affiche une
+    instruction claire pour installer cairosvg et on sort en erreur.
     """
+    engine = None
+
+    # Essai 1 : cairosvg
     try:
-        import cairosvg
+        import cairosvg  # noqa: F811
+        engine = 'cairosvg'
         return svg_to_png_cairosvg(svg_path, width, height)
     except ImportError:
         pass
 
-    # Fallback PIL
-    return svg_to_png_pil(svg_path, width, height)
+    # Essai 2 : PIL natif (fallback)
+    try:
+        engine = 'PIL'
+        return svg_to_png_pil(svg_path, width, height)
+    except UnidentifiedImageError:
+        pass
+
+    # Les deux ont échoué → message clair
+    print(f'  [ERR]  Impossible de rendre le SVG : {svg_path}')
+    print(f'  [ERR]  PIL (fallback) ne supporte pas ce SVG complexe.')
+    print(f'  [ERR]')
+    print(f'  [ERR]  Installez cairosvg :')
+    print(f'  [ERR]    pip install cairosvg')
+    print(f'  [ERR]    # ou selon votre distrib :')
+    print(f'  [ERR]    sudo dnf install python3-cairosvg')
+    print(f'  [ERR]    sudo apt install python3-cairosvg')
+    print(f'  [ERR]')
+    sys.exit(1)
 
 
 def render_all_sizes(svg_path: str) -> dict[int, Image.Image]:

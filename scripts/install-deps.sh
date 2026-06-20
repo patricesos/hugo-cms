@@ -48,22 +48,22 @@ install_packages() {
     print_info "Installation des paquets système..."
     case "$PKG_MANAGER" in
         apt)
-            $INSTALL_CMD nodejs npm hugo git inkscape \
-                python3 python3-pip python3-pil
+            $INSTALL_CMD nodejs npm hugo git \
+                python3 python3-pip python3-pil python3-cairosvg
             ;;
         dnf)
             # Fedora : python3-pillow au lieu de python3-pil
-            $INSTALL_CMD nodejs npm hugo git inkscape \
-                python3 python3-pip python3-pillow
+            $INSTALL_CMD nodejs npm hugo git \
+                python3 python3-pip python3-pillow python3-cairosvg
             ;;
         pacman)
-            # Arch : python-pillow, nodejs (déjà nodejs), npm inclus
-            $INSTALL_CMD nodejs npm hugo git inkscape \
-                python python-pip python-pillow
+            # Arch : python-pillow
+            $INSTALL_CMD nodejs npm hugo git \
+                python python-pip python-pillow python-cairosvg
             ;;
         zypper)
-            $INSTALL_CMD nodejs npm hugo git inkscape \
-                python3 python3-pip python3-Pillow
+            $INSTALL_CMD nodejs npm hugo git \
+                python3 python3-pip python3-Pillow python3-cairosvg
             ;;
     esac
     print_ok "Paquets système installés"
@@ -71,18 +71,10 @@ install_packages() {
 
 install_python_deps() {
     print_info "Installation des packages Python..."
-    packages="pystray"
-    # cairosvg améliore le rendu SVG→PNG (PIL seul suffit pour les SVG simples)
-    if pip3 install cairosvg --quiet --break-system-packages 2>/dev/null \
-        || pip3 install cairosvg --quiet 2>/dev/null \
-        || pip3 install cairosvg --user --quiet; then
-        packages+=", cairosvg"
-    fi
     pip3 install pystray --quiet --break-system-packages 2>/dev/null \
         || pip3 install pystray --quiet 2>/dev/null \
         || pip3 install pystray --user --quiet
-    print_ok "Packages Python installés : ${packages}"
-}
+    print_ok "Packages Python installés : pystray, cairosvg (système)"
 
 check_node() {
     if command -v node &>/dev/null; then
