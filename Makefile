@@ -1,4 +1,4 @@
-.PHONY: all dev build preview start check test lint clean dist install run
+.PHONY: all dev build preview start check test test-watch lint clean dist dist-linux install run
 
 all: install check build
 
@@ -27,7 +27,7 @@ check:
 test:
 	npm run test
 
-test:watch
+test-watch:
 	npm run test:watch
 
 lint:
@@ -35,6 +35,9 @@ lint:
 
 dist:
 	npm run dist
+
+dist-linux:
+	bash scripts/dist.sh
 
 clean:
 	rm -rf build/

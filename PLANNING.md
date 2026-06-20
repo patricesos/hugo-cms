@@ -281,6 +281,26 @@
 
 ---
 
+### EPIC LINUX — Portage Linux (de la même manière)
+
+- [x] **US-200** — `scripts/install-deps.sh` : détection paquet manager (apt/dnf/pacman/zypper) + installation dépendances (nodejs, hugo, git, python3-pil, pystray, cairosvg)
+- [x] **US-201** — `scripts/make-icons.py` : rendu SVG→PNG via cairosvg, 3 variantes (normale/active/inactive) aux 4 tailles (16-32-48-256)
+- [x] **US-202** — `scripts/dist.sh` : distribution Linux all-in-one (build → icônes → bundle esbuild → copie client + .desktop)
+- [x] **US-203** — `scripts/tray-launcher.py` : lanceur systray pystray (menu, spawn Node, détection Listening on, notifications crash) — équivalent de `tray-launcher.cs`
+- [x] **US-204** — `package.json` : ajout commande `dist:linux`
+- [x] **US-205** — `Makefile` : ajout cible `dist-linux`, fix cible `test-watch`
+- [x] **US-206** — `README.md` : documentation distribution Linux
+- [x] **US-207** — `package-lock.json` : ajout bindings Linux (rolldown, rollup, lightningcss) pour compatibilité WSL/Windows dual-boot
+
+**Décisions architecturales :**
+- **Isolement total** : aucun fichier Windows modifié (`.ps1`, `.cs`, `start.bat`, `package.json:dist` restent intacts)
+- **pystray** : Python pour le tray launcher (comme C# est à Windows, Python est le langage natif de Linux). Utilise le protocole StatusNotifier/XDG.
+- **All-in-one** : `dist.sh` reproduit la même séquence que `dist.ps1`
+- **Icônes** : PNG direct (pas de `.ico`), `cairosvg` pour le rendu SVG (PIL insuffisant sur les chemins complexes)
+- **Lockfile multi-plateforme** : `npm install` depuis WSL merge les bindings Linux sans supprimer les entrées Windows
+
+---
+
 ### Ancien backlog (future lointain)
 
 - [ ] Split view 50/50 éditeur + aperçu (auto-reload sur sauvegarde)

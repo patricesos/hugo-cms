@@ -103,6 +103,48 @@ Voir `ARCHITECTURE.md` pour les diagrammes C4, sequence et flow.
 
 ---
 
+## Distribution (Linux)
+
+> **Prérequis :** voir `scripts/install-deps.sh`
+
+```bash
+# Installation des dépendances système
+bash scripts/install-deps.sh
+
+# Build + bundle + icônes → dist/
+npm run dist:linux
+# ou : make dist-linux
+
+# Lancement simple
+node start.js
+
+# Lancement avec icône systray
+python3 dist/tray-launcher.py
+```
+
+Génère `dist/` contenant :
+
+- `bundle.mjs` — Serveur bundle (esbuild, tout inline)
+- `client/` — Assets statiques
+- `hugo-cms.png` — Icône normale
+- `hugo-cms-active.png` — Icône Running (cercle vert)
+- `hugo-cms-inactive.png` — Icône Stopped/Error (monochrome)
+- `tray-launcher.py` — Lanceur systray (pystray)
+- `start.sh` — Script de lancement direct
+- `.env.example` — Configuration par défaut
+- `hugo-cms.desktop` — Entrée de menu Freedesktop (copier dans `~/.local/share/applications/`)
+
+### Notes
+
+- Le tray launcher nécessite `pystray` (pip) et un environnement de bureau
+  compatible StatusNotifier (KDE, XFCE, GNOME + extension AppIndicator).
+- Sur GNOME 40+, le systray n'est pas disponible nativement — installez
+  l'extension [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/).
+- Les icônes `.ico` ne sont pas générées sur Linux — le format PNG est utilisé
+  directement par pystray.
+
+---
+
 ## Scripts
 
 | Commande | Rôle |

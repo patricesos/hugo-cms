@@ -14,7 +14,8 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dist.ps1"
+    "dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dist.ps1",
+    "dist:linux": "bash scripts/dist.sh"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^7.0.1",
