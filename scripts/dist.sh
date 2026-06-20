@@ -68,7 +68,17 @@ fi
 print_header "5. Fichiers auxiliaires"
 cp "$ROOT/.env.example" "$DIST_DIR/.env.example"
 cp "$ROOT/scripts/tray-launcher.py" "$DIST_DIR/tray-launcher.py"
-cp "$ROOT/start.sh" "$DIST_DIR/start.sh"
+# start.sh adapté à dist/ : lance bundle.mjs (esbuild) au lieu de build/index.js
+cat > "$DIST_DIR/start.sh" << 'EOF'
+#!/usr/bin/env bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "Démarrage de Hugo CMS..."
+if [ ! -f "$DIR/.env" ]; then
+    cp "$DIR/.env.example" "$DIR/.env"
+    echo "Copie de .env.example vers .env — modifiez-le selon votre configuration."
+fi
+exec node "$DIR/bundle.mjs"
+EOF
 chmod +x "$DIST_DIR/start.sh" "$DIST_DIR/tray-launcher.py"
 print_ok ".env.example, tray-launcher.py, start.sh"
 
