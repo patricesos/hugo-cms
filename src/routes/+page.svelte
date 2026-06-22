@@ -5,15 +5,15 @@
 	import SitemapView from '$lib/components/SitemapView.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
+	import SidebarContainer from '$lib/components/SidebarContainer.svelte';
 	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
-		import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
+	import { hugoStore, hugoStatus, hugoUrl, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
 import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
 import type { SettingsData } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
-	import { startSidebarResize, startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
+	import { startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
 	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
 	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
 	import { restoreAppState as restoreState } from '$lib/restore';
@@ -49,7 +49,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 	let ConfigViewComp = $state<any>(null);
 	let ImageViewComp = $state<any>(null);
 	let SettingsDialogComp = $state<any>(null);
-	let GitSidebarComp = $state<any>(null);
 	let CommitDialogComp = $state<any>(null);
 	let NewSiteDialogComp = $state<any>(null);
 
@@ -116,10 +115,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 	});
 
 	// --- Redimensionnement ---
-	const startResize = startSidebarResize(
-		() => $layout.sidebarWidth,
-		(w) => settingsStore.updateLayout({ sidebarWidth: w })
-	);
 	const startFmResizeHandler = startFmResize(
 		() => $layout.fmWidth,
 		(w) => settingsStore.updateLayout({ fmWidth: w })
@@ -184,7 +179,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 	$effect(() => { if ($currentTab?.kind === 'archetype' && !ArchetypeViewComp) import('$lib/components/ArchetypeView.svelte').then(m => ArchetypeViewComp = m.default); });
 	$effect(() => { if ($currentTab?.kind === 'config' && !ConfigViewComp) import('$lib/components/ConfigView.svelte').then(m => ConfigViewComp = m.default); });
 	$effect(() => { if ($currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
-	$effect(() => { if ($layout.showGit && !GitSidebarComp) import('$lib/components/GitSidebar.svelte').then(m => GitSidebarComp = m.default); });
 	$effect(() => { if ($dialogs.showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
 	$effect(() => { if ($dialogs.showNewSiteDialog && !NewSiteDialogComp) import('$lib/components/NewSiteDialog.svelte').then(m => NewSiteDialogComp = m.default); });
 
@@ -264,16 +258,8 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		await gitStore.refresh();
 	}
 
-	async function handleGitInit() {
-		await gitStore.init();
-	}
-
 	async function handleGitCommit(message: string, files: string[]) {
 		await gitStore.commit(message, files);
-	}
-
-	async function handleGitPush() {
-		await gitStore.push();
 	}
 
 	function toggleGit() {
@@ -411,53 +397,13 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		</div>
 	</div>
 	<div class="app-body" class:sidebar-collapsed={!$layout.sidebarOpen}>
-	{#if $layout.sidebarOpen}
-		<div class="sidebar-wrap" style="width: {$layout.sidebarWidth}px">
-			{#if $layout.showGit && GitSidebarComp}
-				<GitSidebarComp
-					status={$gitStatus}
-					loading={$gitLoading}
-					onRefresh={refreshGitStatus}
-					onCommit={() => uiStore.updateDialogs({ showCommitDialog: true })}
-					onPush={handleGitPush}
-					onInit={handleGitInit}
-				/>
-			{:else}
-				<Sidebar
-					tree={$tree}
-					assetTree={$assetTree}
-					archetypeTree={$archetypeTree}
-					configTree={$configTree}
-					currentSlug={$currentSlug}
-					sidebarView={$layout.sidebarView}
-					expandedSlugs={new Set($layout.expandedSlugs)}
-					onLoadFile={loadFile}
-					onCreateFileInFolder={(slug) => { uiStore.updateDialogs({ createFileSection: slug }); uiStore.updateDialogs({ showCreateDialog: true }); }}
-					onCreateFolderInFolder={(slug) => { uiStore.updateDialogs({ createFolderParent: slug }); uiStore.updateDialogs({ showCreateFolderDialog: true }); }}
-					onDeleteFile={handleDelete}
-					onDeleteFolder={handleDeleteFolder}
-					onRenameFile={handleRename}
-					onDuplicateFile={handleDuplicate}
-					onToggleFolder={(slug) => {
-						settingsStore.toggleExpandedSlug(slug);
-					}}
-					onSelectAsset={(path) => {
-						const ext = path.split('.').pop()?.toLowerCase();
-						if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
-							editorStore.openKindTab(path, 'static');
-							switchToTab(path);
-						} else {
-							window.open(`/api/assets/${path}`, '_blank');
-						}
-					}}
-					onSelectArchetype={(slug) => { editorStore.openKindTab(slug, 'archetype'); switchToTab(slug); }}
-					onSelectConfig={(slug) => { editorStore.openKindTab(slug, 'config'); switchToTab(slug); }}
-					onViewChange={(v) => { settingsStore.updateLayout({ sidebarView: v }); if (v === 'config') loadConfigTree(); }}
-				/>
-			{/if}
-		</div>
-		<div class="resize-handle" role="presentation" onmousedown={startResize}></div>
-	{/if}
+	<SidebarContainer
+		onLoadFile={loadFile}
+		onDelete={handleDelete}
+		onDeleteFolder={handleDeleteFolder}
+		onRenameFile={handleRename}
+		onDuplicateFile={handleDuplicate}
+	/>
 
 	<main class="editor-panel">
 		{#if $currentSlug || $tabs.length > 0}
@@ -1038,44 +984,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	.app-body.sidebar-collapsed :global(.sidebar) {
 		display: none;
-	}
-
-	.sidebar-wrap {
-		flex-shrink: 0;
-		overflow: hidden;
-		height: 100%;
-		display: flex;
-	}
-
-	.resize-handle {
-		width: 5px;
-		flex-shrink: 0;
-		cursor: col-resize;
-		background: transparent;
-		transition: background 0.15s;
-		position: relative;
-		z-index: 5;
-	}
-
-	.resize-handle::before {
-		content: '';
-		position: absolute;
-		top: 3px;
-		bottom: 3px;
-		left: 2px;
-		width: 1px;
-		background: var(--c-border);
-		transition: background 0.15s;
-	}
-
-	.resize-handle:hover,
-	.resize-handle:active {
-		background: var(--c-primary);
-	}
-
-	.resize-handle:hover::before,
-	.resize-handle:active::before {
-		background: var(--c-primary);
 	}
 
 	.editor-header {
