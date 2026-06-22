@@ -140,18 +140,6 @@
 	});
 
 	// --- Fonctions editeur ---
-	async function switchToTab(slug: string) {
-		await editorStore.switchToTab(slug);
-		const tab = $tabs.find(t => t.slug === slug);
-		if (tab) {
-			let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
-			if (tab.kind === 'archetype') v = 'archetypes';
-			else if (tab.kind === 'config') v = 'config';
-			else if (tab.kind === 'static') v = 'static';
-			settingsStore.updateLayout({ sidebarView: v });
-		}
-	}
-
 	async function loadFile(slug: string) {
 		await editorStore.loadFile(slug, loadTree);
 		if ($currentSlug === slug) {
@@ -199,7 +187,7 @@
 	// --- Restauration d'etat ---
 	async function restoreAppState() {
 		const { activeSlug, shouldInitGit } = await restoreState();
-		if (activeSlug) await switchToTab(activeSlug);
+		if (activeSlug) await editorPanelRef?.switchToTab(activeSlug);
 		if (shouldInitGit) {
 			gitStore.initialized.set(true);
 			await refreshGitStatus();

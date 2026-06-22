@@ -64,7 +64,7 @@
 	});
 
 	// Callbacks internes
-	async function switchToTab(slug: string) {
+	export async function switchToTab(slug: string) {
 		await editorStore.switchToTab(slug);
 		const tab = $tabs.find(t => t.slug === slug);
 		if (tab) {
