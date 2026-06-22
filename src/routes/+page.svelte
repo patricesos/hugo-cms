@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import AppHeader from '$lib/components/AppHeader.svelte';
+	import RestartBanner from '$lib/components/RestartBanner.svelte';
 	import SidebarContainer from '$lib/components/SidebarContainer.svelte';
 	import ActionBar from '$lib/components/ActionBar.svelte';
 	import EditorPanel from '$lib/components/EditorPanel.svelte';
@@ -208,17 +210,9 @@
 </script>
 
 <div class="app-shell">
-	<header class="app-header">
-		<div class="header-brand">
-			<img src="/favicon.svg" alt="Hugo" class="header-logo" />
-			<h2>Hugo CMS</h2>
-		</div>
-	</header>
+	<AppHeader />
 	{#if $dialogs.showRestartBanner}
-	<div class="restart-banner">
-		<span>Chemin du site modifié. Redémarrez le serveur pour appliquer.</span>
-		<button class="restart-banner-close" onclick={() => uiStore.updateDialogs({ showRestartBanner: false })}>✕</button>
-	</div>
+		<RestartBanner />
 	{/if}
 	{#if !siteValid}
 	<SetupOverlay />
@@ -364,17 +358,6 @@
 		overflow: hidden;
 	}
 
-	.app-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 16px;
-		border-bottom: 1px solid var(--c-border);
-		background: var(--c-bg);
-		flex-shrink: 0;
-		height: 48px;
-	}
-
 	.app-body {
 		display: flex;
 		flex: 1;
@@ -388,32 +371,6 @@
 
 	.app-body.sidebar-collapsed :global(.sidebar) {
 		display: none;
-	}
-
-	.restart-banner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 16px;
-		background: var(--c-warning-bg);
-		color: var(--c-warning);
-		font-size: 13px;
-		border-bottom: 1px solid var(--c-warning);
-		flex-shrink: 0;
-	}
-
-	.restart-banner-close {
-		border: none;
-		background: transparent;
-		color: var(--c-warning);
-		cursor: pointer;
-		font-size: 14px;
-		padding: 2px 6px;
-		line-height: 1;
-	}
-
-	.restart-banner-close:hover {
-		opacity: 0.7;
 	}
 
 </style>
