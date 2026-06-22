@@ -15,6 +15,7 @@ trigger: always
 - Commentaires de code en français (expliquer le *pourquoi*, pas le *quoi*).
 - Le code lui-même est en anglais (noms, signatures, messages).
 - Agir en sensei : expliquer le raisonnement, les alternatives, les trade-offs.
+- **Toute implémentation touchant plusieurs fichiers** (même une seule fonctionnalité logique) doit commencer par une `todowrite` listant les fichiers/étapes avec leur statut (`pending` / `in_progress` / `completed`). Mettre à jour les statuts en temps réel. Exemple : EPIC LINUX (commit 23da0e5) — 4 scripts créés, 4 fichiers modifiés, chaque étape suivie.
 
 ## Conventions techniques
 

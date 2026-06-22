@@ -4,9 +4,9 @@
 	import { Compartment, EditorState, EditorSelection } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { getCmTheme } from '$lib/editor/codemirror-themes';
-	import { undo, redo, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
+	import { undo, redo, history, defaultKeymap, historyKeymap, indentMore, indentLess } from '@codemirror/commands';
 	import { lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
-	import { foldGutter, indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldKeymap } from '@codemirror/language';
+	import { foldGutter, indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldKeymap, indentUnit } from '@codemirror/language';
 	import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 	import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 	import { lintKeymap } from '@codemirror/lint';
@@ -32,6 +32,16 @@
 			highlightSelectionMatches(),
 			keymap.of([
 				...defaultKeymap,
+				{
+					key: "Tab",
+					run: ({ state, dispatch }) => {
+						if (state.selection.ranges.some(r => !r.empty))
+							return indentMore({ state, dispatch });
+						dispatch(state.update(state.replaceSelection(state.facet(indentUnit)), { scrollIntoView: true, userEvent: "input" }));
+						return true;
+					},
+					shift: indentLess,
+				},
 				...searchKeymap,
 				...historyKeymap,
 				...foldKeymap,
