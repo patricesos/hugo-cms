@@ -1,27 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
-	import { PanelRightOpen, PanelRightClose, PenLine, Save, Loader2, CheckCircle2, AlertTriangle, FolderOpen, Plus } from '@lucide/svelte';
-	import SitemapView from '$lib/components/SitemapView.svelte';
-	import TabBar from '$lib/components/TabBar.svelte';
-	import StatusBar from '$lib/components/StatusBar.svelte';
+	import { FolderOpen, Plus } from '@lucide/svelte';
 	import SidebarContainer from '$lib/components/SidebarContainer.svelte';
 	import ActionBar from '$lib/components/ActionBar.svelte';
-	import FrontMatterEditor from '$lib/components/FrontMatterEditor.svelte';
-	import { hugoStore, previewReloadKey } from '$lib/stores/hugo.svelte';
+	import EditorPanel from '$lib/components/EditorPanel.svelte';
+	import { hugoStore } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
-import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
-import type { SettingsData } from '$lib/stores/settings.svelte';
+	import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
+	import type { SettingsData } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
-	import { startFmResize, startPreviewResize, cleanupAllResize } from '$lib/resize';
-	import { startConflictPoll, stopConflictPoll, resolveConflict, handleVisibilityChange } from '$lib/conflict';
+	import { startConflictPoll, stopConflictPoll, handleVisibilityChange } from '$lib/conflict';
 	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
 	import { restoreAppState as restoreState } from '$lib/restore';
 	import { getClientConfig, getServerConfig } from '$lib/client-config';
 
 	// Stores source de vérité unique
-	const { tabs, currentSlug, editorContent, currentFrontmatter, currentFmFormat, wordCount, charCount, saveState, saveRequest, loading, currentArchetype, currentConfigSlug, conflictSlug, conflictServerMtimeMs, currentTab } = editorStore;
+	const { tabs, currentSlug, editorContent, currentFrontmatter, currentFmFormat, wordCount, charCount, saveState, saveRequest, loading, currentArchetype, currentConfigSlug, conflictSlug, currentTab } = editorStore;
 	const { settings, layout } = settingsStore;
 	const { dialogs } = uiStore;
 	const { status: gitStatus } = gitStore;
@@ -35,20 +30,12 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		() => $currentSlug
 	);
 
-	// Timers internes (pas reactifs)
-	let fmSaveTimeout: ReturnType<typeof setTimeout> | null = null;
-
 	// References composants lazy-loaded
-	let EditorComp = $state<any>(null);
 	let CreateFileDialogComp = $state<any>(null);
 	let CreateFolderDialogComp = $state<any>(null);
 	let SearchDialogComp = $state<any>(null);
 	let ShortcutsHelpComp = $state<any>(null);
-	let HugoPreviewComp = $state<any>(null);
 	let HugoConsoleComp = $state<any>(null);
-	let ArchetypeViewComp = $state<any>(null);
-	let ConfigViewComp = $state<any>(null);
-	let ImageViewComp = $state<any>(null);
 	let SettingsDialogComp = $state<any>(null);
 	let CommitDialogComp = $state<any>(null);
 	let NewSiteDialogComp = $state<any>(null);
@@ -58,7 +45,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 	let serverConfig = $state<import('$lib/client-config').ServerConfig | null>(null);
 	let hydrated = $state(false);
 	let siteValid = $state(true);
-	let settingsKey = $state(0);
+	let editorPanelRef = $state<any>(null);
 
 	// Snapshots settings pour detecter les changements dans SettingsDialog
 	let savedPathConfig = $state({ useDotEnv: true, customPath: '' });
@@ -94,18 +81,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		}
 	});
 
-	// --- Redimensionnement ---
-	const startFmResizeHandler = startFmResize(
-		() => $layout.fmWidth,
-		(w) => settingsStore.updateLayout({ fmWidth: w })
-	);
-	const startPreviewResizeHandler = startPreviewResize(
-		() => $layout.previewWidth,
-		(w) => settingsStore.updateLayout({ previewWidth: w })
-	);
-
-
-
 	// --- Mount ---
 	onMount(() => {
 		getClientConfig().then(cfg => { clientCfg = cfg; });
@@ -118,7 +93,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 				checkHugoStatus();
 			}
 		});
-		import('$lib/components/Editor.svelte').then(m => EditorComp = m.default);
 		function handleKeydown(e: KeyboardEvent) {
 			const mod = e.metaKey || e.ctrlKey;
 			if (mod && !e.shiftKey && e.code === 'KeyP') {
@@ -143,8 +117,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			stopConflictPoll();
-			cleanupAllResize();
-			if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
 		};
 	});
 
@@ -153,12 +125,8 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 	$effect(() => { if ($dialogs.showCreateFolderDialog && !CreateFolderDialogComp) import('$lib/components/CreateFolderDialog.svelte').then(m => CreateFolderDialogComp = m.default); });
 	$effect(() => { if ($dialogs.showSearch && !SearchDialogComp) import('$lib/components/SearchDialog.svelte').then(m => SearchDialogComp = m.default); });
 	$effect(() => { if ($dialogs.showShortcuts && !ShortcutsHelpComp) import('$lib/components/ShortcutsHelp.svelte').then(m => ShortcutsHelpComp = m.default); });
-	$effect(() => { if ($layout.showPreview && !HugoPreviewComp) import('$lib/components/HugoPreview.svelte').then(m => HugoPreviewComp = m.default); });
 	$effect(() => { if ($layout.showConsole && !HugoConsoleComp) import('$lib/components/HugoConsole.svelte').then(m => HugoConsoleComp = m.default); });
 	$effect(() => { if ($dialogs.showSettings && !SettingsDialogComp) import('$lib/components/SettingsDialog.svelte').then(m => SettingsDialogComp = m.default); });
-	$effect(() => { if ($currentTab?.kind === 'archetype' && !ArchetypeViewComp) import('$lib/components/ArchetypeView.svelte').then(m => ArchetypeViewComp = m.default); });
-	$effect(() => { if ($currentTab?.kind === 'config' && !ConfigViewComp) import('$lib/components/ConfigView.svelte').then(m => ConfigViewComp = m.default); });
-	$effect(() => { if ($currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
 	$effect(() => { if ($dialogs.showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
 	$effect(() => { if ($dialogs.showNewSiteDialog && !NewSiteDialogComp) import('$lib/components/NewSiteDialog.svelte').then(m => NewSiteDialogComp = m.default); });
 
@@ -170,13 +138,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 	});
 
 	// --- Fonctions editeur ---
-	async function loadFile(slug: string) {
-		await editorStore.loadFile(slug, loadTree);
-		if ($currentSlug === slug) {
-			settingsStore.updateLayout({ sidebarView: 'content' });
-		}
-	}
-
 	async function switchToTab(slug: string) {
 		await editorStore.switchToTab(slug);
 		const tab = $tabs.find(t => t.slug === slug);
@@ -189,16 +150,11 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		}
 	}
 
-	async function handleSave(markdown: string) {
-		await editorStore.handleSave(markdown);
-	}
-
-	function handleFrontmatterChange(fm: Record<string, unknown>) {
-		editorStore.handleFrontmatterChange(fm);
-		if ($currentSlug) fileTreeStore.updateTreeFrontmatter($currentSlug, fm);
-		if (fmSaveTimeout) clearTimeout(fmSaveTimeout);
-		const delay = clientCfg?.fmSaveDelay ?? 2000;
-		fmSaveTimeout = setTimeout(() => { editorStore.saveRequest.update(r => r + 1); }, delay);
+	async function loadFile(slug: string) {
+		await editorStore.loadFile(slug, loadTree);
+		if ($currentSlug === slug) {
+			settingsStore.updateLayout({ sidebarView: 'content' });
+		}
 	}
 
 	async function handleCreate(title: string, section: string, archetype?: string) {
@@ -227,10 +183,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	async function handleDuplicate(slug: string) {
 		await editorStore.handleDuplicate(slug, $tree, loadTree);
-	}
-
-	function handleCloseTab(slug: string) {
-		editorStore.handleCloseTab(slug);
 	}
 
 	// --- Fonctions Git ---
@@ -297,168 +249,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		onDuplicateFile={handleDuplicate}
 	/>
 
-	<main class="editor-panel">
-		{#if $currentSlug || $tabs.length > 0}
-			<TabBar tabs={$tabs} activeSlug={$currentSlug ?? ''} showFilenameInTabs={$settings.showFilenameInTabs} 						onSelect={(slug) => { switchToTab(slug); }} onClose={handleCloseTab} />
-		{/if}
-		<div class="editor-panel-body">
-			<div class="editor-panel-content">
-				{#if $currentTab?.kind === 'archetype'}
-					{#if ArchetypeViewComp}
-						<ArchetypeViewComp
-							slug={$currentArchetype}
-							onClose={() => { editorStore.tabs.set($tabs.filter(t => t.slug !== $currentSlug)); editorStore.currentArchetype.set(null); editorStore.currentSlug.set(null); }}
-							onDelete={(s: string) => { loadArchetypes(); editorStore.tabs.set($tabs.filter(t => t.slug !== s)); editorStore.currentArchetype.set(null); editorStore.currentSlug.set(null); }}
-						/>
-					{/if}
-				{:else if $currentTab?.kind === 'config'}
-					{#if ConfigViewComp}
-						<ConfigViewComp
-							slug={$currentConfigSlug}
-							onClose={() => { editorStore.tabs.set($tabs.filter(t => t.slug !== $currentSlug)); editorStore.currentConfigSlug.set(null); editorStore.currentSlug.set(null); }}
-							onDelete={(s: string) => { loadConfigTree(); editorStore.tabs.set($tabs.filter(t => t.slug !== s)); editorStore.currentConfigSlug.set(null); editorStore.currentSlug.set(null); }}
-						/>
-					{/if}
-				{:else if $dialogs.showSitemap && !$currentSlug}
-					<SitemapView tree={$tree} currentSlug={$currentSlug} onLoadFile={(slug) => { loadFile(slug); uiStore.updateDialogs({ showSitemap: false }); }} onRefresh={loadTree} />
-				{:else if !$currentSlug}
-					{#if !$dialogs.showSitemap}
-						<div class="empty-state" transition:fade={{ duration: 200 }}>
-							<img class="hugo-logo" src="/hugo-cms.svg" alt="Hugo CMS" />
-							<p>Sélectionnez un fichier dans la sidebar pour commencer à éditer.</p>
-						</div>
-					{/if}
-				{:else if $currentTab?.kind === 'static'}
-					<div class="editor-fixed-wrap">
-						<div class="editor-header">
-							<div class="header-left">
-								<PenLine size={14} color="var(--c-text-muted)" />
-								<span class="filename">{$currentSlug}</span>
-							</div>
-						</div>
-						{#key $currentSlug}
-							{#if ImageViewComp}
-								<ImageViewComp slug={$currentSlug} assetUrl={`/api/assets/${$currentSlug}`} />
-							{/if}
-						{/key}
-					</div>
-				{:else}
-					<div class="editor-fixed-wrap">
-						{#if $loading}
-							<div class="loading-overlay">
-								<div class="skeleton-block"></div>
-								<div class="skeleton-block short"></div>
-								<div class="skeleton-block"></div>
-							</div>
-						{/if}
-						{#if $conflictSlug === $currentSlug}
-							<div class="conflict-banner" transition:slide={{ duration: 200, axis: 'y' }}>
-								<span class="conflict-icon"><AlertTriangle size={14} /></span>
-								<span class="conflict-text">Fichier modifié en externe</span>
-								<button class="conflict-btn" onclick={() => resolveConflict('reload')}>Recharger</button>
-								<button class="conflict-btn primary" onclick={() => resolveConflict('overwrite')}>Écraser</button>
-							</div>
-						{/if}
-						<div class="editor-header">
-							<div class="header-left">
-								<PenLine size={14} color="var(--c-text-muted)" />
-								<span class="filename">{$currentSlug}.md</span>
-								<button
-									class="save-btn"
-									class:saved={$saveState === 'saved'}
-									class:unsaved={$saveState === 'unsaved'}
-									class:saving={$saveState === 'saving'}
-									onclick={() => editorStore.saveRequest.update(n => n + 1)}
-									title={$saveState === 'saving' ? 'Sauvegarde…' : $saveState === 'unsaved' ? 'Enregistrer' : 'Enregistré'}
-								>
-									{#if $saveState === 'saving'}
-										<Loader2 size={13} class="spin" />
-									{:else if $saveState === 'unsaved'}
-										<Save size={13} />
-									{:else}
-										<CheckCircle2 size={13} />
-									{/if}
-								</button>
-							</div>
-							<div class="header-right">
-								<button class="icon-btn fm-toggle" onclick={() => settingsStore.updateLayout({ fmOpen: !$layout.fmOpen })} title={$layout.fmOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}>
-									{#if $layout.fmOpen}
-										<PanelRightClose size={14} />
-									{:else}
-										<PanelRightOpen size={14} />
-									{/if}
-								</button>
-							</div>
-						</div>
-						<div class="editor-body" class:with-fm={$layout.fmOpen}>
-							<div class="editor-main">
-								<div class="editor-area">
-									{#key settingsKey}
-									{#if EditorComp}
-										<EditorComp
-											content={$editorContent}
-											frontmatter={$currentFrontmatter}
-											frontmatterFormat={$currentFmFormat}
-											rawMode={$currentTab?.rawMode ?? $settings.defaultRawMode}
-											showBubbleMenu={$settings.showBubbleMenu}
-											showSlashMenu={$settings.showSlashMenu}
-											autoSaveDelay={$settings.autoSaveDelay}
-											editorFont={$settings.editorFont}
-											editorFontSize={$settings.editorFontSize}
-											editorMaxWidth={$settings.editorMaxWidth}
-											editorMaxWidthCustom={$settings.editorMaxWidthCustom}
-											historyDepth={$settings.historyDepth}
-											saveRequest={$saveRequest}
-											getContent={(fn: () => string) => { editorStore.setEditorGetContent(fn); }}
-											onSetContent={(fn: (content: string) => void) => { editorStore.setEditorSetContent(fn); }}
-											onSave={handleSave}
-											onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.handleFrontmatterChange(fm); if ($currentSlug) fileTreeStore.updateTreeFrontmatter($currentSlug, fm); }}
-											onStats={(s: { words: number; chars: number }) => { $wordCount = s.words; $charCount = s.chars; }}
-											onSaveState={(s: 'saved' | 'unsaved' | 'saving') => { editorStore.saveState.set(s); }}
-											onRawModeChange={(mode: boolean) => { if ($currentSlug) editorStore.updateTabRawMode($currentSlug, mode); }}
-										/>
-									{:else}
-										<div class="editor-loading">
-											<div class="skeleton-block"></div>
-											<div class="skeleton-block short"></div>
-											<div class="skeleton-block"></div>
-										</div>
-									{/if}
-									{/key}
-								</div>
-								{#if $layout.fmOpen}
-									<div class="fm-resize-handle" role="presentation" onmousedown={startFmResizeHandler}></div>
-									<aside class="fm-sidebar" style="width: {$layout.fmWidth}px; min-width: {$layout.fmWidth}px;" transition:slide={{ duration: 200, axis: 'x' }}>
-										<FrontMatterEditor
-											frontmatter={$currentFrontmatter}
-											format={$currentFmFormat}
-											fmRawMode={$layout.fmRawMode}
-											onChange={handleFrontmatterChange}
-										/>
-									</aside>
-								{/if}
-							</div>
-						</div>
-						<StatusBar wordCount={$wordCount} charCount={$charCount} saveState={$saveState} onHelp={() => uiStore.updateDialogs({ showShortcuts: true })} />
-					</div>
-				{/if}
-			</div>
-			{#if $layout.showPreview}
-				<div class="preview-resize-handle" role="presentation" onpointerdown={startPreviewResizeHandler}></div>
-				{#if HugoPreviewComp}
-				<HugoPreviewComp
-						show={$layout.showPreview}
-						onClose={() => settingsStore.updateLayout({ showPreview: false })}
-						onStatusChange={(s: 'loading' | 'running' | 'stopped' | 'error') => hugoStore.update(v => ({ ...v, status: s }))}
-						onUrlChange={(u: string | null) => hugoStore.update(v => ({ ...v, url: u }))}
-						onLiveChange={(v: boolean) => hugoStore.update(s => ({ ...s, live: v }))}
-						reloadKey={$previewReloadKey}
-						style="width:{$layout.previewWidth}px;min-width:{$layout.previewWidth}px"
-					/>
-				{/if}
-			{/if}
-		</div>
-	</main>
+	<EditorPanel onLoadFile={loadFile} bind:this={editorPanelRef} />
 	</div>
 </div>
 
@@ -530,7 +321,7 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 			if (s.defaultRawMode !== $settings.defaultRawMode || s.showBubbleMenu !== $settings.showBubbleMenu || s.showSlashMenu !== $settings.showSlashMenu || s.historyDepth !== $settings.historyDepth) {
 				const captured = editorStore.snapshot().editorContent;
 				if (captured) editorStore.editorContent.set(captured.replace(/^(?:---|\+\+\+)[\s\S]*?(?:---|\+\+\+)\n*/, ''));
-				settingsKey++;
+				editorPanelRef?.bumpRemountKey?.();
 			}
 			settingsStore.updateSettings({
 				defaultRawMode: s.defaultRawMode,
@@ -606,99 +397,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 		overflow: hidden;
 		min-height: 0;
 	}
-
-	.editor-panel {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		position: relative;
-	}
-
-	.editor-panel-body {
-		flex: 1;
-		display: flex;
-		flex-direction: row;
-		overflow: hidden;
-		min-height: 0;
-	}
-
-	.editor-panel-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		min-width: 0;
-	}
-
-	.editor-fixed-wrap {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		position: relative;
-	}
-
-	.loading-overlay {
-		position: absolute;
-		inset: 0;
-		z-index: 20;
-		background: var(--c-bg);
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding: 48px;
-	}
-
-	.conflict-banner {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 8px 16px;
-		background: var(--c-warning-bg);
-		border-bottom: 1px solid var(--c-warning);
-		flex-shrink: 0;
-		font-size: 13px;
-		color: var(--c-warning);
-	}
-
-	.conflict-icon {
-		display: flex;
-		flex-shrink: 0;
-	}
-
-	.conflict-text {
-		flex: 1;
-		font-weight: 500;
-	}
-
-	.conflict-btn {
-		padding: 4px 12px;
-		border: 1px solid var(--c-warning);
-		border-radius: var(--radius-sm);
-		background: transparent;
-		cursor: pointer;
-		font-size: 12px;
-		font-family: inherit;
-		color: var(--c-warning);
-		transition: all 0.12s;
-	}
-
-	.conflict-btn:hover {
-		background: var(--c-warning);
-		color: white;
-	}
-
-	.conflict-btn.primary {
-		background: var(--c-warning);
-		color: white;
-	}
-
-	.conflict-btn.primary:hover {
-		background: var(--c-warning);
-		opacity: 0.85;
-	}
-
 	.app-body :global(.sidebar) {
 		width: 100%;
 		min-width: 0;
@@ -706,221 +404,6 @@ import type { SettingsData } from '$lib/stores/settings.svelte';
 
 	.app-body.sidebar-collapsed :global(.sidebar) {
 		display: none;
-	}
-
-	.editor-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 16px;
-		border-bottom: 1px solid var(--c-border);
-		background: var(--c-bg-subtle);
-		flex-shrink: 0;
-	}
-
-	.header-left {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.header-right {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.header-right .icon-btn {
-		width: 26px;
-		height: 26px;
-		border: none;
-		background: transparent;
-		color: var(--c-text-muted);
-	}
-
-	.header-right .icon-btn:hover {
-		background: var(--c-bg-muted);
-		color: var(--c-text);
-	}
-
-	.filename {
-		font-size: 13px;
-		font-weight: 500;
-		color: var(--c-text-secondary);
-		font-family: var(--font-mono);
-	}
-
-	.save-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 26px;
-		height: 26px;
-		padding: 0;
-		border: 1px solid transparent;
-		border-radius: var(--radius-md);
-		background: transparent;
-		cursor: pointer;
-		transition: all 0.12s;
-		color: var(--c-text-muted);
-	}
-
-	.save-btn.saved { color: var(--c-text-muted); cursor: default; }
-	.save-btn.saved:hover { background: transparent; }
-
-	.save-btn.unsaved { color: var(--c-text-secondary); }
-	.save-btn.unsaved:hover { background: var(--c-bg-muted); color: var(--c-text); }
-
-	.save-btn.saving { color: var(--c-primary); pointer-events: none; }
-	.save-btn.saving :global(.spin) { animation: spin 0.8s linear infinite; }
-
-	@keyframes spin { to { transform: rotate(360deg); } }
-
-	.icon-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 30px;
-		height: 30px;
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius-md);
-		background: var(--c-bg);
-		cursor: pointer;
-		color: var(--c-text-secondary);
-		transition: all 0.15s;
-	}
-
-	.icon-btn:hover {
-		background: var(--c-bg-muted);
-		color: var(--c-text);
-	}
-
-	.icon-btn.active {
-		background: var(--c-primary-bg);
-		color: var(--c-primary);
-		border-color: var(--c-primary-light);
-	}
-
-	.editor-body {
-		flex: 1;
-		display: flex;
-		overflow: hidden;
-	}
-
-	.editor-main {
-		flex: 1;
-		display: flex;
-		overflow: hidden;
-		min-width: 0;
-	}
-
-	.editor-area {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.fm-sidebar {
-		border-left: 1px solid var(--c-border);
-		background: var(--c-bg-sidebar);
-		overflow-y: auto;
-		flex-shrink: 0;
-		scrollbar-width: none;
-		-ms-overflow-style: none;
-	}
-
-	.fm-sidebar::-webkit-scrollbar {
-		display: none;
-	}
-
-	.fm-resize-handle {
-		width: 5px;
-		flex-shrink: 0;
-		cursor: col-resize;
-		background: transparent;
-		transition: background 0.15s;
-		position: relative;
-		z-index: 5;
-	}
-
-	.fm-resize-handle::before {
-		content: '';
-		position: absolute;
-		top: 3px;
-		bottom: 3px;
-		left: 2px;
-		width: 1px;
-		background: var(--c-border);
-		transition: background 0.15s;
-	}
-
-	.fm-resize-handle:hover,
-	.fm-resize-handle:active {
-		background: var(--c-primary);
-	}
-
-	.fm-resize-handle:hover::before,
-	.fm-resize-handle:active::before {
-		background: var(--c-primary);
-	}
-
-	.preview-resize-handle {
-		width: 7px;
-		flex-shrink: 0;
-		cursor: col-resize;
-		background: transparent;
-		transition: background 0.12s;
-	}
-
-	.preview-resize-handle:hover,
-	.preview-resize-handle:active {
-		background: var(--c-primary);
-	}
-
-	.empty-state {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 12px;
-		color: var(--c-text-muted);
-	}
-
-	.empty-state .hugo-logo {
-		width: 260px;
-		max-width: 85%;
-		opacity: 0.8;
-	}
-
-	.empty-state p {
-		font-size: 14px;
-	}
-
-	.skeleton-block {
-		height: 16px;
-		background: linear-gradient(90deg, var(--c-border-light) 25%, var(--c-border) 50%, var(--c-border-light) 75%);
-		background-size: 200% 100%;
-		border-radius: var(--radius-sm);
-		animation: shimmer 1.5s ease-in-out infinite;
-	}
-
-	.skeleton-block.short {
-		width: 60%;
-	}
-
-	.editor-loading {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding: 48px;
-	}
-
-	@keyframes shimmer {
-		0% { background-position: 200% 0; }
-		100% { background-position: -200% 0; }
 	}
 
 	.restart-banner {
