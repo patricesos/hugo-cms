@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { $effect, $state } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { PenLine, Save, Loader2, CheckCircle2, AlertTriangle, PanelRightOpen, PanelRightClose } from '@lucide/svelte';
 	import StatusBar from './StatusBar.svelte';

@@ -302,7 +302,6 @@
 	@keyframes spin {
 		to { transform: rotate(360deg); }
 	}
-</style>
 
 	.hugo-indicator.running {
 		border-color: var(--c-success);
@@ -333,13 +332,5 @@
 	@keyframes pulse {
 		0%, 100% { opacity: 0.3; }
 		50% { opacity: 1; }
-	}
-
-	.spin {
-		animation: spin 0.8s linear infinite;
-	}
-
-	@keyframes spin {
-		to { transform: rotate(360deg); }
 	}
 </style>

@@ -182,10 +182,6 @@ function create() {
 			const idx = curTabs.findIndex(t => t.slug === slug);
 			if (idx === -1) return;
 			tabs.set(curTabs.filter(t => t.slug !== slug));
-			const curArchetype = get(currentArchetype);
-			const curConfigSlug = get(currentConfigSlug);
-			if (curArchetype === slug) currentArchetype.set(null);
-			if (curConfigSlug === slug) currentConfigSlug.set(null);
 			if (get(currentSlug) === slug) {
 				const newTabs = get(tabs);
 				const nextTab = newTabs[Math.min(idx, newTabs.length - 1)];
@@ -194,12 +190,22 @@ function create() {
 					if (nextTab.kind === 'content') {
 						editorContent.set(nextTab.content);
 						currentFrontmatter.set({ ...nextTab.frontmatter });
+					} else {
+						editorContent.set('');
+						currentFrontmatter.set({});
 					}
+					currentConfigSlug.set(nextTab.kind === 'config' ? nextTab.slug : null);
+					currentArchetype.set(nextTab.kind === 'archetype' ? nextTab.slug : null);
 				} else {
 					currentSlug.set(null);
 					editorContent.set('');
 					currentFrontmatter.set({});
+					currentConfigSlug.set(null);
+					currentArchetype.set(null);
 				}
+			} else {
+				if (get(currentArchetype) === slug) currentArchetype.set(null);
+				if (get(currentConfigSlug) === slug) currentConfigSlug.set(null);
 			}
 		},
 

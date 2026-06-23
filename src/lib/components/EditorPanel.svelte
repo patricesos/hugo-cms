@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { $effect, $state } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { PenLine } from '@lucide/svelte';
 	import TabBar from './TabBar.svelte';
@@ -220,9 +219,9 @@
 	}
 
 	.hugo-logo {
-		width: 64px;
+		width: 180px;
 		height: auto;
-		opacity: 0.3;
+		opacity: 0.7;
 	}
 
 	.preview-resize-handle {

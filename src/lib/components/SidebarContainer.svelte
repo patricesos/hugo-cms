@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { $effect, $state } from 'svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
