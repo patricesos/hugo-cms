@@ -61,7 +61,7 @@ flowchart LR
 
   %% === STORES ===
   subgraph stores["Stores Svelte (src/lib/stores/)"]
-    estore["editor.svelte.ts<br/><i>Tab courant, onglets ouverts</i>"]
+    estore["editor.svelte.ts<br/><i>Tabs, switchToTab + sidebarView</i>"]
     hstore["hugo.svelte.ts<br/><i>État Hugo</i>"]
     gstore["git.svelte.ts<br/><i>État git</i>"]
     sstore["settings.svelte.ts<br/><i>Settings + appState</i>"]
@@ -69,27 +69,42 @@ flowchart LR
     ustore["ui.svelte.ts<br/><i>Sidebar, panels, thème</i>"]
   end
 
-  %% === EDITOR ===
-  subgraph editor["Éditeur (src/lib/components/ + editor/)"]
-    eorchest["Editor.svelte<br/><i>Orchestrateur 415 lignes</i>"]
-    raww["RawEditor.svelte<br/><i>CodeMirror 6, prop active</i>"]
-    wysi["WysiwygEditor.svelte<br/><i>Tiptap + bubble/slash menu</i>"]
-    msync["mode-sync.svelte.ts<br/><i>Classe ModeSync $state</i>"]
-    imgblock["tiptap-image-block.ts<br/><i>Extension Image avec closeBlock()</i>"]
+  %% === VIEW LAYER (composants + editor/) ===
+  subgraph shell["+page.svelte (shell ~364 lignes)"]
+    apphdr["AppHeader.svelte<br/><i>Logo + titre, 0 prop</i>"]
+    rstbanner["RestartBanner.svelte<br/><i>Bannière chemin, 0 prop</i>"]
+    actionbar["ActionBar.svelte<br/><i>Barre d'outils, 0 prop</i>"]
+    sidebarcont["SidebarContainer.svelte<br/><i>Wrapper 5 props</i>"]
+    editorpanel["EditorPanelContainer.svelte<br/><i>Orchestrateur vues + preview</i>"]
+    setupov["SetupOverlay.svelte<br/><i>Écran non-configuré, 0 prop</i>"]
+    dialogs["Dialogues (Create, Search, Commit,<br/>FolderPicker, ImageView, Config,<br/>Archetype, Sitemap, NewSite…)"]
   end
 
-  %% === UI ===
-  subgraph ui["UI Svelte (composants)"]
-    page["+page.svelte<br/><i>App shell allégé</i>"]
-    sidebar["Sidebar.svelte"]
-    fmeditor["FrontMatterEditor"]
+  subgraph sidebarcont_inner["SidebarContainer"]
+    sidebarsub["Sidebar.svelte<br/><i>Arbre fichiers</i>"]
+    gitsidebar["GitSidebar.svelte"]
+    resizeh["resize-handle"]
+  end
+
+  subgraph editorpanel_inner["EditorPanelContainer"]
     tabbar["TabBar.svelte"]
-    statusbar["StatusBar.svelte"]
-    settings["SettingsDialog.svelte"]
-    gitpanel["GitSidebar.svelte"]
+    editormain["EditorMain.svelte<br/><i>Vue éditeur pure</i>"]
+    archview["ArchetypeView / ConfigView<br/>/ ImageView / SitemapView"]
+    emptystate["Empty state (hugo-logo)"]
     hugoprev["HugoPreview.svelte (iframe)"]
-    hugoconsole["HugoConsole.svelte"]
-    dialogs["Dialogues (Create, Search, Commit,<br/>FolderPicker, ImageView, Config,<br/>Archetype, Sitemap, NewSite…)"]
+  end
+
+  subgraph editormain_inner["EditorMain"]
+    editor["Editor.svelte<br/><i>Orchestrateur CM6/Tiptap</i>"]
+    fmeditor["FrontMatterEditor"]
+    statusbar["StatusBar.svelte"]
+  end
+
+  subgraph editor_inner["Editor"]
+    raww["RawEditor.svelte<br/><i>CodeMirror 6</i>"]
+    wysi["WysiwygEditor.svelte<br/><i>Tiptap + bubble/slash menu</i>"]
+    msync["mode-sync.svelte.ts<br/><i>Classe ModeSync $state</i>"]
+    imgblock["tiptap-image-block.ts<br/><i>Extension Image</i>"]
   end
 
   %% === CONFLICT DETECTION ===
@@ -108,7 +123,7 @@ flowchart LR
 
   idxjs -->|"Délègue"| handler
   handler -->|"Route les requêtes"| apiroutes
-  handler -->|"SSR"| page
+  handler -->|"SSR"| shell
 
   apicfg -..-> config
   apict -..-> content
@@ -128,14 +143,24 @@ flowchart LR
   config -..->|"Lit"| envfile
   cf -->|"Lit/écrit"| fs
 
-  page -->|"consomme"| stores
-  page -->|"instancie"| eorchest
-  page -..->|"polling"| conflictmod
-  page -..->|"restoreAppState"| restorem
+  shell -->|"consomme"| stores
+  shell -..->|"polling"| conflictmod
+  shell -..->|"restoreAppState"| restorem
 
-  eorchest --> msync
-  eorchest --> raww
-  eorchest --> wysi
+  editorpanel --> editormain
+  editorpanel --> tabbar
+  editorpanel --> archview
+  editorpanel --> emptystate
+  editorpanel --> hugoprev
+
+  editormain --> editor
+  editormain --> fmeditor
+  editormain --> statusbar
+
+  editor --> msync
+  editor --> raww
+  editor --> wysi
+
   msync -..-> estore
 ```
 
@@ -157,6 +182,8 @@ sequenceDiagram
     participant rawEditor as RawEditor
     participant wysiwygEditor as WysiwygEditor
     participant Editor as Editor.svelte
+    participant EditorMain as EditorMain
+    participant EditorPanel as EditorPanelContainer
     participant hugoStore as HugoStore
     participant gitStore as GitStore
     participant conflictMod as conflict.ts
@@ -175,8 +202,9 @@ sequenceDiagram
     B->>B: server.listen(PORT)
     B-->>U: Listening on http://...
 
-    Note over UI,A: PREMIÈRE REQUÊTE
+    Note over UI,A: PREMIÈRE REQUÊTE (SSR + hydrate)
     U->>UI: Ouvre http://localhost:{PORT}
+    Note over UI: +page.svelte hydrate →<br/>AppHeader, ActionBar,<br/>SidebarContainer, EditorPanelContainer
     UI->>A: GET /api/config
     A->>C: cmsConfig
     A-->>UI: ClientConfig JSON
@@ -185,7 +213,9 @@ sequenceDiagram
     A-->>UI: Tree (fichiers/dossiers)
 
     Note over UI,FS: ÉDITION — OUVERTURE FICHIER
-    U->>UI: Clique fichier
+    U->>UI: Clique fichier (sidebar / sitemap)
+    UI->>editorStore: switchToTab(slug)
+    Note over editorStore: switchToTab sync aussi sidebarView
     UI->>A: GET /api/content/{slug}
     A->>FS: readFile {slug}.md
     A->>markdown: parseFrontmatter()
@@ -198,7 +228,8 @@ sequenceDiagram
 
     Note over UI,FS: ÉDITION — MODE RAW
     U->>UI: Bascule en mode brut
-    UI->>Editor: rawMode = true
+    UI->>EditorMain: rawMode = true
+    EditorMain->>Editor: rawMode = true
     Editor->>modeSync: toggleToRaw()
     modeSync->>wysiwygEditor: getMarkdown() → markdownBody
     modeSync->>modeSync: recompose fm + body
@@ -208,7 +239,8 @@ sequenceDiagram
 
     Note over UI,FS: ÉDITION — MODE WYSIWYG
     U->>UI: Bascule en WYSIWYG
-    UI->>Editor: rawMode = false
+    UI->>EditorMain: rawMode = false
+    EditorMain->>Editor: rawMode = false
     Editor->>modeSync: toggleToWysiwyg()
     modeSync->>rawEditor: cmDispatch(content)
     modeSync-->>wysiwygEditor: wysiwygContent
@@ -217,7 +249,9 @@ sequenceDiagram
 
     Note over UI,FS: SAUVEGARDE
     U->>UI: Ctrl+S / auto-save
-    UI->>Editor: save()
+    UI->>EditorPanel: save
+    EditorPanel->>EditorMain: save
+    EditorMain->>Editor: save()
     Editor->>modeSync: getCurrentContent() → fullContent
     Editor->>A: PUT /api/content/{slug}
     A->>FS: writeFile + conflict check (mtime)
@@ -299,32 +333,42 @@ flowchart TD
         USTORE["ui.svelte.ts"]
     end
 
-    subgraph "Éditeur (src/lib/components/ + editor/)"
-        EDITOR["Editor.svelte (orchestrateur ~415 lignes)"]
-        EDITOR --> MSYNC["mode-sync.svelte.ts (classe ModeSync)"]
-        EDITOR --> RAW["RawEditor.svelte (CodeMirror 6, ~241 lignes)"]
-        EDITOR --> WYSI["WysiwygEditor.svelte (Tiptap, ~278 lignes)"]
-        RAW -->|"$effect lifecycle"| CM6["EditorView CM6"]
-        WYSI -->|"buildEditor()"| TIPTAP["Editor Tiptap"]
-        WYSI -->|"bubbleMenu"| BUBBLE["BubbleMenu.svelte"]
-        WYSI -->|"slashCommands"| SLASH["slash-commands.ts"]
-        WYSI -.->|"custom serialize"| IMGBLOCK["tiptap-image-block.ts"]
-    end
-
-    subgraph "UI Components (+page.svelte + composants)"
-        PAGE["+page.svelte (<2000 lignes, consomme les stores)"]
+    subgraph "Composants UI (src/lib/components/)"
+        PAGE["+page.svelte (~364 lignes, shell)"]
+        PAGE --> APPHEADER["AppHeader.svelte (0 prop)"]
+        PAGE --> RESTARTB["RestartBanner.svelte (0 prop)"]
+        PAGE --> ACTIONBAR["ActionBar.svelte (0 prop)"]
+        PAGE --> SIDEBARCT["SidebarContainer.svelte (5 props)"]
+        PAGE --> EPANEL["EditorPanelContainer.svelte (1 prop)"]
+        PAGE --> SETUP["SetupOverlay.svelte (0 prop)"]
         PAGE --> FF["conflict.ts (polling mtime)"]
         PAGE --> RESTORE["restore.ts (restoreAppState)"]
-        PAGE --> SIDEBAR["Sidebar.svelte"]
-        PAGE --> TABBAR["TabBar.svelte"]
-        PAGE --> EDITOR
-        PAGE --> FM["FrontMatterEditor.svelte"]
-        PAGE --> STATUSBAR["StatusBar.svelte"]
         PAGE --> SETTINGS["SettingsDialog.svelte"]
-        PAGE --> HUGOPREV["HugoPreview.svelte"]
         PAGE --> HUGOCON["HugoConsole.svelte"]
-        PAGE --> GITSIDEBAR["GitSidebar.svelte"]
-        PAGE --> DIALOGS["CreateFile / CreateFolder / Search / Shortcuts / Commit / FolderPicker / ImageView / ArchetypeView / ConfigView / SitemapView / NewSiteDialog / ShortcodeDialog"]
+        PAGE --> DIALOGS["CreateFile / CreateFolder / Search / Shortcuts / Commit / FolderPicker / ImageView / NewSiteDialog / ShortcodeDialog"]
+
+        SIDEBARCT --> SIDEBAR["Sidebar.svelte"]
+        SIDEBARCT --> GITSIDEBAR["GitSidebar.svelte"]
+
+        EPANEL --> TABBAR["TabBar.svelte"]
+        EPANEL --> HUGOPREV["HugoPreview.svelte"]
+        EPANEL --> EMAIN["EditorMain.svelte"]
+        EPANEL --> ARCHCFG["ArchetypeView / ConfigView / ImageView / SitemapView"]
+
+        EMAIN --> EDITOR["Editor.svelte (CM6/Tiptap)"]
+        EMAIN --> FM["FrontMatterEditor.svelte"]
+        EMAIN --> STATUSBAR["StatusBar.svelte"]
+    end
+
+    subgraph "Éditeur interne (src/lib/components/ + editor/)"
+        EDITOR --> MSYNC["mode-sync.svelte.ts (ModeSync)"]
+        EDITOR --> RAW["RawEditor.svelte (CodeMirror 6)"]
+        EDITOR --> WYSI["WysiwygEditor.svelte (Tiptap)"]
+        RAW --> CM6["EditorView CM6"]
+        WYSI --> TIPTAP["Editor Tiptap"]
+        WYSI --> BUBBLE["BubbleMenu.svelte"]
+        WYSI --> SLASH["slash-commands.ts"]
+        WYSI -.-> IMGBLOCK["tiptap-image-block.ts"]
     end
 
     subgraph "External Systems"

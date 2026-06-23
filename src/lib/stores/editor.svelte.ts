@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
 import { flattenTree } from '$lib/tree-utils';
+import { settingsStore } from '$lib/stores/settings.svelte';
 
 export type TabKind = 'content' | 'static' | 'archetype' | 'config';
 
@@ -106,8 +107,8 @@ function create() {
 		},
 
 		/** Crée un onglet de type non-content s'il n'existe pas déjà.
-		 *  N'appelle PAS switchToTab — l'appelant décide du moment du switch
-		 *  (via la fonction locale `switchToTab` de +page.svelte qui gère aussi sidebarView). */
+		 *  N'appelle PAS switchToTab — l'appelant décide du moment du switch.
+		 *  switchToTab synchronise aussi sidebarView automatiquement. */
 		openKindTab(slug: string, kind: TabKind) {
 			const curTabs = get(tabs);
 			if (curTabs.some(t => t.slug === slug)) return;
@@ -145,10 +146,15 @@ function create() {
 			currentSlug.set(tab.slug);
 		} else if (tab.kind === 'config') {
 			currentConfigSlug.set(tab.slug);
-			currentSlug.set(tab.slug);
-		} else {
-			currentSlug.set(tab.slug);
-		}
+		currentSlug.set(tab.slug);
+			} else {
+				currentSlug.set(tab.slug);
+			}
+			let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
+			if (tab.kind === 'archetype') v = 'archetypes';
+			else if (tab.kind === 'config') v = 'config';
+			else if (tab.kind === 'static') v = 'static';
+			settingsStore.updateLayout({ sidebarView: v });
 		},
 
 		async handleSave(markdown: string) {
@@ -182,10 +188,6 @@ function create() {
 			const idx = curTabs.findIndex(t => t.slug === slug);
 			if (idx === -1) return;
 			tabs.set(curTabs.filter(t => t.slug !== slug));
-			const curArchetype = get(currentArchetype);
-			const curConfigSlug = get(currentConfigSlug);
-			if (curArchetype === slug) currentArchetype.set(null);
-			if (curConfigSlug === slug) currentConfigSlug.set(null);
 			if (get(currentSlug) === slug) {
 				const newTabs = get(tabs);
 				const nextTab = newTabs[Math.min(idx, newTabs.length - 1)];
@@ -194,12 +196,22 @@ function create() {
 					if (nextTab.kind === 'content') {
 						editorContent.set(nextTab.content);
 						currentFrontmatter.set({ ...nextTab.frontmatter });
+					} else {
+						editorContent.set('');
+						currentFrontmatter.set({});
 					}
+					currentConfigSlug.set(nextTab.kind === 'config' ? nextTab.slug : null);
+					currentArchetype.set(nextTab.kind === 'archetype' ? nextTab.slug : null);
 				} else {
 					currentSlug.set(null);
 					editorContent.set('');
 					currentFrontmatter.set({});
+					currentConfigSlug.set(null);
+					currentArchetype.set(null);
 				}
+			} else {
+				if (get(currentArchetype) === slug) currentArchetype.set(null);
+				if (get(currentConfigSlug) === slug) currentConfigSlug.set(null);
 			}
 		},
 
