@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
 import { flattenTree } from '$lib/tree-utils';
+import { confirmStore } from '$lib/stores/confirm.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 
 export type TabKind = 'content' | 'static' | 'archetype' | 'config' | 'site';
@@ -245,7 +246,8 @@ function create() {
 		async handleDelete(slug: string | undefined, trashDir: string, loadTreeFn: () => Promise<void>) {
 			const target = slug || get(currentSlug);
 			if (!target) return;
-			if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans ${trashDir}/.`)) return;
+			const ok = await confirmStore.confirm('Supprimer le fichier', `Supprimer "${target}" ?\n\nLe fichier sera déplacé dans ${trashDir}/.`);
+			if (!ok) return;
 			await fetch(`/api/content/${target}`, { method: 'DELETE' });
 			tabs.update(t => t.filter(tab => tab.slug !== target));
 			if (slug || get(currentSlug) === target) {
@@ -265,7 +267,8 @@ function create() {
 		},
 
 		async handleDeleteFolder(slug: string, trashDir: string, loadTreeFn: () => Promise<void>) {
-			if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDir}/.`)) return;
+			const ok = await confirmStore.confirm('Supprimer le dossier', `Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDir}/.`);
+			if (!ok) return;
 			await fetch(`/api/directory/${slug}`, { method: 'DELETE' });
 			tabs.update(t => t.filter(tab => tab.slug !== slug && !tab.slug.startsWith(slug + '/')));
 			const curTabs = get(tabs);

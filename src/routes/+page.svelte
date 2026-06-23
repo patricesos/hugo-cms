@@ -3,6 +3,7 @@
 	import AppHeader from '$lib/components/AppHeader.svelte';
 	import RestartBanner from '$lib/components/RestartBanner.svelte';
 	import SidebarContainer from '$lib/components/SidebarContainer.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import ActionBar from '$lib/components/ActionBar.svelte';
 	import EditorPanelContainer from '$lib/components/EditorPanelContainer.svelte';
 	import SetupOverlay from '$lib/components/SetupOverlay.svelte';
@@ -348,6 +349,8 @@
 		}}
 	/>
 {/if}
+
+<ConfirmDialog />
 
 {#if ThemeSelectorComp}
 	<ThemeSelectorComp

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	import { confirmStore } from '$lib/stores/confirm.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
@@ -127,14 +128,16 @@
 
 	/** Suppression d'un dossier dans la vue Site (API site, pas content). */
 	async function handleDeleteSiteFolder(slug: string) {
-		if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera supprimé.`)) return;
+		const ok = await confirmStore.confirm('Supprimer le dossier', `Supprimer le dossier "${slug}" ?\n\nTout son contenu sera supprimé.`);
+		if (!ok) return;
 		await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
 		loadSiteTree();
 	}
 
 	/** Suppression d'un fichier dans la vue Site (API site, pas content). */
 	async function handleDeleteSiteFile(slug: string) {
-		if (!window.confirm(`Supprimer "${slug}" ?`)) return;
+		const ok = await confirmStore.confirm('Supprimer le fichier', `Supprimer "${slug}" ?`);
+		if (!ok) return;
 		await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
 		loadSiteTree();
 	}

@@ -311,6 +311,32 @@
 - [ ] Langue de l'interface (Français, English)
 - [ ] Slugify : conserver les caractères non-ASCII (oui/non)
 
+### Réalisations session en cours (branche `feat/theme-download`)
+
+#### Vue Site totalement autonome
+- [x] **DnD dossiers (content + site)** — `renameDirectory` dans content.ts, `PATCH` étendu aux dossiers, `TreeNode` draggable + protection circulaire
+- [x] **Suppression site (fichiers + dossiers)** — `deleteSiteFile` passe de `unlink` à `rm({ recursive: true })`, handlers dédiés dans SidebarContainer/TreeNode, API DELETE unique
+- [x] **Renommage dossiers (content + site)** — `startEdit` sans guard `node.type !== 'file'`, bouton dossier `ondblclick={startEdit}`, champ rename avec validation/annulation
+- [x] **Création dossier dans la vue Site** — `createFolderIsSite` dans DialogState, `createSiteDirectory` dans site-tree.ts, nouvel endpoint `POST /api/site/mkdir/[...slug]`
+- [x] **Bug fix : dialog fermé même en erreur** — `try/finally` sur `handleCreateFolder`, `loadSiteTree` importé dans `+page.svelte`
+
+#### Renommage fiable — extension préservée
+- [x] **TreeNode** — `fileName = node.name` (plus de strip `.md`), sanitization autorise les points, early return si pas de changement
+- [x] **Backend content** — `renameContent` nettoie le `.md` du `newSlug` avant d'ajouter `.md` (évite `fichier.md.md`)
+
+#### Désinstallation de thème
+- [x] **theme-install.ts** — `uninstallTheme(themeId)` supprime le dossier `themes/<id>/`, nettoie la config Hugo si c'était le thème actif
+- [x] **Endpoint** — `POST /api/hugo/theme/uninstall`
+- [x] **theme.svelte.ts** — méthode `uninstall(themeId)` avec rafraîchissement catalogue + preview
+- [x] **ThemeSelector** — bouton "Désinstaller" rouge + dialog de confirmation Svelte natif
+
+#### Dialog de confirmation réutilisable (remplace tous les `window.confirm`)
+- [x] **confirm.svelte.ts** — store avec `confirm(title, msg)` retournant `Promise<boolean>`, et `resolve(bool)`
+- [x] **ConfirmDialog.svelte** — composant réutilisable avec overlay, Escape, boutons Annuler/Confirmer
+- [x] **Migration SidebarContainer** — `handleDeleteSiteFolder/File` passés à `confirmStore.confirm()`
+- [x] **Migration editor.svelte.ts** — `handleDelete/HandleDeleteFolder` passés à `confirmStore.confirm()`
+- [x] **Tests TreeNode** — mis à jour : attend `'about.md'` (extension non strip), renommage dossier OK
+
 ## Done
 
 - [x] Port CMS (1703 par défaut, redémarrage requis)
