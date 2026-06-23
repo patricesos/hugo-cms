@@ -80,7 +80,7 @@
 	}
 
 	function handleDragStart(e: DragEvent) {
-		if (node.type !== 'file') return;
+		if (node.type !== 'file' && node.type !== 'directory') return;
 		e.dataTransfer?.setData('text/plain', node.slug);
 		e.dataTransfer!.effectAllowed = 'move';
 	}
@@ -103,9 +103,9 @@
 		if (!sourceSlug) return;
 		const fileName = sourceSlug.includes('/') ? sourceSlug.split('/').pop()! : sourceSlug;
 		const newSlug = node.slug ? `${node.slug}/${fileName}` : fileName;
-		if (newSlug !== sourceSlug) {
-			onRenameFile(sourceSlug, newSlug);
-		}
+		if (newSlug === sourceSlug) return;
+		if (newSlug.startsWith(sourceSlug + '/')) return;
+		onRenameFile(sourceSlug, newSlug);
 	}
 </script>
 
@@ -117,6 +117,8 @@
 			class:drag-over={dragOver}
 			onclick={toggle}
 			title={open ? 'Réduire' : 'Développer'}
+			draggable="true"
+			ondragstart={handleDragStart}
 			ondragover={handleDragOver}
 			ondragleave={handleDragLeave}
 			ondrop={handleDrop}

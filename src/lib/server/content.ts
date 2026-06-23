@@ -166,6 +166,13 @@ export async function renameContent(slug: string, newSlug: string): Promise<Cont
 	return readContent(newSlug);
 }
 
+export async function renameDirectory(slug: string, newSlug: string): Promise<void> {
+	const dirPath = safeResolve(slug);
+	const newDirPath = safeResolve(newSlug);
+	await mkdir(dirname(newDirPath), { recursive: true });
+	await rename(dirPath, newDirPath);
+}
+
 export async function createDirectory(slug: string): Promise<void> {
 	const dirPath = safeResolve(slug);
 	try {
