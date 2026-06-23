@@ -1,4 +1,4 @@
-import { readdir, readFile, access, rename, mkdir, writeFile, unlink } from 'node:fs/promises';
+import { readdir, readFile, access, rename, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { getCmsConfig } from './config';
 import type { TreeNode } from './types';
@@ -77,11 +77,11 @@ export async function writeSiteFile(slug: string, content: string): Promise<void
 	await writeFile(filePath, content, 'utf-8');
 }
 
-/** Supprime un fichier dans hugoSitePath. */
+/** Supprime un fichier ou dossier dans hugoSitePath. */
 export async function deleteSiteFile(slug: string): Promise<void> {
 	const root = getCmsConfig().hugoSitePath;
 	const filePath = join(root, slug);
-	await unlink(filePath);
+	await rm(filePath, { recursive: true });
 }
 
 /** Détermine le content-type MIME à partir de l'extension. */

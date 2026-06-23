@@ -27,7 +27,9 @@
 		onCreateFileInFolder,
 		onCreateFolderInFolder,
 		onDeleteFile,
+		onDeleteSiteFile,
 		onDeleteFolder,
+		onDeleteSiteFolder,
 		onRenameFile,
 		onRenameSite,
 		onDuplicateFile,
@@ -50,7 +52,9 @@
 		onCreateFileInFolder?: (slug: string) => void;
 		onCreateFolderInFolder?: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
+		onDeleteSiteFile?: (slug: string) => void;
 		onDeleteFolder?: (slug: string) => void;
+		onDeleteSiteFolder?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
 		onRenameSite?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
@@ -176,7 +180,7 @@
 			</div>
 		{:else if sidebarView === 'site'}
 			{#each siteTree as node}
-				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectSite?.(slug)} {onCreateFileInFolder} {onCreateFolderInFolder} {onDeleteFile} {onDeleteFolder} onRenameFile={onRenameSite} {onDuplicateFile} />
+				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectSite?.(slug)} {onCreateFileInFolder} {onCreateFolderInFolder} onDeleteFile={onDeleteSiteFile} onDeleteFolder={onDeleteSiteFolder} onRenameFile={onRenameSite} {onDuplicateFile} />
 			{/each}
 		{:else}
 			{#each archetypeTree as node}

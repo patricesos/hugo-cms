@@ -125,6 +125,20 @@
 		loadSiteTree();
 	}
 
+	/** Suppression d'un dossier dans la vue Site (API site, pas content). */
+	async function handleDeleteSiteFolder(slug: string) {
+		if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera supprimé.`)) return;
+		await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
+		loadSiteTree();
+	}
+
+	/** Suppression d'un fichier dans la vue Site (API site, pas content). */
+	async function handleDeleteSiteFile(slug: string) {
+		if (!window.confirm(`Supprimer "${slug}" ?`)) return;
+		await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
+		loadSiteTree();
+	}
+
 	// Git callbacks
 	async function refreshGitStatus() {
 		await gitStore.refresh();
@@ -164,7 +178,9 @@
 				onCreateFileInFolder={handleCreateFileInFolder}
 				onCreateFolderInFolder={handleCreateFolderInFolder}
 				onDeleteFile={onDelete}
+				onDeleteSiteFile={handleDeleteSiteFile}
 				onDeleteFolder={onDeleteFolder}
+				onDeleteSiteFolder={handleDeleteSiteFolder}
 				onRenameFile={onRenameFile}
 				onRenameSite={handleRenameSite}
 				onDuplicateFile={onDuplicateFile}
