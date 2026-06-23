@@ -1,5 +1,7 @@
 import { writable, get } from 'svelte/store';
 import type { ThemeCatalogEntry } from '$lib/server/theme-catalog';
+import { hugoStore } from './hugo.svelte';
+import { editorStore } from './editor.svelte';
 
 export interface ThemeStoreState {
 	catalog: (ThemeCatalogEntry & { installed: boolean; active: boolean })[];
@@ -70,6 +72,8 @@ function createThemeStore() {
 			store.update((s) => ({ ...s, installProgress: 100 }));
 			await fetchCatalog();
 			store.update((s) => ({ ...s, installing: null, installProgress: 0 }));
+			hugoStore.reloadPreview();
+			editorStore.configReloadKey.update(n => n + 1);
 			return true;
 		} catch (err) {
 			stopPolling();
@@ -96,6 +100,8 @@ function createThemeStore() {
 				return false;
 			}
 			await fetchCatalog();
+			hugoStore.reloadPreview();
+			editorStore.configReloadKey.update(n => n + 1);
 			return true;
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);

@@ -18,7 +18,7 @@
 	const { tree, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
 	const {
 		tabs, currentSlug,
-		currentArchetype, currentConfigSlug, currentTab,
+		currentArchetype, currentConfigSlug, currentTab, configReloadKey,
 	} = editorStore;
 
 	let ArchetypeViewComp = $state<any>(null);
@@ -82,6 +82,7 @@
 				{#if ConfigViewComp}
 					<ConfigViewComp
 						slug={$currentConfigSlug}
+						reloadKey={$configReloadKey}
 						onClose={() => { editorStore.tabs.set($tabs.filter(t => t.slug !== $currentSlug)); editorStore.currentConfigSlug.set(null); editorStore.currentSlug.set(null); }}
 						onDelete={(s: string) => { loadConfigTree(); editorStore.tabs.set($tabs.filter(t => t.slug !== s)); editorStore.currentConfigSlug.set(null); editorStore.currentSlug.set(null); }}
 					/>

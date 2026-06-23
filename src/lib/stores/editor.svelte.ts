@@ -29,6 +29,7 @@ function create() {
 	const loading = writable(false);
 	const currentArchetype = writable<string | null>(null);
 	const currentConfigSlug = writable<string | null>(null);
+	const configReloadKey = writable(0);
 	const conflictSlug = writable<string | null>(null);
 	const conflictServerMtimeMs = writable(0);
 
@@ -49,6 +50,7 @@ function create() {
 		loading,
 		currentArchetype,
 		currentConfigSlug,
+		configReloadKey,
 		conflictSlug,
 		conflictServerMtimeMs,
 

@@ -4,10 +4,12 @@
 
 	let {
 		slug,
+		reloadKey = 0,
 		onClose,
 		onDelete,
 	}: {
 		slug: string | null;
+		reloadKey?: number;
 		onClose: () => void;
 		onDelete: (slug: string) => void;
 	} = $props();
@@ -19,6 +21,8 @@
 	let error = $state('');
 
 	$effect(() => {
+		// slug + reloadKey : recharger le fichier si l'un ou l'autre change
+		void reloadKey;
 		if (slug) {
 			loadConfigFile(slug);
 		}
