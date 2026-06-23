@@ -47,7 +47,6 @@
 	const fileName = $derived(node.name.replace(/\.md$/, ''));
 
 	function startEdit() {
-		if (node.type !== 'file') return;
 		editValue = fileName;
 		editing = true;
 	}
@@ -111,44 +110,62 @@
 
 <div class="tree-node">
 	{#if node.type === 'directory'}
-	<div class="dir-row">
-		<button
-			class="tree-item dir"
-			class:drag-over={dragOver}
-			onclick={toggle}
-			title={open ? 'Réduire' : 'Développer'}
-			draggable="true"
-			ondragstart={handleDragStart}
-			ondragover={handleDragOver}
-			ondragleave={handleDragLeave}
-			ondrop={handleDrop}
-		>
-			<span class="chevron">
-				{#if open}
-					<ChevronDown size={13} />
-				{:else}
-					<ChevronRight size={13} />
-				{/if}
-			</span>
-			<span class="icon"><Folder size={15} /></span>
-			<span class="name">{node.name}</span>
-		</button>
-		{#if onCreateFileInFolder}
-			<button class="create-in-folder" onclick={() => onCreateFileInFolder(node.slug)} title="Nouveau fichier dans {node.name}">
-				<Plus size={13} />
+		{#if editing}
+			<div class="file-row">
+				<div class="rename-wrap">
+					<input
+						bind:this={inputEl}
+						type="text"
+						class="rename-input"
+						bind:value={editValue}
+						onkeydown={handleKeydown}
+						onblur={commitEdit}
+					/>
+					<button class="rename-btn" onclick={commitEdit} title="Valider"><Check size={13} /></button>
+					<button class="rename-btn" onclick={cancelEdit} title="Annuler"><X size={13} /></button>
+				</div>
+			</div>
+		{:else}
+		<div class="dir-row">
+			<button
+				class="tree-item dir"
+				class:drag-over={dragOver}
+				onclick={toggle}
+				title={open ? 'Réduire' : 'Développer'}
+				draggable="true"
+				ondragstart={handleDragStart}
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
+				ondrop={handleDrop}
+				ondblclick={startEdit}
+			>
+				<span class="chevron">
+					{#if open}
+						<ChevronDown size={13} />
+					{:else}
+						<ChevronRight size={13} />
+					{/if}
+				</span>
+				<span class="icon"><Folder size={15} /></span>
+				<span class="name">{node.name}</span>
 			</button>
+			{#if onCreateFileInFolder}
+				<button class="create-in-folder" onclick={() => onCreateFileInFolder(node.slug)} title="Nouveau fichier dans {node.name}">
+					<Plus size={13} />
+				</button>
+			{/if}
+			{#if onCreateFolderInFolder}
+				<button class="create-in-folder" onclick={() => onCreateFolderInFolder(node.slug)} title="Nouveau dossier dans {node.name}">
+					<FolderPlus size={13} />
+				</button>
+			{/if}
+			{#if onDeleteFolder}
+				<button class="delete-dir-btn" onclick={() => onDeleteFolder(node.slug)} title="Supprimer le dossier">
+					<Trash2 size={13} />
+				</button>
+			{/if}
+		</div>
 		{/if}
-		{#if onCreateFolderInFolder}
-			<button class="create-in-folder" onclick={() => onCreateFolderInFolder(node.slug)} title="Nouveau dossier dans {node.name}">
-				<FolderPlus size={13} />
-			</button>
-		{/if}
-		{#if onDeleteFolder}
-			<button class="delete-dir-btn" onclick={() => onDeleteFolder(node.slug)} title="Supprimer le dossier">
-				<Trash2 size={13} />
-			</button>
-		{/if}
-	</div>
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
 				{#each node.children! as child}
