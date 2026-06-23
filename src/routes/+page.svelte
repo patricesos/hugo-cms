@@ -4,7 +4,7 @@
 	import RestartBanner from '$lib/components/RestartBanner.svelte';
 	import SidebarContainer from '$lib/components/SidebarContainer.svelte';
 	import ActionBar from '$lib/components/ActionBar.svelte';
-	import EditorPanel from '$lib/components/EditorPanel.svelte';
+	import EditorPanelContainer from '$lib/components/EditorPanelContainer.svelte';
 	import SetupOverlay from '$lib/components/SetupOverlay.svelte';
 	import { hugoStore } from '$lib/stores/hugo.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
@@ -187,7 +187,7 @@
 	// --- Restauration d'etat ---
 	async function restoreAppState() {
 		const { activeSlug, shouldInitGit } = await restoreState();
-		if (activeSlug) await editorPanelRef?.switchToTab(activeSlug);
+		if (activeSlug) await editorStore.switchToTab(activeSlug);
 		if (shouldInitGit) {
 			gitStore.initialized.set(true);
 			await refreshGitStatus();
@@ -215,7 +215,7 @@
 		onDuplicateFile={handleDuplicate}
 	/>
 
-	<EditorPanel onLoadFile={loadFile} bind:this={editorPanelRef} />
+	<EditorPanelContainer onLoadFile={loadFile} bind:this={editorPanelRef} />
 	</div>
 </div>
 

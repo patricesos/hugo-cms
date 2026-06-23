@@ -46,19 +46,6 @@
 		return () => { cleanupAllResize(); };
 	});
 
-	// Callbacks internes
-	export async function switchToTab(slug: string) {
-		await editorStore.switchToTab(slug);
-		const tab = $tabs.find(t => t.slug === slug);
-		if (tab) {
-			let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
-			if (tab.kind === 'archetype') v = 'archetypes';
-			else if (tab.kind === 'config') v = 'config';
-			else if (tab.kind === 'static') v = 'static';
-			settingsStore.updateLayout({ sidebarView: v });
-		}
-	}
-
 	function handleCloseTab(slug: string) {
 		editorStore.handleCloseTab(slug);
 	}
@@ -77,7 +64,7 @@
 			tabs={$tabs}
 			activeSlug={$currentSlug ?? ''}
 			showFilenameInTabs={$settings.showFilenameInTabs}
-			onSelect={(slug) => { switchToTab(slug); }}
+			onSelect={(slug) => { editorStore.switchToTab(slug); }}
 			onClose={handleCloseTab}
 		/>
 	{/if}

@@ -61,7 +61,7 @@
 		const ext = path.split('.').pop()?.toLowerCase();
 		if (ext && /^(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i.test(ext)) {
 			editorStore.openKindTab(path, 'static');
-			switchToTab(path);
+			editorStore.switchToTab(path);
 		} else {
 			window.open(`/api/assets/${path}`, '_blank');
 		}
@@ -69,29 +69,17 @@
 
 	function handleSelectArchetype(slug: string) {
 		editorStore.openKindTab(slug, 'archetype');
-		switchToTab(slug);
+		editorStore.switchToTab(slug);
 	}
 
 	function handleSelectConfig(slug: string) {
 		editorStore.openKindTab(slug, 'config');
-		switchToTab(slug);
+		editorStore.switchToTab(slug);
 	}
 
 	function handleViewChange(v: 'archetypes' | 'config' | 'content' | 'static') {
 		settingsStore.updateLayout({ sidebarView: v });
 		if (v === 'config') loadConfigTree();
-	}
-
-	async function switchToTab(slug: string) {
-		await editorStore.switchToTab(slug);
-		const tab = $tabs.find(t => t.slug === slug);
-		if (tab) {
-			let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
-			if (tab.kind === 'archetype') v = 'archetypes';
-			else if (tab.kind === 'config') v = 'config';
-			else if (tab.kind === 'static') v = 'static';
-			settingsStore.updateLayout({ sidebarView: v });
-		}
 	}
 
 	// Git callbacks
