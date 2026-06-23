@@ -134,9 +134,6 @@
     $effect(() => {
         if (!active || !cmContainer) {
             if (cmView) {
-                console.log(
-                    "[RawEditor] Destroy CM view (inactive/no container)",
-                );
                 cmView.destroy();
                 cmView = null;
             }
@@ -144,10 +141,6 @@
         }
         const docContent = untrack(() => content);
         const isDark = document.documentElement.dataset.theme === "dark";
-        console.log("[RawEditor] Create CM view", {
-            contentLength: docContent.length,
-            isDark,
-        });
         const tc = new Compartment();
         const langAtCreate = untrack(() => lang);
         const view = new EditorView({
@@ -198,7 +191,6 @@
         });
 
         return () => {
-            console.log("[RawEditor] Cleanup: destroy CM view");
             themeObs.disconnect();
             view.destroy();
             if (cmView === view) cmView = null;
@@ -218,18 +210,7 @@
         if (!cmView || cmUpdating) return;
         const current = cmView.state.doc.toString();
         const shouldSync = current !== content;
-        console.log("[RawEditor] Sync $effect", {
-            currentLen: current.length,
-            contentLen: content?.length,
-            shouldSync,
-            cmUpdating,
-        });
         if (shouldSync) {
-            console.log("[RawEditor] DISPATCHING sync", {
-                from: 0,
-                to: current.length,
-                insertLen: content?.length,
-            });
             cmUpdating = true;
             cmView.dispatch({
                 changes: { from: 0, to: current.length, insert: content },
