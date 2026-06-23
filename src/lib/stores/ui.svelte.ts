@@ -12,6 +12,7 @@ export interface DialogState {
 	showSettings: boolean;
 	showRestartBanner: boolean;
 	showNewSiteDialog: boolean;
+	showThemeSelector: boolean;
 }
 
 function createUiStore() {
@@ -27,6 +28,7 @@ function createUiStore() {
 		showSettings: false,
 		showRestartBanner: false,
 		showNewSiteDialog: false,
+		showThemeSelector: false,
 	});
 
 	return {
@@ -66,6 +68,10 @@ function createUiStore() {
 
 		toggleSitemap() {
 			dialogs.update(d => ({ ...d, showSitemap: !d.showSitemap }));
+		},
+
+		toggleThemeSelector() {
+			dialogs.update(d => ({ ...d, showThemeSelector: !d.showThemeSelector }));
 		},
 
 		snapshot() {

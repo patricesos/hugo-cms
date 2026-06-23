@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PanelLeftClose, PanelLeftOpen, Search, FilePlus, FolderPlus, RefreshCw, Map, Eye, Terminal, GitBranch, Globe, Lock, Loader2, ExternalLink, Settings } from '@lucide/svelte';
+	import { PanelLeftClose, PanelLeftOpen, Search, FilePlus, FolderPlus, RefreshCw, Map, Eye, Terminal, GitBranch, Globe, Lock, Loader2, ExternalLink, Settings, Layers } from '@lucide/svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { hugoStore, hugoStatus, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
@@ -125,6 +125,9 @@
 				<RefreshCw size={15} />
 			</button>
 		{/if}
+		<button class="icon-btn" onclick={() => uiStore.toggleThemeSelector()} title="Thèmes Hugo">
+			<Layers size={16} />
+		</button>
 		<button class="icon-btn" onclick={() => uiStore.updateDialogs({ showSettings: true })} title="Paramètres">
 			<Settings size={16} />
 		</button>
