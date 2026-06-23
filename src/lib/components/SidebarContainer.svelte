@@ -80,22 +80,23 @@
 	function handleSelectSite(slug: string) {
 		const ext = slug.split('.').pop()?.toLowerCase() ?? '';
 		const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif', 'ico'];
-		const configExts = ['toml', 'yaml', 'yml', 'json'];
+		const binaryExts = ['woff', 'woff2', 'ttf', 'otf', 'eot', 'zip', 'tar', 'gz', '7z', 'rar', 'mp3', 'wav', 'ogg', 'flac', 'mp4', 'webm', 'avi', 'pdf', 'exe', 'dll', 'so', 'ico'];
+		const editableExts = ['json', 'toml', 'yaml', 'yml', 'xml', 'html', 'htm', 'css', 'scss', 'sass', 'less', 'js', 'ts', 'mjs', 'cjs', 'txt', 'md', 'sh', 'bat', 'ps1', 'csv', 'env', 'gitignore'];
 		const isImage = imageExts.includes(ext);
-		const isConfig = configExts.includes(ext) && /^hugo\./.test(slug.split('/').pop() ?? '');
-		const isConfigDir = configExts.includes(ext) && slug.startsWith('config/');
+		const isBinary = binaryExts.includes(ext);
+		const isEditable = editableExts.includes(ext) || !ext;
 		const isMd = ext === 'md';
 		const isInContent = slug.startsWith('content/');
 
 		if (isMd && isInContent) {
 			const contentSlug = slug.slice('content/'.length).replace(/\.md$/, '');
 			onLoadFile(contentSlug);
-		} else if (isConfig || isConfigDir) {
-			editorStore.openKindTab(slug, 'config');
-			editorStore.switchToTab(slug);
 		} else if (isImage && slug.startsWith('static/')) {
 			const staticSlug = slug.slice('static/'.length);
 			handleSelectAsset(staticSlug);
+		} else if (isEditable && !isBinary) {
+			editorStore.openKindTab(slug, 'config');
+			editorStore.switchToTab(slug);
 		} else {
 			window.open(`/api/site/raw/${slug}`, '_blank');
 		}
@@ -105,6 +106,16 @@
 		settingsStore.updateLayout({ sidebarView: v });
 		if (v === 'config') loadConfigTree();
 		if (v === 'site') loadSiteTree();
+	}
+
+	/** Renommage/déplacement dans la vue Site (agit sur hugoSitePath). */
+	async function handleRenameSite(oldSlug: string, newSlug: string) {
+		await fetch('/api/site/rename', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ oldSlug, newSlug }),
+		});
+		loadSiteTree();
 	}
 
 	// Git callbacks
@@ -148,6 +159,7 @@
 				onDeleteFile={onDelete}
 				onDeleteFolder={onDeleteFolder}
 				onRenameFile={onRenameFile}
+				onRenameSite={handleRenameSite}
 				onDuplicateFile={onDuplicateFile}
 				onSelectAsset={handleSelectAsset}
 				onSelectArchetype={handleSelectArchetype}

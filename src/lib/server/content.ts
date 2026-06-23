@@ -11,7 +11,7 @@ function getBase(): string {
 
 function getTrashDir(): string {
 	const config = getCmsConfig();
-	return join(config.hugoContentPath, config.trashDir);
+	return join(config.hugoSitePath, config.trashDir);
 }
 
 export function safeResolveIn(base: string, ...segments: string[]): string {

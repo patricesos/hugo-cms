@@ -29,6 +29,7 @@
 		onDeleteFile,
 		onDeleteFolder,
 		onRenameFile,
+		onRenameSite,
 		onDuplicateFile,
 		onSelectAsset,
 		onSelectArchetype,
@@ -51,6 +52,7 @@
 		onDeleteFile?: (slug: string) => void;
 		onDeleteFolder?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
+		onRenameSite?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
 		onSelectAsset?: (path: string) => void;
 		onSelectArchetype?: (slug: string) => void;
@@ -76,6 +78,17 @@
 
 	function handleBlur() {
 		blurTimeout = setTimeout(() => dropdownOpen = false, 150);
+	}
+
+	function handleRootDrop(e: DragEvent) {
+		if (sidebarView !== 'site') return;
+		e.preventDefault();
+		const sourceSlug = e.dataTransfer?.getData('text/plain');
+		if (!sourceSlug || !onRenameSite) return;
+		const fileName = sourceSlug.includes('/') ? sourceSlug.split('/').pop()! : sourceSlug;
+		if (fileName !== sourceSlug) {
+			onRenameSite(sourceSlug, fileName);
+		}
 	}
 </script>
 
@@ -123,7 +136,7 @@
 		{/if}
 	</div>
 
-	<nav class="file-tree">
+	<nav class="file-tree" ondragover={(e) => { if (sidebarView === 'site') e.preventDefault(); }} ondrop={handleRootDrop}>
 		{#if sidebarView === 'content'}
 			{#each tree as node}
 				<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
@@ -163,7 +176,7 @@
 			</div>
 		{:else if sidebarView === 'site'}
 			{#each siteTree as node}
-				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectSite?.(slug)} />
+				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectSite?.(slug)} {onCreateFileInFolder} {onCreateFolderInFolder} {onDeleteFile} {onDeleteFolder} onRenameFile={onRenameSite} {onDuplicateFile} />
 			{/each}
 		{:else}
 			{#each archetypeTree as node}
