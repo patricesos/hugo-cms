@@ -56,7 +56,7 @@
 	}
 
 	function handleCreateFolderInFolder(slug: string) {
-		uiStore.updateDialogs({ createFolderParent: slug });
+		uiStore.updateDialogs({ createFolderParent: slug, createFolderIsSite: $layout.sidebarView === 'site' });
 		uiStore.updateDialogs({ showCreateFolderDialog: true });
 	}
 

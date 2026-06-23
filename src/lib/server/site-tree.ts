@@ -77,6 +77,13 @@ export async function writeSiteFile(slug: string, content: string): Promise<void
 	await writeFile(filePath, content, 'utf-8');
 }
 
+/** Crée un dossier dans hugoSitePath. */
+export async function createSiteDirectory(slug: string): Promise<void> {
+	const root = getCmsConfig().hugoSitePath;
+	const dirPath = join(root, slug);
+	await mkdir(dirPath, { recursive: true });
+}
+
 /** Supprime un fichier ou dossier dans hugoSitePath. */
 export async function deleteSiteFile(slug: string): Promise<void> {
 	const root = getCmsConfig().hugoSitePath;

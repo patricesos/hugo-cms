@@ -24,7 +24,7 @@
 	const { status: gitStatus } = gitStore;
 
 	// Arbres (store dedie)
-	const { tree, assetTree, archetypeTree, configTree, archetypes, directories, searchEntries, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
+	const { tree, assetTree, archetypeTree, configTree, archetypes, directories, searchEntries, loadTree, loadAssetTree, loadArchetypes, loadConfigTree, loadSiteTree } = fileTreeStore;
 
 	// Injection des getters editor dans settingsStore pour le persist (evite l'import direct)
 	settingsStore.setEditorGetters(
@@ -160,8 +160,17 @@
 	}
 
 	async function handleCreateFolder(folderName: string, parent: string) {
-		await editorStore.handleCreateFolder(folderName, parent, loadTree);
-		uiStore.closeCreateFolderDialog();
+		try {
+			if ($dialogs.createFolderIsSite) {
+				const fullSlug = parent ? `${parent}/${folderName}` : folderName;
+				const res = await fetch(`/api/site/mkdir/${fullSlug}`, { method: 'POST' });
+				if (res.ok) await loadSiteTree();
+			} else {
+				await editorStore.handleCreateFolder(folderName, parent, loadTree);
+			}
+		} finally {
+			uiStore.closeCreateFolderDialog();
+		}
 	}
 
 	async function handleDelete(slug?: string) {

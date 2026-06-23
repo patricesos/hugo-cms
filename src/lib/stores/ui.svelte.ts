@@ -5,6 +5,7 @@ export interface DialogState {
 	createFileSection: string;
 	showCreateFolderDialog: boolean;
 	createFolderParent: string;
+	createFolderIsSite: boolean;
 	showSearch: boolean;
 	showShortcuts: boolean;
 	showCommitDialog: boolean;
@@ -21,6 +22,7 @@ function createUiStore() {
 		createFileSection: '',
 		showCreateFolderDialog: false,
 		createFolderParent: '',
+		createFolderIsSite: false,
 		showSearch: false,
 		showShortcuts: false,
 		showCommitDialog: false,
