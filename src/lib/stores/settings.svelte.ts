@@ -18,7 +18,7 @@ export interface SettingsData {
 	fmOpen: boolean;
 	fmWidth: number;
 	fmRawMode: boolean;
-	sidebarView: 'content' | 'static' | 'archetypes' | 'config' | 'all';
+	sidebarView: 'content' | 'static' | 'archetypes' | 'config' | 'all' | 'site';
 	showConsole: boolean;
 	showPreview: boolean;
 	showGit: boolean;
@@ -65,7 +65,7 @@ export interface SettingsState {
 
 export interface LayoutState {
   sidebarOpen: boolean;
-  sidebarView: "content" | "static" | "archetypes" | "config" | "all";
+  sidebarView: "content" | "static" | "archetypes" | "config" | "all" | "site";
   sidebarWidth: number;
   fmOpen: boolean;
   fmWidth: number;

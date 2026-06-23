@@ -176,6 +176,7 @@ export const settingsSchema: SettingTab[] = [
 							{ value: 'static', label: 'Static' },
 							{ value: 'archetypes', label: 'Archetypes' },
 							{ value: 'config', label: 'Config' },
+							{ value: 'site', label: 'Site' },
 						],
 						default: 'content',
 					},

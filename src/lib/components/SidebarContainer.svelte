@@ -12,7 +12,7 @@
 	const { currentSlug, tabs } = editorStore;
 	const { dialogs } = uiStore;
 	const { status: gitStatus, loading: gitLoading, initialized: gitInitialized } = gitStore;
-	const { tree, assetTree, archetypeTree, configTree, loadConfigTree } = fileTreeStore;
+	const { tree, assetTree, archetypeTree, configTree, siteTree, loadConfigTree, loadSiteTree } = fileTreeStore;
 
 	// Props : uniquement les callbacks métier que le parent doit fournir
 	let {
@@ -77,9 +77,34 @@
 		editorStore.switchToTab(slug);
 	}
 
-	function handleViewChange(v: 'all' | 'archetypes' | 'config' | 'content' | 'static') {
+	function handleSelectSite(slug: string) {
+		const ext = slug.split('.').pop()?.toLowerCase() ?? '';
+		const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif', 'ico'];
+		const configExts = ['toml', 'yaml', 'yml', 'json'];
+		const isImage = imageExts.includes(ext);
+		const isConfig = configExts.includes(ext) && /^hugo\./.test(slug.split('/').pop() ?? '');
+		const isConfigDir = configExts.includes(ext) && slug.startsWith('config/');
+		const isMd = ext === 'md';
+		const isInContent = slug.startsWith('content/');
+
+		if (isMd && isInContent) {
+			const contentSlug = slug.slice('content/'.length).replace(/\.md$/, '');
+			onLoadFile(contentSlug);
+		} else if (isConfig || isConfigDir) {
+			editorStore.openKindTab(slug, 'config');
+			editorStore.switchToTab(slug);
+		} else if (isImage && slug.startsWith('static/')) {
+			const staticSlug = slug.slice('static/'.length);
+			handleSelectAsset(staticSlug);
+		} else {
+			window.open(`/api/site/raw/${slug}`, '_blank');
+		}
+	}
+
+	function handleViewChange(v: 'all' | 'archetypes' | 'config' | 'content' | 'site' | 'static') {
 		settingsStore.updateLayout({ sidebarView: v });
 		if (v === 'config') loadConfigTree();
+		if (v === 'site') loadSiteTree();
 	}
 
 	// Git callbacks
@@ -113,6 +138,7 @@
 				assetTree={$assetTree}
 				archetypeTree={$archetypeTree}
 				configTree={$configTree}
+				siteTree={$siteTree}
 				currentSlug={$currentSlug}
 				sidebarView={$layout.sidebarView}
 				expandedSlugs={new Set($layout.expandedSlugs)}
@@ -126,6 +152,7 @@
 				onSelectAsset={handleSelectAsset}
 				onSelectArchetype={handleSelectArchetype}
 				onSelectConfig={handleSelectConfig}
+				onSelectSite={handleSelectSite}
 				onViewChange={handleViewChange}
 				onToggleFolder={handleToggleFolder}
 			/>

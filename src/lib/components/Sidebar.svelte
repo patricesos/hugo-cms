@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { Image, FileText, FileCode, Settings, Layers, ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { Image, FileText, FileCode, Settings, Layers, FolderTree, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import TreeNode from './TreeNode.svelte';
 	import type { TreeNodeData } from '$lib/types';
 
-	const views: { key: 'all' | 'archetypes' | 'config' | 'content' | 'static'; label: string; icon: typeof FileText }[] = [
+	const views: { key: 'all' | 'archetypes' | 'config' | 'content' | 'site' | 'static'; label: string; icon: typeof FileText }[] = [
 		{ key: 'all', label: 'Tout', icon: Layers },
 		{ key: 'content', label: 'Content', icon: FileText },
 		{ key: 'static', label: 'Static', icon: Image },
 		{ key: 'archetypes', label: 'Archétypes', icon: FileCode },
 		{ key: 'config', label: 'Config', icon: Settings },
+		{ key: 'site', label: 'Site', icon: FolderTree },
 	];
 
 	let {
@@ -18,6 +19,7 @@
 		assetTree = [] as TreeNodeData[],
 		archetypeTree = [] as TreeNodeData[],
 		configTree = [] as TreeNodeData[],
+		siteTree = [] as TreeNodeData[],
 		currentSlug = '',
 		sidebarView = 'content',
 		expandedSlugs = new Set<string>(),
@@ -31,6 +33,7 @@
 		onSelectAsset,
 		onSelectArchetype,
 		onSelectConfig,
+		onSelectSite,
 		onViewChange,
 		onToggleFolder,
 	}: {
@@ -38,8 +41,9 @@
 		assetTree?: TreeNodeData[];
 		archetypeTree?: TreeNodeData[];
 		configTree?: TreeNodeData[];
+		siteTree?: TreeNodeData[];
 		currentSlug?: string | null;
-		sidebarView?: 'all' | 'content' | 'static' | 'archetypes' | 'config';
+		sidebarView?: 'all' | 'content' | 'site' | 'static' | 'archetypes' | 'config';
 		expandedSlugs?: Set<string>;
 		onLoadFile?: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
@@ -51,7 +55,8 @@
 		onSelectAsset?: (path: string) => void;
 		onSelectArchetype?: (slug: string) => void;
 		onSelectConfig?: (slug: string) => void;
-		onViewChange?: (view: 'all' | 'content' | 'static' | 'archetypes' | 'config') => void;
+		onSelectSite?: (slug: string) => void;
+		onViewChange?: (view: 'all' | 'content' | 'site' | 'static' | 'archetypes' | 'config') => void;
 		onToggleFolder?: (slug: string) => void;
 	} = $props();
 
@@ -62,9 +67,9 @@
 		if (blurTimeout) clearTimeout(blurTimeout);
 	});
 
-	const currentView = $derived(views.find((v) => v.key === sidebarView) ?? views[2]);
+	const currentView = $derived(views.find((v) => v.key === sidebarView) ?? views[1]);
 
-	function setView(view: 'all' | 'content' | 'static' | 'archetypes' | 'config') {
+	function setView(view: 'all' | 'content' | 'site' | 'static' | 'archetypes' | 'config') {
 		onViewChange?.(view);
 		dropdownOpen = false;
 	}
@@ -88,6 +93,8 @@
 				<Image size={14} />
 			{:else if currentView.icon === Layers}
 				<Layers size={14} />
+			{:else if currentView.icon === FolderTree}
+				<FolderTree size={14} />
 			{/if}
 			<span>{currentView.label}</span>
 			<ChevronRight size={12} />
@@ -106,6 +113,8 @@
 							<Image size={14} />
 						{:else if v.icon === Layers}
 							<Layers size={14} />
+						{:else if v.icon === FolderTree}
+							<FolderTree size={14} />
 						{/if}
 						<span>{v.label}</span>
 					</button>
@@ -152,6 +161,10 @@
 					<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectConfig?.(slug)} />
 				{/each}
 			</div>
+		{:else if sidebarView === 'site'}
+			{#each siteTree as node}
+				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectSite?.(slug)} />
+			{/each}
 		{:else}
 			{#each archetypeTree as node}
 				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectArchetype?.(slug)} />

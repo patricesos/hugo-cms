@@ -153,7 +153,7 @@ function create() {
 				currentSlug.set(tab.slug);
 			}
 			const curView = settingsStore.snapshot().layout.sidebarView;
-			if (curView !== 'all') {
+			if (curView !== 'all' && curView !== 'site') {
 				let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
 				if (tab.kind === 'archetype') v = 'archetypes';
 				else if (tab.kind === 'config') v = 'config';
