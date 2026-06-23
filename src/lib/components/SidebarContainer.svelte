@@ -36,6 +36,13 @@
 			import('./GitSidebar.svelte').then(m => GitSidebarComp = m.default);
 	});
 
+	// Charge l'arbre approprié quand la vue change (évite un arbre vide → pas de bouton créer)
+	$effect(() => {
+		const v = $layout.sidebarView;
+		if (v === 'config') loadConfigTree();
+		if (v === 'site') loadSiteTree();
+	});
+
 	// Redimensionnement
 	const startResize = startSidebarResize(
 		() => $layout.sidebarWidth,
@@ -95,7 +102,7 @@
 			const staticSlug = slug.slice('static/'.length);
 			handleSelectAsset(staticSlug);
 		} else if (isEditable && !isBinary) {
-			editorStore.openKindTab(slug, 'config');
+			editorStore.openKindTab(slug, 'site');
 			editorStore.switchToTab(slug);
 		} else {
 			window.open(`/api/site/raw/${slug}`, '_blank');

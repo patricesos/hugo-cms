@@ -5,7 +5,7 @@
 		slug: string;
 		title: string;
 		frontmatter: Record<string, unknown>;
-		kind: 'content' | 'static' | 'archetype' | 'config';
+		kind: 'content' | 'static' | 'archetype' | 'config' | 'site';
 	}
 
 	let {

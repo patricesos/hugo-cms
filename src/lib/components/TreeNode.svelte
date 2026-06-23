@@ -304,10 +304,15 @@
 		transform: translateY(-50%);
 	}
 
+	/* Décale le second bouton (FolderPlus) à gauche du premier (Plus).
+	   :first-of-type ne marche pas car .tree-item.dir est le premier <button> enfant. */
+	.create-in-folder + .create-in-folder {
+		right: 44px;
+	}
+
 	.tree-node:hover .create-in-folder {
 		opacity: 1;
 	}
-
 	.create-in-folder:hover {
 		background: var(--c-bg-muted);
 		color: var(--c-primary);
