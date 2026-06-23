@@ -77,7 +77,7 @@
 		editorStore.switchToTab(slug);
 	}
 
-	function handleViewChange(v: 'archetypes' | 'config' | 'content' | 'static') {
+	function handleViewChange(v: 'all' | 'archetypes' | 'config' | 'content' | 'static') {
 		settingsStore.updateLayout({ sidebarView: v });
 		if (v === 'config') loadConfigTree();
 	}

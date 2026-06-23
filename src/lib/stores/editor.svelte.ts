@@ -152,11 +152,14 @@ function create() {
 			} else {
 				currentSlug.set(tab.slug);
 			}
-			let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
-			if (tab.kind === 'archetype') v = 'archetypes';
-			else if (tab.kind === 'config') v = 'config';
-			else if (tab.kind === 'static') v = 'static';
-			settingsStore.updateLayout({ sidebarView: v });
+			const curView = settingsStore.snapshot().layout.sidebarView;
+			if (curView !== 'all') {
+				let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
+				if (tab.kind === 'archetype') v = 'archetypes';
+				else if (tab.kind === 'config') v = 'config';
+				else if (tab.kind === 'static') v = 'static';
+				settingsStore.updateLayout({ sidebarView: v });
+			}
 		},
 
 		async handleSave(markdown: string) {

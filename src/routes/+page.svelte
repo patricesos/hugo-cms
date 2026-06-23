@@ -144,7 +144,7 @@
 	// --- Fonctions editeur ---
 	async function loadFile(slug: string) {
 		await editorStore.loadFile(slug, loadTree);
-		if ($currentSlug === slug) {
+		if ($currentSlug === slug && $layout.sidebarView !== 'all') {
 			settingsStore.updateLayout({ sidebarView: 'content' });
 		}
 	}

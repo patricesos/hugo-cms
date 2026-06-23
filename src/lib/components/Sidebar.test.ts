@@ -18,7 +18,7 @@ vi.mock('@lucide/svelte', () => {
 		return { $$render: () => '' };
 	}
 	const icons = [
-		'Image', 'FileText', 'FileCode', 'Settings',
+		'Image', 'FileText', 'FileCode', 'Settings', 'Layers',
 		'ChevronLeft', 'ChevronRight', 'ChevronDown',
 		'Folder', 'Trash2', 'Copy', 'Check', 'X',
 		'Plus', 'FolderPlus',
@@ -134,16 +134,17 @@ describe('Sidebar', () => {
 		expect(trigger).toBeTruthy();
 	});
 
-	it('shows all four view options in the dropdown when opened', async () => {
+	it('shows all five view options in the dropdown when opened', async () => {
 		render(Sidebar, { tree: flatTree });
 
 		const trigger = screen.getByRole('combobox').querySelector('button')!;
 		await fireEvent.click(trigger);
 
-		// "Content" apparaît 2 fois (trigger + dropdown)
-		expect(screen.getAllByText('Content').length).toBe(2);
+		// "Tout" apparaît dans le dropdown uniquement
+		expect(screen.getByText('Tout')).toBeTruthy();
 
-		// Les autres vues apparaissent une fois chacune
+		// Les autres vues : "Content" apparaît 2 fois (trigger + dropdown)
+		expect(screen.getAllByText('Content').length).toBe(2);
 		expect(screen.getByText('Static')).toBeTruthy();
 		expect(screen.getByText('Archétypes')).toBeTruthy();
 		expect(screen.getByText('Config')).toBeTruthy();

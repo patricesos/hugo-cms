@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { Image, FileText, FileCode, Settings, ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { Image, FileText, FileCode, Settings, Layers, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import TreeNode from './TreeNode.svelte';
 	import type { TreeNodeData } from '$lib/types';
 
-	const views: { key: 'archetypes' | 'config' | 'content' | 'static'; label: string; icon: typeof FileText }[] = [
-		{ key: 'archetypes', label: 'Archétypes', icon: FileCode },
-		{ key: 'config', label: 'Config', icon: Settings },
+	const views: { key: 'all' | 'archetypes' | 'config' | 'content' | 'static'; label: string; icon: typeof FileText }[] = [
+		{ key: 'all', label: 'Tout', icon: Layers },
 		{ key: 'content', label: 'Content', icon: FileText },
 		{ key: 'static', label: 'Static', icon: Image },
+		{ key: 'archetypes', label: 'Archétypes', icon: FileCode },
+		{ key: 'config', label: 'Config', icon: Settings },
 	];
 
 	let {
@@ -38,7 +39,7 @@
 		archetypeTree?: TreeNodeData[];
 		configTree?: TreeNodeData[];
 		currentSlug?: string | null;
-		sidebarView?: 'content' | 'static' | 'archetypes' | 'config';
+		sidebarView?: 'all' | 'content' | 'static' | 'archetypes' | 'config';
 		expandedSlugs?: Set<string>;
 		onLoadFile?: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
@@ -50,7 +51,7 @@
 		onSelectAsset?: (path: string) => void;
 		onSelectArchetype?: (slug: string) => void;
 		onSelectConfig?: (slug: string) => void;
-		onViewChange?: (view: 'content' | 'static' | 'archetypes' | 'config') => void;
+		onViewChange?: (view: 'all' | 'content' | 'static' | 'archetypes' | 'config') => void;
 		onToggleFolder?: (slug: string) => void;
 	} = $props();
 
@@ -63,7 +64,7 @@
 
 	const currentView = $derived(views.find((v) => v.key === sidebarView) ?? views[2]);
 
-	function setView(view: 'content' | 'static' | 'archetypes' | 'config') {
+	function setView(view: 'all' | 'content' | 'static' | 'archetypes' | 'config') {
 		onViewChange?.(view);
 		dropdownOpen = false;
 	}
@@ -85,6 +86,8 @@
 				<Settings size={14} />
 			{:else if currentView.icon === Image}
 				<Image size={14} />
+			{:else if currentView.icon === Layers}
+				<Layers size={14} />
 			{/if}
 			<span>{currentView.label}</span>
 			<ChevronRight size={12} />
@@ -101,6 +104,8 @@
 							<Settings size={14} />
 						{:else if v.icon === Image}
 							<Image size={14} />
+						{:else if v.icon === Layers}
+							<Layers size={14} />
 						{/if}
 						<span>{v.label}</span>
 					</button>
@@ -122,6 +127,31 @@
 			{#each configTree as node}
 				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectConfig?.(slug)} />
 			{/each}
+		{:else if sidebarView === 'all'}
+			<div class="all-section">
+				<div class="section-header">Content</div>
+				{#each tree as node}
+					<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
+				{/each}
+			</div>
+			<div class="all-section">
+				<div class="section-header">Static</div>
+				{#each assetTree as node}
+					<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectAsset?.(slug)} />
+				{/each}
+			</div>
+			<div class="all-section">
+				<div class="section-header">Archétypes</div>
+				{#each archetypeTree as node}
+					<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectArchetype?.(slug)} />
+				{/each}
+			</div>
+			<div class="all-section">
+				<div class="section-header">Config</div>
+				{#each configTree as node}
+					<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectConfig?.(slug)} />
+				{/each}
+			</div>
 		{:else}
 			{#each archetypeTree as node}
 				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectArchetype?.(slug)} />
@@ -224,5 +254,26 @@
 		flex: 1;
 		overflow-y: auto;
 		min-height: 0;
+	}
+
+	.all-section {
+		margin-bottom: 4px;
+	}
+
+	.all-section:not(:last-child)::after {
+		content: '';
+		display: block;
+		margin: 6px 0 6px -16px;
+		border-bottom: 1px solid var(--c-border);
+	}
+
+	.section-header {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--c-text-muted);
+		padding: 4px 0 2px;
+		margin: 0 0 2px;
 	}
 </style>
