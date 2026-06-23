@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { X } from '@lucide/svelte';
+	import { getClientConfigSync } from '$lib/client-config';
+	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
 
 	interface Archetype {
 		name: string;
@@ -17,8 +19,8 @@
 
 	let {
 		show = false,
-		directories = [] as { slug: string; name: string }[],
-		archetypes = [] as Archetype[],
+		directories: propDirectories = [] as { slug: string; name: string }[],
+		archetypes: propArchetypes = [] as Archetype[],
 		presetSection = '',
 		onClose,
 		onCreate,
@@ -31,9 +33,21 @@
 		onCreate: (title: string, section: string, archetype?: string) => void;
 	} = $props();
 
+	/* Les props peuvent arriver vides via le lazy-import dynamique.
+	   On souscrit directement au store pour garantir la réactivité. */
+	let archetypes = $derived(
+		propArchetypes.length > 0 ? propArchetypes : $fileTreeStore.archetypes
+	);
+	let directories = $derived(
+		propDirectories.length > 0
+			? propDirectories
+			: $fileTreeStore.tree
+				.filter((n: TreeNode) => n.type === 'directory')
+				.map((n: TreeNode) => ({ slug: n.slug, name: n.name }))
+	);
+
 	let title = $state('');
 	let section = $state('');
-	import { getClientConfigSync } from '$lib/client-config';
 
 	let selectedArchetype = $state(getClientConfigSync()?.defaultArchetype ?? 'default');
 	let inputEl = $state<HTMLInputElement | null>(null);
