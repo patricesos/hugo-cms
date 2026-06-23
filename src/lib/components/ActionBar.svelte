@@ -298,14 +298,6 @@
 		50% { opacity: 0.4; }
 	}
 
-	.spin {
-		animation: spin 0.8s linear infinite;
-	}
-
-	@keyframes spin {
-		to { transform: rotate(360deg); }
-	}
-
 	.hugo-indicator.running {
 		border-color: var(--c-success);
 		color: var(--c-success);

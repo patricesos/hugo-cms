@@ -99,8 +99,7 @@
 {#if $layout.sidebarOpen}
 	<div class="sidebar-wrap" style="width: {$layout.sidebarWidth}px">
 		{#if $layout.showGit && GitSidebarComp}
-			<svelte:component
-				this={GitSidebarComp}
+			<GitSidebarComp
 				status={$gitStatus}
 				loading={$gitLoading}
 				onRefresh={refreshGitStatus}

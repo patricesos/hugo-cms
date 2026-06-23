@@ -33,6 +33,10 @@
 		await themeStore.install(themeId);
 	}
 
+	async function handleActivate(themeId: string) {
+		await themeStore.switchTheme(themeId);
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && !$themeStore.installing) onClose();
 	}
@@ -87,8 +91,16 @@
 									</div>
 								{/if}
 								<div class="card-footer">
-									{#if theme.installed}
-										<span class="installed-badge">Installé</span>
+									{#if theme.active}
+										<span class="active-badge">Actif</span>
+									{:else if theme.installed}
+										<button
+											class="btn-activate"
+											disabled={$themeStore.installing !== null}
+											onclick={() => handleActivate(theme.id)}
+										>
+											Activer
+										</button>
 									{:else}
 										<button
 											class="btn-install"
@@ -275,10 +287,38 @@
 		justify-content: flex-end;
 	}
 
-	.installed-badge {
+	.active-badge {
 		font-size: 12px;
-		color: var(--c-success);
+		color: var(--c-primary);
+		font-weight: 600;
+		padding: 2px 8px;
+		border: 1px solid var(--c-primary);
+		border-radius: var(--radius-sm);
+	}
+
+	.btn-activate {
+		padding: 6px 14px;
+		border: 1px solid var(--c-warning);
+		border-radius: var(--radius-md);
+		background: transparent;
+		color: var(--c-warning);
+		font-size: 12px;
+		font-family: inherit;
 		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+
+	.btn-activate:hover {
+		background: var(--c-warning);
+		color: white;
+	}
+
+	.btn-activate:disabled {
+		opacity: 0.5;
+		cursor: default;
+		background: transparent;
+		color: var(--c-warning);
 	}
 
 	.btn-install {

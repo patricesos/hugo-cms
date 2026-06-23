@@ -273,6 +273,60 @@ export function setThemeInJson(content: string, themeId: string): string {
 	}
 }
 
+/**
+ * Lit la valeur `theme` dans la config Hugo racine.
+ * Retourne `null` si aucune config ou si la clé est absente.
+ */
+export async function getActiveTheme(): Promise<string | null> {
+	const sitePath = getCmsConfig().hugoSitePath;
+	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
+
+	for (const name of rootConfigs) {
+		const fp = join(sitePath, name);
+		if (existsSync(fp)) {
+			const ext = name.split('.').pop()!.toLowerCase();
+			const content = await readFile(fp, 'utf-8');
+			return parseThemeFromConfig(content, ext);
+		}
+	}
+	return null;
+}
+
+function parseThemeFromConfig(content: string, ext: string): string | null {
+	if (ext === 'toml') {
+		const m = content.match(/^\s*theme\s*=\s*"([^"]+)"/m);
+		return m ? m[1] : null;
+	}
+	if (ext === 'yaml' || ext === 'yml') {
+		const m = content.match(/^\s*theme\s*:\s*"([^"]+)"/m);
+		return m ? m[1] : null;
+	}
+	if (ext === 'json') {
+		try {
+			const cfg = JSON.parse(content);
+			return typeof cfg.theme === 'string' ? cfg.theme : null;
+		} catch { return null; }
+	}
+	return null;
+}
+
+/**
+ * Bascule le thème actif vers un thème installé.
+ */
+export async function switchActiveTheme(themeId: string): Promise<{ success: boolean; message: string }> {
+	const installed = await getInstalledThemes();
+	if (!installed.includes(themeId)) {
+		return { success: false, message: `Le thème « ${themeId} » n'est pas installé.` };
+	}
+	try {
+		await setThemeInConfig(themeId);
+		return { success: true, message: `Thème activé : ${themeId}` };
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		return { success: false, message: `Échec du changement de thème : ${msg}` };
+	}
+}
+
 async function setThemeInConfig(themeId: string): Promise<void> {
 	const sitePath = getCmsConfig().hugoSitePath;
 	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];

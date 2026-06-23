@@ -2,7 +2,7 @@ import { writable, get } from 'svelte/store';
 import type { ThemeCatalogEntry } from '$lib/server/theme-catalog';
 
 export interface ThemeStoreState {
-	catalog: (ThemeCatalogEntry & { installed: boolean })[];
+	catalog: (ThemeCatalogEntry & { installed: boolean; active: boolean })[];
 	loading: boolean;
 	installing: string | null;
 	installProgress: number;
@@ -37,7 +37,6 @@ function createThemeStore() {
 	async function install(themeId: string): Promise<boolean> {
 		store.update((s) => ({ ...s, installing: themeId, installProgress: 0, error: null }));
 
-		// Lancer le polling de progression
 		let pollTimer: ReturnType<typeof setInterval> | undefined;
 		const stopPolling = () => {
 			if (pollTimer) { clearInterval(pollTimer); pollTimer = undefined; }
@@ -68,7 +67,6 @@ function createThemeStore() {
 				}));
 				return false;
 			}
-			// Rafraîchir le catalogue pour marquer le thème comme installé
 			store.update((s) => ({ ...s, installProgress: 100 }));
 			await fetchCatalog();
 			store.update((s) => ({ ...s, installing: null, installProgress: 0 }));
@@ -77,6 +75,31 @@ function createThemeStore() {
 			stopPolling();
 			const msg = err instanceof Error ? err.message : String(err);
 			store.update((s) => ({ ...s, installing: null, installProgress: 0, error: msg }));
+			return false;
+		}
+	}
+
+	async function switchTheme(themeId: string): Promise<boolean> {
+		store.update((s) => ({ ...s, error: null }));
+		try {
+			const res = await fetch('/api/hugo/theme/switch', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ themeId }),
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				store.update((s) => ({
+					...s,
+					error: data.message || data.error || 'Échec du changement de thème.',
+				}));
+				return false;
+			}
+			await fetchCatalog();
+			return true;
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			store.update((s) => ({ ...s, error: msg }));
 			return false;
 		}
 	}
@@ -90,6 +113,7 @@ function createThemeStore() {
 
 		fetchCatalog,
 		install,
+		switchTheme,
 		clearError,
 
 		snapshot(): ThemeStoreState {

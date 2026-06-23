@@ -183,7 +183,7 @@ describe('RawEditor — MutationObserver theme sync', () => {
 		expect(() => {
 			document.documentElement.dataset.theme = 'dark';
 			mutationCb(
-				[{ type: 'attributes', attributeName: 'data-theme', target: document.documentElement } as MutationRecord],
+				[{ type: 'attributes', attributeName: 'data-theme', target: document.documentElement }] as unknown as MutationRecord[],
 				null as unknown as MutationObserver,
 			);
 		}).not.toThrow();
