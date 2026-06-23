@@ -310,6 +310,71 @@ function parseThemeFromConfig(content: string, ext: string): string | null {
 	return null;
 }
 
+// ── Désinstallation ──────────────────────────────────────────────
+
+/**
+ * Supprime un thème installé. Si c'est le thème actif, la config Hugo
+ * est nettoyée (la ligne `theme` est retirée).
+ */
+export async function uninstallTheme(themeId: string): Promise<{ success: boolean; message: string }> {
+	const installed = await getInstalledThemes();
+	if (!installed.includes(themeId)) {
+		return { success: false, message: `Le thème « ${themeId} » n'est pas installé.` };
+	}
+
+	const active = await getActiveTheme();
+	if (active === themeId) {
+		try {
+			await removeThemeFromConfig();
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			return { success: false, message: `Échec du nettoyage de la config : ${msg}` };
+		}
+	}
+
+	const targetDir = themePath(themeId);
+	try {
+		await rm(targetDir, { recursive: true, force: true });
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		return { success: false, message: `Échec de la suppression du dossier : ${msg}` };
+	}
+
+	return { success: true, message: `Thème « ${themeId} » désinstallé.` };
+}
+
+/**
+ * Retire la ligne `theme` de la config Hugo racine.
+ */
+async function removeThemeFromConfig(): Promise<void> {
+	const sitePath = getCmsConfig().hugoSitePath;
+	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
+
+	for (const name of rootConfigs) {
+		const fp = join(sitePath, name);
+		if (existsSync(fp)) {
+			const ext = name.split('.').pop()!.toLowerCase();
+			const content = await readFile(fp, 'utf-8');
+
+			if (ext === 'toml') {
+				await writeFile(fp, content.replace(/^\s*theme\s*=\s*"[^"]*".*\n?/m, ''), 'utf-8');
+			} else if (ext === 'yaml' || ext === 'yml') {
+				await writeFile(fp, content.replace(/^\s*theme\s*:\s*"[^"]*".*\n?/m, ''), 'utf-8');
+			} else if (ext === 'json') {
+				try {
+					const cfg = JSON.parse(content);
+					delete cfg.theme;
+					await writeFile(fp, JSON.stringify(cfg, null, 2) + '\n', 'utf-8');
+				} catch {
+					throw new Error('Fichier JSON de configuration invalide.');
+				}
+			}
+			return;
+		}
+	}
+	throw new Error('Aucun fichier de configuration Hugo trouvé à la racine du site.');
+}
+
 /**
  * Bascule le thème actif vers un thème installé.
  */

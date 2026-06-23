@@ -110,6 +110,33 @@ function createThemeStore() {
 		}
 	}
 
+	async function uninstall(themeId: string): Promise<boolean> {
+		store.update((s) => ({ ...s, error: null }));
+		try {
+			const res = await fetch('/api/hugo/theme/uninstall', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ themeId }),
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				store.update((s) => ({
+					...s,
+					error: data.message || data.error || 'Échec de la désinstallation.',
+				}));
+				return false;
+			}
+			await fetchCatalog();
+			hugoStore.reloadPreview();
+			editorStore.configReloadKey.update(n => n + 1);
+			return true;
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			store.update((s) => ({ ...s, error: msg }));
+			return false;
+		}
+	}
+
 	function clearError(): void {
 		store.update((s) => ({ ...s, error: null }));
 	}
@@ -120,6 +147,7 @@ function createThemeStore() {
 		fetchCatalog,
 		install,
 		switchTheme,
+		uninstall,
 		clearError,
 
 		snapshot(): ThemeStoreState {
