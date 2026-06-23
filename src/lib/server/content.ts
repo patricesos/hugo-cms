@@ -159,11 +159,12 @@ export async function deleteContent(slug: string): Promise<void> {
 }
 
 export async function renameContent(slug: string, newSlug: string): Promise<ContentItem> {
+	const cleanSlug = newSlug.replace(/\.md$/i, '');
 	const filePath = safeResolve(slug + '.md');
-	const newFilePath = safeResolve(newSlug + '.md');
+	const newFilePath = safeResolve(cleanSlug + '.md');
 	await mkdir(dirname(newFilePath), { recursive: true });
 	await rename(filePath, newFilePath);
-	return readContent(newSlug);
+	return readContent(cleanSlug);
 }
 
 export async function renameDirectory(slug: string, newSlug: string): Promise<void> {

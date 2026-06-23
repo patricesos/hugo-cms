@@ -44,7 +44,7 @@
 	}
 
 	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
-	const fileName = $derived(node.name.replace(/\.md$/, ''));
+	const fileName = $derived(node.name);
 
 	function startEdit() {
 		editValue = fileName;
@@ -60,8 +60,13 @@
 
 	function commitEdit() {
 		if (!onRenameFile || !editValue.trim()) return;
+		const trimmed = editValue.trim();
+		if (trimmed === fileName) {
+			editing = false;
+			return;
+		}
 		const parentDir = node.slug.includes('/') ? node.slug.substring(0, node.slug.lastIndexOf('/') + 1) : '';
-		const newName = editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '');
+		const newName = trimmed.toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') || trimmed.toLowerCase().replace(/[^a-z0-9_.-]+/g, '');
 		const newSlug = parentDir + newName;
 		if (newSlug !== node.slug && newName) {
 			onRenameFile(node.slug, newSlug);
