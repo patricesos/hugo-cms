@@ -43,7 +43,6 @@
 		onToggleFolder?.(node.slug);
 	}
 
-	const indent = $derived(depth * 24);
 	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
 	const fileName = $derived(node.name.replace(/\.md$/, ''));
 
@@ -110,7 +109,7 @@
 	}
 </script>
 
-<div class="tree-node" style="padding-left: {indent}px">
+<div class="tree-node">
 	{#if node.type === 'directory'}
 	<div class="dir-row">
 		<button
@@ -179,6 +178,7 @@
 					draggable="true"
 					ondragstart={handleDragStart}
 				>
+					<span class="chevron"></span>
 					<span class="icon"><FileText size={15} /></span>
 					<span class="name">{node.name}</span>
 					{#if node.frontmatter?.draft === true}
@@ -210,6 +210,7 @@
 		display: flex;
 		align-items: center;
 		gap: 2px;
+		position: relative;
 	}
 
 	.tree-item {
@@ -217,7 +218,7 @@
 		align-items: center;
 		gap: 5px;
 		text-align: left;
-		padding: 5px 8px 5px 0;
+		padding: 5px 66px 5px 0;
 		border: none;
 		background: transparent;
 		border-radius: var(--radius-md);
@@ -297,7 +298,10 @@
 		transition: all 0.12s;
 		flex-shrink: 0;
 		padding: 0;
-		margin-left: auto;
+		position: absolute;
+		right: 22px;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.tree-node:hover .create-in-folder {
@@ -322,12 +326,14 @@
 
 	.children {
 		overflow: hidden;
+		padding-left: 24px;
 	}
 
 	.file-row {
 		display: flex;
 		align-items: center;
 		gap: 2px;
+		position: relative;
 	}
 
 	.file-row .tree-item {
@@ -348,6 +354,10 @@
 		opacity: 0;
 		transition: all 0.12s;
 		flex-shrink: 0;
+		position: absolute;
+		right: 0;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.file-row:hover .delete-node-btn {
@@ -372,6 +382,10 @@
 		opacity: 0;
 		transition: all 0.12s;
 		flex-shrink: 0;
+		position: absolute;
+		right: 0;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.dir-row:hover .delete-dir-btn {
@@ -396,6 +410,10 @@
 		opacity: 0;
 		transition: all 0.12s;
 		flex-shrink: 0;
+		position: absolute;
+		right: 22px;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.file-row:hover .duplicate-node-btn {
