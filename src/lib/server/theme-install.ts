@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile, copyFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
-import { join, resolve } from 'node:path';
-import { getCmsConfig } from './config';
+import { join, resolve, basename } from 'node:path';
+import { getCmsConfig, HUGO_ROOT_CONFIGS } from './config';
 import { THEME_CATALOG } from './theme-catalog';
 import { getAllShortcodes } from './shortcodes';
 
@@ -17,6 +17,24 @@ export interface InstallResult {
 	success: boolean;
 	message: string;
 	conflicts?: ThemeConflict[];
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+/**
+ * Cherche un fichier de configuration Hugo dans la racine du site,
+ * puis dans config/_default/. Retourne le chemin complet ou null.
+ */
+function findHugoConfigPath(sitePath: string): string | null {
+	const { configDir } = getCmsConfig();
+	const dirs = [sitePath, join(sitePath, configDir, '_default')];
+	for (const dir of dirs) {
+		for (const name of HUGO_ROOT_CONFIGS) {
+			const fp = join(dir, name);
+			if (existsSync(fp)) return fp;
+		}
+	}
+	return null;
 }
 
 // ── Chemins ──────────────────────────────────────────────────────
@@ -37,18 +55,13 @@ function themePath(themeId: string): string {
 
 async function backupConfig(): Promise<string | null> {
 	const sitePath = getCmsConfig().hugoSitePath;
-	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
-	for (const name of rootConfigs) {
-		const fp = join(sitePath, name);
-		if (existsSync(fp)) {
-			const bkDir = backupsDir();
-			await mkdir(bkDir, { recursive: true });
-			const bkPath = join(bkDir, name);
-			await copyFile(fp, bkPath);
-			return bkPath;
-		}
-	}
-	return null;
+	const fp = findHugoConfigPath(sitePath);
+	if (!fp) return null;
+	const bkDir = backupsDir();
+	await mkdir(bkDir, { recursive: true });
+	const bkPath = join(bkDir, basename(fp));
+	await copyFile(fp, bkPath);
+	return bkPath;
 }
 
 async function restoreConfig(backupPath: string): Promise<void> {
@@ -280,17 +293,11 @@ export function setThemeInJson(content: string, themeId: string): string {
  */
 export async function getActiveTheme(): Promise<string | null> {
 	const sitePath = getCmsConfig().hugoSitePath;
-	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
-
-	for (const name of rootConfigs) {
-		const fp = join(sitePath, name);
-		if (existsSync(fp)) {
-			const ext = name.split('.').pop()!.toLowerCase();
-			const content = await readFile(fp, 'utf-8');
-			return parseThemeFromConfig(content, ext);
-		}
-	}
-	return null;
+	const fp = findHugoConfigPath(sitePath);
+	if (!fp) return null;
+	const ext = fp.split('.').pop()!.toLowerCase();
+	const content = await readFile(fp, 'utf-8');
+	return parseThemeFromConfig(content, ext);
 }
 
 function parseThemeFromConfig(content: string, ext: string): string | null {
@@ -349,31 +356,24 @@ export async function uninstallTheme(themeId: string): Promise<{ success: boolea
  */
 async function removeThemeFromConfig(): Promise<void> {
 	const sitePath = getCmsConfig().hugoSitePath;
-	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
+	const fp = findHugoConfigPath(sitePath);
+	if (!fp) throw new Error('Aucun fichier de configuration Hugo trouvé à la racine du site.');
+	const ext = fp.split('.').pop()!.toLowerCase();
+	const content = await readFile(fp, 'utf-8');
 
-	for (const name of rootConfigs) {
-		const fp = join(sitePath, name);
-		if (existsSync(fp)) {
-			const ext = name.split('.').pop()!.toLowerCase();
-			const content = await readFile(fp, 'utf-8');
-
-			if (ext === 'toml') {
-				await writeFile(fp, content.replace(/^\s*theme\s*=\s*"[^"]*".*\n?/m, ''), 'utf-8');
-			} else if (ext === 'yaml' || ext === 'yml') {
-				await writeFile(fp, content.replace(/^\s*theme\s*:\s*"[^"]*".*\n?/m, ''), 'utf-8');
-			} else if (ext === 'json') {
-				try {
-					const cfg = JSON.parse(content);
-					delete cfg.theme;
-					await writeFile(fp, JSON.stringify(cfg, null, 2) + '\n', 'utf-8');
-				} catch {
-					throw new Error('Fichier JSON de configuration invalide.');
-				}
-			}
-			return;
+	if (ext === 'toml') {
+		await writeFile(fp, content.replace(/^\s*theme\s*=\s*"[^"]*".*\n?/m, ''), 'utf-8');
+	} else if (ext === 'yaml' || ext === 'yml') {
+		await writeFile(fp, content.replace(/^\s*theme\s*:\s*"[^"]*".*\n?/m, ''), 'utf-8');
+	} else if (ext === 'json') {
+		try {
+			const cfg = JSON.parse(content);
+			delete cfg.theme;
+			await writeFile(fp, JSON.stringify(cfg, null, 2) + '\n', 'utf-8');
+		} catch {
+			throw new Error('Fichier JSON de configuration invalide.');
 		}
 	}
-	throw new Error('Aucun fichier de configuration Hugo trouvé à la racine du site.');
 }
 
 /**
@@ -395,23 +395,16 @@ export async function switchActiveTheme(themeId: string): Promise<{ success: boo
 
 async function setThemeInConfig(themeId: string): Promise<void> {
 	const sitePath = getCmsConfig().hugoSitePath;
-	const rootConfigs = ['hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json'];
+	const fp = findHugoConfigPath(sitePath);
+	if (!fp) throw new Error('Aucun fichier de configuration Hugo trouvé à la racine du site.');
+	const ext = fp.split('.').pop()!.toLowerCase();
+	const content = await readFile(fp, 'utf-8');
 
-	for (const name of rootConfigs) {
-		const fp = join(sitePath, name);
-		if (existsSync(fp)) {
-			const ext = name.split('.').pop()!.toLowerCase();
-			const content = await readFile(fp, 'utf-8');
-
-			if (ext === 'toml') {
-				await writeFile(fp, setThemeInToml(content, themeId), 'utf-8');
-			} else if (ext === 'yaml' || ext === 'yml') {
-				await writeFile(fp, setThemeInYaml(content, themeId), 'utf-8');
-			} else if (ext === 'json') {
-				await writeFile(fp, setThemeInJson(content, themeId), 'utf-8');
-			}
-			return;
-		}
+	if (ext === 'toml') {
+		await writeFile(fp, setThemeInToml(content, themeId), 'utf-8');
+	} else if (ext === 'yaml' || ext === 'yml') {
+		await writeFile(fp, setThemeInYaml(content, themeId), 'utf-8');
+	} else if (ext === 'json') {
+		await writeFile(fp, setThemeInJson(content, themeId), 'utf-8');
 	}
-	throw new Error('Aucun fichier de configuration Hugo trouvé à la racine du site.');
 }

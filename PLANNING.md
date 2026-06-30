@@ -337,6 +337,11 @@
 - [x] **Migration editor.svelte.ts** — `handleDelete/HandleDeleteFolder` passés à `confirmStore.confirm()`
 - [x] **Tests TreeNode** — mis à jour : attend `'about.md'` (extension non strip), renommage dossier OK
 
+#### Svelte 5 — warnings autofixer
+- [x] **35+ {#each} keys** — clés stables ajoutées dans 17 composants
+- [x] **SvelteSet** — migration de Set vers SvelteSet dans CommitDialog et SitemapView
+- [x] **a11y tabindex** — ajouté tabindex="-1" sur role="alertdialog" dans ThemeSelector
+
 ## Done
 
 - [x] Port CMS (1703 par défaut, redémarrage requis)
