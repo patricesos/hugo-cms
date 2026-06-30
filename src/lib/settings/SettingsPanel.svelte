@@ -57,7 +57,7 @@
 
 <div class="panel">
 	<nav class="tab-nav">
-		{#each schema as tab}
+		{#each schema as tab (tab.id)}
 			<button
 				class="tab-btn"
 				class:active={tab.id === activeTab}
@@ -84,11 +84,11 @@
 
 		<div class="fields-scroll">
 		{#if filteredGroups.length > 0 || activeTab === 'advanced'}
-			{#each filteredGroups as group}
+			{#each filteredGroups as group, i (group.label || i)}
 				{#if group.label && !isSearching}
 					<div class="group-label">{group.label}</div>
 				{/if}
-				{#each group.fields as field}
+				{#each group.fields as field (field.key)}
 					{@const isDisabled = field.key === 'hugoSitePathCustom' && !!values.hugoSitePathUseDotEnv}
 					<div class="field-row" class:disabled={isDisabled}>
 						<SettingField
@@ -102,7 +102,7 @@
 			{#if activeTab === 'advanced' && serverConfig}
 				<div class="group-label">Configuration serveur</div>
 				<div class="advanced-section">
-					{#each Object.entries(serverConfig) as [key, val]}
+					{#each Object.entries(serverConfig) as [key, val] (key)}
 						<div class="readonly-row">
 							<span class="readonly-key">{key}</span>
 							<span class="readonly-val">{String(val)}</span>

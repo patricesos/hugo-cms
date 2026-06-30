@@ -115,7 +115,7 @@
 			{:else if directories.length === 0}
 				<div class="empty">Aucun dossier</div>
 			{:else}
-				{#each directories as dir}
+				{#each directories as dir (dir)}
 					<div
 						class="dir-item"
 						role="button"

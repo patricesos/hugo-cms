@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly } from 'svelte/transition';
 	import { GitCommit, Loader2, CheckCircle2, AlertTriangle } from '@lucide/svelte';
 
@@ -30,7 +31,7 @@
 	let committing = $state(false);
 	let done = $state(false);
 	let error = $state('');
-	let selected = $state(new Set<string>());
+	let selected = $state(new SvelteSet<string>());
 
 	const allFiles = $derived.by(() => {
 		if (!status) return [];
@@ -47,19 +48,19 @@
 	const selectedFiles = $derived(allFiles.filter(f => selected.has(f.path)).map(f => f.path));
 
 	$effect(() => {
-		if (show) selected = new Set(allFiles.map(f => f.path));
+		if (show) selected = new SvelteSet(allFiles.map(f => f.path));
 	});
 
 	function toggleAll() {
 		if (allSelected) {
-			selected = new Set();
+			selected = new SvelteSet();
 		} else {
-			selected = new Set(allFiles.map(f => f.path));
+			selected = new SvelteSet(allFiles.map(f => f.path));
 		}
 	}
 
 	function toggleFile(path: string) {
-		const next = new Set(selected);
+		const next = new SvelteSet(selected);
 		if (next.has(path)) {
 			next.delete(path);
 		} else {
@@ -78,7 +79,7 @@
 			setTimeout(() => {
 				done = false;
 				message = '';
-				selected = new Set();
+				selected = new SvelteSet();
 				committing = false;
 				onClose();
 			}, 1200);
@@ -141,7 +142,7 @@
 								{allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
 							</button>
 						</div>
-						{#each allFiles as file}
+						{#each allFiles as file (file.path)}
 							<label class="file-row" class:disabled={committing}>
 								<input type="checkbox" checked={selected.has(file.path)} onchange={() => toggleFile(file.path)} disabled={committing} />
 								<span class="file-kind" class:added={file.kind === 'A'} class:deleted={file.kind === 'D'} class:renamed={file.kind === 'R'} class:untracked={file.kind === '?'}>{file.kind}</span>

@@ -175,7 +175,7 @@
 				{:else}
 					{#if filteredCustom.length > 0}
 						<div class="sc-group-label">Personnalisés</div>
-						{#each filteredCustom as sc}
+						{#each filteredCustom as sc (sc.name)}
 							<button
 								class="sc-item"
 								class:selected={sc.name === selectedName}
@@ -190,7 +190,7 @@
 
 					{#if filteredNative.length > 0}
 						<div class="sc-group-label">Natifs</div>
-						{#each filteredNative as sc}
+						{#each filteredNative as sc (sc.name)}
 							<button
 								class="sc-item"
 								class:selected={sc.name === selectedName}
@@ -214,7 +214,7 @@
 
 					{#if selected.params.length > 0}
 						<div class="sc-params">
-							{#each selected.params as p}
+							{#each selected.params as p (p.name)}
 								<label class="sc-field">
 									<span class="sc-label">
 										<Braces size={12} />

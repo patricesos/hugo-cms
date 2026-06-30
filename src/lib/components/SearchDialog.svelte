@@ -95,7 +95,7 @@
 			{#if results.length === 0}
 				<div class="search-empty">Aucun résultat</div>
 			{:else}
-				{#each results as entry, i}
+				{#each results as entry, i (entry.slug)}
 					<button
 						class="search-item"
 						class:selected={i === selectedIndex}

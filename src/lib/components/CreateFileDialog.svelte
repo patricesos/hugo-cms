@@ -102,7 +102,7 @@
 					<label class="field">
 						<span class="label">Archetype</span>
 						<select bind:value={selectedArchetype}>
-							{#each archetypes as a}
+							{#each archetypes as a (a.name)}
 								<option value={a.name}>{a.label}</option>
 							{/each}
 						</select>
@@ -112,7 +112,7 @@
 				<label class="field">
 					<span class="label">Section</span>
 					<select bind:value={section}>
-						{#each directories as d}
+						{#each directories as d (d.slug)}
 							<option value={d.slug}>{d.name}</option>
 						{/each}
 						<option value="">(racine)</option>

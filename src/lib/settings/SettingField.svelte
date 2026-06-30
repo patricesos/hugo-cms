@@ -53,7 +53,7 @@
 				onchange={(e) => onChange(field.key, (e.target as HTMLSelectElement).value)}
 				class="select-input"
 			>
-				{#each field.options ?? [] as opt}
+				{#each field.options ?? [] as opt (opt.value)}
 					<option value={opt.value}>{opt.label}</option>
 				{/each}
 			</select>

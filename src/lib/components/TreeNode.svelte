@@ -173,7 +173,7 @@
 		{/if}
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
-				{#each node.children! as child}
+				{#each node.children! as child (child.slug)}
 					<TreeNode node={child} depth={depth + 1} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 				{/each}
 			</div>

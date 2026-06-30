@@ -121,8 +121,9 @@ function cloneWithProgress(repo: string, targetDir: string, themeId: string): Pr
 
 		proc.stderr!.on('data', (chunk: Buffer) => {
 			stderrBuf += chunk.toString();
-			// Extraire la dernière ligne de progression
-			const lines = stderrBuf.split('\n');
+			// Git utilise \r pour les progressions (pas \n).
+			// On split sur les deux pour isoler chaque mise à jour.
+			const lines = stderrBuf.split(/[\r\n]+/);
 			stderrBuf = lines.pop() ?? '';
 			for (const line of lines) {
 				const m = PROGRESS_RE.exec(line);

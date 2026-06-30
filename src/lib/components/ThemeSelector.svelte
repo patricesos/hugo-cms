@@ -94,7 +94,7 @@
 									<h4 class="card-title">{theme.name}</h4>
 									<p class="card-desc">{theme.description}</p>
 									<div class="card-tags">
-										{#each theme.tags.slice(0, 4) as tag}
+										{#each theme.tags.slice(0, 4) as tag (tag)}
 											<span class="tag">{tag}</span>
 										{/each}
 									</div>
@@ -145,7 +145,7 @@
 		{#if confirmThemeId}
 			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 			<div class="confirm-overlay" role="presentation" onclick={cancelUninstall}>
-				<div class="confirm-dialog" role="alertdialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
+				<div class="confirm-dialog" role="alertdialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
 					<p>Désinstaller le thème <strong>{confirmThemeId}</strong> ?</p>
 					<p class="confirm-warning">Cette action est irréversible.</p>
 					<div class="confirm-actions">

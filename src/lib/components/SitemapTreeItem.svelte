@@ -45,7 +45,7 @@
 			<span class="entry-name">{child.name}</span>
 		</div>
 		{#if openDirs.has(child.slug) && child.children}
-			{#each child.children as grandchild}
+			{#each child.children as grandchild (grandchild.slug)}
 				<SitemapTreeItem child={grandchild} {currentSlug} {onLoadFile} depth={depth + 1} {openDirs} {toggleDir} />
 			{/each}
 		{/if}
