@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	import { confirmStore } from '$lib/stores/confirm.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
 	import { uiStore } from '$lib/stores/ui.svelte';
 	import { gitStore } from '$lib/stores/git.svelte';
@@ -12,7 +13,7 @@
 	const { currentSlug, tabs } = editorStore;
 	const { dialogs } = uiStore;
 	const { status: gitStatus, loading: gitLoading, initialized: gitInitialized } = gitStore;
-	const { tree, assetTree, archetypeTree, configTree, loadConfigTree } = fileTreeStore;
+	const { tree, assetTree, archetypeTree, configTree, siteTree, loadConfigTree, loadSiteTree } = fileTreeStore;
 
 	// Props : uniquement les callbacks métier que le parent doit fournir
 	let {
@@ -36,6 +37,13 @@
 			import('./GitSidebar.svelte').then(m => GitSidebarComp = m.default);
 	});
 
+	// Charge l'arbre approprié quand la vue change (évite un arbre vide → pas de bouton créer)
+	$effect(() => {
+		const v = $layout.sidebarView;
+		if (v === 'config') loadConfigTree();
+		if (v === 'site') loadSiteTree();
+	});
+
 	// Redimensionnement
 	const startResize = startSidebarResize(
 		() => $layout.sidebarWidth,
@@ -49,7 +57,7 @@
 	}
 
 	function handleCreateFolderInFolder(slug: string) {
-		uiStore.updateDialogs({ createFolderParent: slug });
+		uiStore.updateDialogs({ createFolderParent: slug, createFolderIsSite: $layout.sidebarView === 'site' });
 		uiStore.updateDialogs({ showCreateFolderDialog: true });
 	}
 
@@ -77,9 +85,61 @@
 		editorStore.switchToTab(slug);
 	}
 
-	function handleViewChange(v: 'archetypes' | 'config' | 'content' | 'static') {
+	function handleSelectSite(slug: string) {
+		const ext = slug.split('.').pop()?.toLowerCase() ?? '';
+		const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif', 'ico'];
+		const binaryExts = ['woff', 'woff2', 'ttf', 'otf', 'eot', 'zip', 'tar', 'gz', '7z', 'rar', 'mp3', 'wav', 'ogg', 'flac', 'mp4', 'webm', 'avi', 'pdf', 'exe', 'dll', 'so', 'ico'];
+		const editableExts = ['json', 'toml', 'yaml', 'yml', 'xml', 'html', 'htm', 'css', 'scss', 'sass', 'less', 'js', 'ts', 'mjs', 'cjs', 'txt', 'md', 'sh', 'bat', 'ps1', 'csv', 'env', 'gitignore'];
+		const isImage = imageExts.includes(ext);
+		const isBinary = binaryExts.includes(ext);
+		const isEditable = editableExts.includes(ext) || !ext;
+		const isMd = ext === 'md';
+		const isInContent = slug.startsWith('content/');
+
+		if (isMd && isInContent) {
+			const contentSlug = slug.slice('content/'.length).replace(/\.md$/, '');
+			onLoadFile(contentSlug);
+		} else if (isImage && slug.startsWith('static/')) {
+			const staticSlug = slug.slice('static/'.length);
+			handleSelectAsset(staticSlug);
+		} else if (isEditable && !isBinary) {
+			editorStore.openKindTab(slug, 'site');
+			editorStore.switchToTab(slug);
+		} else {
+			window.open(`/api/site/raw/${slug}`, '_blank');
+		}
+	}
+
+	function handleViewChange(v: 'all' | 'archetypes' | 'config' | 'content' | 'site' | 'static') {
 		settingsStore.updateLayout({ sidebarView: v });
 		if (v === 'config') loadConfigTree();
+		if (v === 'site') loadSiteTree();
+	}
+
+	/** Renommage/déplacement dans la vue Site (agit sur hugoSitePath). */
+	async function handleRenameSite(oldSlug: string, newSlug: string) {
+		await fetch('/api/site/rename', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ oldSlug, newSlug }),
+		});
+		loadSiteTree();
+	}
+
+	/** Suppression d'un dossier dans la vue Site (API site, pas content). */
+	async function handleDeleteSiteFolder(slug: string) {
+		const ok = await confirmStore.confirm('Supprimer le dossier', `Supprimer le dossier "${slug}" ?\n\nTout son contenu sera supprimé.`);
+		if (!ok) return;
+		await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
+		loadSiteTree();
+	}
+
+	/** Suppression d'un fichier dans la vue Site (API site, pas content). */
+	async function handleDeleteSiteFile(slug: string) {
+		const ok = await confirmStore.confirm('Supprimer le fichier', `Supprimer "${slug}" ?`);
+		if (!ok) return;
+		await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
+		loadSiteTree();
 	}
 
 	// Git callbacks
@@ -113,6 +173,7 @@
 				assetTree={$assetTree}
 				archetypeTree={$archetypeTree}
 				configTree={$configTree}
+				siteTree={$siteTree}
 				currentSlug={$currentSlug}
 				sidebarView={$layout.sidebarView}
 				expandedSlugs={new Set($layout.expandedSlugs)}
@@ -120,12 +181,16 @@
 				onCreateFileInFolder={handleCreateFileInFolder}
 				onCreateFolderInFolder={handleCreateFolderInFolder}
 				onDeleteFile={onDelete}
+				onDeleteSiteFile={handleDeleteSiteFile}
 				onDeleteFolder={onDeleteFolder}
+				onDeleteSiteFolder={handleDeleteSiteFolder}
 				onRenameFile={onRenameFile}
+				onRenameSite={handleRenameSite}
 				onDuplicateFile={onDuplicateFile}
 				onSelectAsset={handleSelectAsset}
 				onSelectArchetype={handleSelectArchetype}
 				onSelectConfig={handleSelectConfig}
+				onSelectSite={handleSelectSite}
 				onViewChange={handleViewChange}
 				onToggleFolder={handleToggleFolder}
 			/>

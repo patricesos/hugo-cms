@@ -128,7 +128,7 @@
 				<div class="ip-empty">Aucune image trouvée</div>
 			{:else}
 				<div class="ip-grid">
-					{#each images as img}
+					{#each images as img (img)}
 						<button
 							class="ip-item"
 							class:selected={selectedUrl === img}

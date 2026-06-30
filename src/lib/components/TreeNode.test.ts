@@ -245,16 +245,17 @@ describe('TreeNode', () => {
 		await fireEvent.dblClick(fileBtn);
 		const input = document.querySelector('.rename-input') as HTMLInputElement;
 		expect(input).toBeTruthy();
-		expect(input.value).toBe('about');
+		expect(input.value).toBe('about.md');
 	});
 
-	it('does not enter edit mode for directories on double-click', async () => {
+	it('enters edit mode for directories on double-click', async () => {
 		const onRenameFile = vi.fn();
 		render(TreeNode, { node: dirNode, depth: 0, currentSlug: '', onRenameFile });
 		const dirBtn = screen.getByText('blog').closest('button')!;
 		await fireEvent.dblClick(dirBtn);
-		const input = document.querySelector('.rename-input');
-		expect(input).toBeNull();
+		const input = document.querySelector('.rename-input') as HTMLInputElement;
+		expect(input).toBeTruthy();
+		expect(input.value).toBe('blog');
 	});
 
 	it('commits rename on Enter', async () => {

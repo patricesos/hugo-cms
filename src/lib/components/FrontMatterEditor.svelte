@@ -241,7 +241,7 @@
 
 	<div class="field">
 		<span class="field-label">Tags</span>
-		{#each local.tags || [] as tag, i}
+		{#each local.tags || [] as tag, i (i)}
 			<div class="tag-row">
 				<input type="text" value={tag} oninput={(e) => updateTag(i, (e.target as HTMLInputElement).value)} placeholder="tag" />
 				<button class="tag-remove" onclick={() => removeTag(i)}><X size={14} /></button>
@@ -266,7 +266,7 @@
 
 		{#if showCustomFields}
 			<div class="custom-fields" transition:slide>
-				{#each customEntries as [key, val]}
+				{#each customEntries as [key, val] (key)}
 					{@const type = getFieldType(val)}
 					<div class="custom-row">
 						<input

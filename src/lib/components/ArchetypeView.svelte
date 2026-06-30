@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { fade, slide } from 'svelte/transition';
-	import { untrack } from 'svelte';
-	import { PenLine, Save, X, Trash2, Loader2 } from '@lucide/svelte';
+	import { fade } from 'svelte/transition';
+	import { Save, Trash2, Loader2, PenLine } from '@lucide/svelte';
+	import RawEditor from './RawEditor.svelte';
+	import { editorStore } from '$lib/stores/editor.svelte';
+
+	const { currentTab } = editorStore;
 
 	let {
 		slug,
@@ -13,20 +16,17 @@
 		onDelete: (slug: string) => void;
 	} = $props();
 
-	let source = $state('');
 	let label = $state('');
 	let loading = $state(false);
-	let editing = $state(false);
 	let saving = $state(false);
 	let error = $state('');
 	let dirty = $state(false);
 
+	let content = $derived($currentTab?.content ?? '');
+	let tabLabel = $derived($currentTab?.title ?? slug ?? '');
+
 	$effect(() => {
-		if (slug) {
-			if (untrack(() => dirty) && !window.confirm('Des modifications non sauvegardées vont être perdues. Continuer ?')) return;
-			loadArchetype(slug);
-			untrack(() => { dirty = false; });
-		}
+		if (slug) loadArchetype(slug);
 	});
 
 	function markDirty() {
@@ -37,16 +37,18 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await fetch(`/api/archetypes/${name}`);
-			if (!res.ok) throw new Error('Erreur chargement');
-			const data = await res.json();
-			source = data.source;
-			label = data.label;
-			editing = false;
+			await editorStore.loadArchetype(name);
 		} catch (e) {
 			error = (e as Error).message;
 		} finally {
 			loading = false;
+		}
+	}
+
+	function handleContentChange(val: string) {
+		if (slug) {
+			editorStore.updateTabContent(slug, val);
+			markDirty();
 		}
 	}
 
@@ -55,13 +57,8 @@
 		saving = true;
 		error = '';
 		try {
-			const res = await fetch(`/api/archetypes/${slug}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ source }),
-			});
-			if (!res.ok) throw new Error('Erreur sauvegarde');
-			editing = false;
+			await editorStore.saveArchetype(slug);
+			dirty = false;
 		} catch (e) {
 			error = (e as Error).message;
 		} finally {
@@ -69,14 +66,9 @@
 		}
 	}
 
-	function handleCancel() {
-		if (slug) loadArchetype(slug);
-		editing = false;
-	}
-
 	async function handleDelete() {
 		if (!slug) return;
-		if (!confirm(`Supprimer l'archetype "${label}" ?`)) return;
+		if (!confirm(`Supprimer l'archetype "${tabLabel}" ?`)) return;
 		try {
 			const res = await fetch(`/api/archetypes/${slug}`, { method: 'DELETE' });
 			if (!res.ok) throw new Error('Erreur suppression');
@@ -103,46 +95,33 @@
 		<div class="archetype-header">
 			<div class="header-left">
 				<PenLine size={14} color="var(--c-text-muted)" />
-				<span class="filename">{label}</span>
+				<span class="filename">{tabLabel}</span>
 				<span class="file-slug">{slug}.md</span>
 			</div>
 			<div class="header-actions">
 				{#if error}
 					<span class="error-msg">{error}</span>
 				{/if}
-				{#if editing}
-					<button class="icon-btn" onclick={handleCancel} title="Annuler" disabled={saving}>
-						<X size={15} />
-					</button>
-					<button class="icon-btn save-btn" onclick={handleSave} title="Enregistrer" disabled={saving}>
-						{#if saving}
-							<Loader2 size={15} class="spin" />
-						{:else}
-							<Save size={15} />
-						{/if}
-					</button>
-				{:else}
-					<button class="icon-btn" onclick={() => editing = true} title="Éditer">
-						<PenLine size={15} />
-					</button>
-					<button class="icon-btn delete-btn" onclick={handleDelete} title="Supprimer">
-						<Trash2 size={15} />
-					</button>
-				{/if}
+				<button class="icon-btn save-btn" onclick={handleSave} title="Enregistrer" disabled={saving}>
+					{#if saving}
+						<Loader2 size={15} class="spin" />
+					{:else}
+						<Save size={15} />
+					{/if}
+				</button>
+				<button class="icon-btn delete-btn" onclick={handleDelete} title="Supprimer">
+					<Trash2 size={15} />
+				</button>
 			</div>
 		</div>
 
 		<div class="archetype-body">
-			{#if editing}
-				<textarea
-					class="source-editor"
-					value={source}
-					oninput={(e) => { source = e.currentTarget.value; markDirty(); }}
-					spellcheck="false"
-				></textarea>
-			{:else}
-				<pre class="source-display"><code>{source}</code></pre>
-			{/if}
+			<RawEditor
+				content={content}
+				lang="yaml"
+				active={true}
+				onchange={handleContentChange}
+			/>
 		</div>
 	</div>
 {/if}
@@ -282,38 +261,5 @@
 		flex: 1;
 		display: flex;
 		overflow: hidden;
-	}
-
-	.source-display {
-		flex: 1;
-		margin: 0;
-		padding: 20px 24px;
-		overflow: auto;
-		background: var(--c-bg);
-		font-family: var(--font-mono);
-		font-size: 13px;
-		line-height: 1.6;
-		color: var(--c-text);
-		tab-size: 2;
-	}
-
-	.source-display code {
-		font-family: inherit;
-	}
-
-	.source-editor {
-		flex: 1;
-		margin: 0;
-		padding: 20px 24px;
-		border: none;
-		border-radius: 0;
-		background: var(--c-bg);
-		font-family: var(--font-mono);
-		font-size: 13px;
-		line-height: 1.6;
-		color: var(--c-text);
-		resize: none;
-		outline: none;
-		tab-size: 2;
 	}
 </style>

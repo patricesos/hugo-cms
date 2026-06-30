@@ -119,7 +119,7 @@
 			{#if logs.length === 0}
 				<div class="console-empty">Aucune sortie Hugo pour l'instant.</div>
 			{:else}
-				{#each logs as entry, i}
+				{#each logs as entry, i (entry.timestamp)}
 					<div class="log-line" class:stderr={entry.stream === 'stderr'} class:first={i === 0}>
 						<span class="log-time">{formatTime(entry.timestamp)}</span>
 						<span class="log-stream">{entry.stream === 'stderr' ? 'ERR' : '   '}</span>

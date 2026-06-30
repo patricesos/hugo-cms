@@ -1,9 +1,10 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
 import { flattenTree } from '$lib/tree-utils';
+import { confirmStore } from '$lib/stores/confirm.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 
-export type TabKind = 'content' | 'static' | 'archetype' | 'config';
+export type TabKind = 'content' | 'static' | 'archetype' | 'config' | 'site';
 
 export interface Tab {
 	slug: string;
@@ -29,6 +30,7 @@ function create() {
 	const loading = writable(false);
 	const currentArchetype = writable<string | null>(null);
 	const currentConfigSlug = writable<string | null>(null);
+	const currentSiteSlug = writable<string | null>(null);
 	const configReloadKey = writable(0);
 	const conflictSlug = writable<string | null>(null);
 	const conflictServerMtimeMs = writable(0);
@@ -50,6 +52,7 @@ function create() {
 		loading,
 		currentArchetype,
 		currentConfigSlug,
+		currentSiteSlug,
 		configReloadKey,
 		conflictSlug,
 		conflictServerMtimeMs,
@@ -149,14 +152,21 @@ function create() {
 		} else if (tab.kind === 'config') {
 			currentConfigSlug.set(tab.slug);
 		currentSlug.set(tab.slug);
+		} else if (tab.kind === 'site') {
+			currentSiteSlug.set(tab.slug);
+		currentSlug.set(tab.slug);
 			} else {
 				currentSlug.set(tab.slug);
 			}
-			let v: 'content' | 'static' | 'archetypes' | 'config' = 'content';
-			if (tab.kind === 'archetype') v = 'archetypes';
-			else if (tab.kind === 'config') v = 'config';
-			else if (tab.kind === 'static') v = 'static';
-			settingsStore.updateLayout({ sidebarView: v });
+			const curView = settingsStore.snapshot().layout.sidebarView;
+			if (curView !== 'all' && curView !== 'site') {
+				let v: 'content' | 'static' | 'archetypes' | 'config' | 'site' = 'content';
+				if (tab.kind === 'archetype') v = 'archetypes';
+				else if (tab.kind === 'config') v = 'config';
+				else if (tab.kind === 'static') v = 'static';
+				else if (tab.kind === 'site') v = 'site';
+				settingsStore.updateLayout({ sidebarView: v });
+			}
 		},
 
 		async handleSave(markdown: string) {
@@ -210,10 +220,12 @@ function create() {
 					currentFrontmatter.set({});
 					currentConfigSlug.set(null);
 					currentArchetype.set(null);
+					currentSiteSlug.set(null);
 				}
 			} else {
 				if (get(currentArchetype) === slug) currentArchetype.set(null);
 				if (get(currentConfigSlug) === slug) currentConfigSlug.set(null);
+				if (get(currentSiteSlug) === slug) currentSiteSlug.set(null);
 			}
 		},
 
@@ -234,7 +246,8 @@ function create() {
 		async handleDelete(slug: string | undefined, trashDir: string, loadTreeFn: () => Promise<void>) {
 			const target = slug || get(currentSlug);
 			if (!target) return;
-			if (!window.confirm(`Supprimer "${target}" ?\n\nLe fichier sera déplacé dans ${trashDir}/.`)) return;
+			const ok = await confirmStore.confirm('Supprimer le fichier', `Supprimer "${target}" ?\n\nLe fichier sera déplacé dans ${trashDir}/.`);
+			if (!ok) return;
 			await fetch(`/api/content/${target}`, { method: 'DELETE' });
 			tabs.update(t => t.filter(tab => tab.slug !== target));
 			if (slug || get(currentSlug) === target) {
@@ -254,7 +267,8 @@ function create() {
 		},
 
 		async handleDeleteFolder(slug: string, trashDir: string, loadTreeFn: () => Promise<void>) {
-			if (!window.confirm(`Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDir}/.`)) return;
+			const ok = await confirmStore.confirm('Supprimer le dossier', `Supprimer le dossier "${slug}" ?\n\nTout son contenu sera déplacé dans ${trashDir}/.`);
+			if (!ok) return;
 			await fetch(`/api/directory/${slug}`, { method: 'DELETE' });
 			tabs.update(t => t.filter(tab => tab.slug !== slug && !tab.slug.startsWith(slug + '/')));
 			const curTabs = get(tabs);
@@ -342,6 +356,68 @@ function create() {
 			} catch { /* ignore */ }
 		},
 
+		/** Met à jour le contenu textuel d'un onglet (config/archetype/site). */
+		updateTabContent(slug: string, content: string) {
+			tabs.update(t => t.map(ti => ti.slug === slug ? { ...ti, content } : ti));
+		},
+
+		async loadConfig(slug: string) {
+			const res = await fetch(`/api/config/${slug}`);
+			const data = await res.json();
+			tabs.update(t => t.map(ti =>
+				ti.slug === slug ? { ...ti, content: data.content } : ti
+			));
+		},
+
+		async saveConfig(slug: string) {
+			const curTabs = get(tabs);
+			const tab = curTabs.find(t => t.slug === slug);
+			if (!tab) return;
+			await fetch(`/api/config/${slug}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ content: tab.content }),
+			});
+		},
+
+		async loadArchetype(slug: string) {
+			const res = await fetch(`/api/archetypes/${slug}`);
+			const data = await res.json();
+			tabs.update(t => t.map(ti =>
+				ti.slug === slug ? { ...ti, content: data.source, title: data.label } : ti
+			));
+		},
+
+		async saveArchetype(slug: string) {
+			const curTabs = get(tabs);
+			const tab = curTabs.find(t => t.slug === slug);
+			if (!tab) return;
+			await fetch(`/api/archetypes/${slug}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ source: tab.content }),
+			});
+		},
+
+		async loadSiteFile(slug: string) {
+			const res = await fetch(`/api/site/raw/${slug}`);
+			const content = await res.text();
+			tabs.update(t => t.map(ti =>
+				ti.slug === slug ? { ...ti, content } : ti
+			));
+		},
+
+		async saveSiteFile(slug: string) {
+			const curTabs = get(tabs);
+			const tab = curTabs.find(t => t.slug === slug);
+			if (!tab) return;
+			await fetch(`/api/site/raw/${slug}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ content: tab.content }),
+			});
+		},
+
 		snapshot() {
 			return {
 				tabs: get(tabs),
@@ -356,6 +432,7 @@ function create() {
 				loading: get(loading),
 				currentArchetype: get(currentArchetype),
 				currentConfigSlug: get(currentConfigSlug),
+				currentSiteSlug: get(currentSiteSlug),
 				conflictSlug: get(conflictSlug),
 				conflictServerMtimeMs: get(conflictServerMtimeMs),
 				currentTab: get(tabs).find(t => t.slug === get(currentSlug)) ?? null,

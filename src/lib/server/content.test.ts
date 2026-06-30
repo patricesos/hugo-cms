@@ -188,7 +188,7 @@ describe('deleteContent', () => {
 		const { deleteContent } = await import('./content');
 		const { readdirSync } = await import('node:fs');
 		await deleteContent('draft');
-		const trashDir = join(contentDir, '_trash');
+		const trashDir = join(tmpDir, '_trash');
 		const trashFiles = readdirSync(trashDir);
 		expect(trashFiles.length).toBeGreaterThan(0);
 		expect(trashFiles.some((f) => f.includes('draft'))).toBe(true);

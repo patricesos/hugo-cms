@@ -164,7 +164,7 @@
 					<span>Aucun commit</span>
 				</div>
 			{:else}
-					{#each logEntries as entry, i}
+					{#each logEntries as entry, i (entry.hash)}
 					<div class="log-entry" class:is-head={i === 0}>
 						<div class="entry-top-row">
 							<div class="entry-hash">
@@ -209,7 +209,7 @@
 			<div class="scroll-area">
 				{#if status.staged.length > 0}
 					<div class="section-label">Stagés</div>
-					{#each status.staged as file}
+					{#each status.staged as file (file)}
 						<button class="file-row staged" onclick={() => onOpenFile?.(file)}>
 							<FileCode size={12} />
 							<span class="file-path">{file}</span>
@@ -219,7 +219,7 @@
 
 				{#if status.modified.length > 0}
 					<div class="section-label">Modifiés</div>
-					{#each status.modified as file}
+					{#each status.modified as file (file)}
 						<button class="file-row" onclick={() => onOpenFile?.(file)}>
 							<span class="icon-modified"><Pencil size={12} /></span>
 							<span class="file-path">{file}</span>
@@ -229,7 +229,7 @@
 
 				{#if status.added.length > 0}
 					<div class="section-label">Ajoutés</div>
-					{#each status.added as file}
+					{#each status.added as file (file)}
 						<button class="file-row" onclick={() => onOpenFile?.(file)}>
 							<span class="icon-added"><Plus size={12} /></span>
 							<span class="file-path">{file}</span>
@@ -239,7 +239,7 @@
 
 				{#if status.deleted.length > 0}
 					<div class="section-label">Supprimés</div>
-					{#each status.deleted as file}
+					{#each status.deleted as file (file)}
 						<button class="file-row" onclick={() => onOpenFile?.(file)}>
 							<span class="icon-deleted"><Trash2 size={12} /></span>
 							<span class="file-path">{file}</span>
@@ -249,7 +249,7 @@
 
 				{#if status.renamed.length > 0}
 					<div class="section-label">Renommés</div>
-					{#each status.renamed as file}
+					{#each status.renamed as file (file)}
 						<button class="file-row" onclick={() => onOpenFile?.(file)}>
 							<span class="icon-renamed"><FileCode size={12} /></span>
 							<span class="file-path">{file}</span>
@@ -259,7 +259,7 @@
 
 				{#if status.untracked.length > 0}
 					<div class="section-label">Non suivis</div>
-					{#each status.untracked as file}
+					{#each status.untracked as file (file)}
 						<button class="file-row" onclick={() => onOpenFile?.(file)}>
 							<span class="icon-untracked"><HelpCircle size={12} /></span>
 							<span class="file-path">{file}</span>

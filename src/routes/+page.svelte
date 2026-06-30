@@ -3,6 +3,7 @@
 	import AppHeader from '$lib/components/AppHeader.svelte';
 	import RestartBanner from '$lib/components/RestartBanner.svelte';
 	import SidebarContainer from '$lib/components/SidebarContainer.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import ActionBar from '$lib/components/ActionBar.svelte';
 	import EditorPanelContainer from '$lib/components/EditorPanelContainer.svelte';
 	import SetupOverlay from '$lib/components/SetupOverlay.svelte';
@@ -24,7 +25,7 @@
 	const { status: gitStatus } = gitStore;
 
 	// Arbres (store dedie)
-	const { tree, assetTree, archetypeTree, configTree, archetypes, directories, searchEntries, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
+	const { tree, assetTree, archetypeTree, configTree, archetypes, directories, searchEntries, loadTree, loadAssetTree, loadArchetypes, loadConfigTree, loadSiteTree } = fileTreeStore;
 
 	// Injection des getters editor dans settingsStore pour le persist (evite l'import direct)
 	settingsStore.setEditorGetters(
@@ -144,7 +145,7 @@
 	// --- Fonctions editeur ---
 	async function loadFile(slug: string) {
 		await editorStore.loadFile(slug, loadTree);
-		if ($currentSlug === slug) {
+		if ($currentSlug === slug && $layout.sidebarView !== 'all' && $layout.sidebarView !== 'site') {
 			settingsStore.updateLayout({ sidebarView: 'content' });
 		}
 	}
@@ -160,8 +161,17 @@
 	}
 
 	async function handleCreateFolder(folderName: string, parent: string) {
-		await editorStore.handleCreateFolder(folderName, parent, loadTree);
-		uiStore.closeCreateFolderDialog();
+		try {
+			if ($dialogs.createFolderIsSite) {
+				const fullSlug = parent ? `${parent}/${folderName}` : folderName;
+				const res = await fetch(`/api/site/mkdir/${fullSlug}`, { method: 'POST' });
+				if (res.ok) await loadSiteTree();
+			} else {
+				await editorStore.handleCreateFolder(folderName, parent, loadTree);
+			}
+		} finally {
+			uiStore.closeCreateFolderDialog();
+		}
 	}
 
 	async function handleDelete(slug?: string) {
@@ -339,6 +349,8 @@
 		}}
 	/>
 {/if}
+
+<ConfirmDialog />
 
 {#if ThemeSelectorComp}
 	<ThemeSelectorComp

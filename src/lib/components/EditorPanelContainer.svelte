@@ -1,33 +1,35 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { PenLine } from '@lucide/svelte';
-	import TabBar from './TabBar.svelte';
-	import SitemapView from './SitemapView.svelte';
-	import EditorMain from './EditorMain.svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
-	import { settingsStore } from '$lib/stores/settings.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
-	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
-	import { hugoStore, previewReloadKey } from '$lib/stores/hugo.svelte';
-	import { startPreviewResize, cleanupAllResize } from '$lib/resize';
+import { PenLine } from '@lucide/svelte';
+import TabBar from './TabBar.svelte';
+import SitemapView from './SitemapView.svelte';
+import EditorMain from './EditorMain.svelte';
+import { editorStore } from '$lib/stores/editor.svelte';
+import { settingsStore } from '$lib/stores/settings.svelte';
+import { uiStore } from '$lib/stores/ui.svelte';
+import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+import { hugoStore, previewReloadKey } from '$lib/stores/hugo.svelte';
+import { startPreviewResize, cleanupAllResize } from '$lib/resize';
 
-	let { onLoadFile: _onLoadFile }: { onLoadFile?: (slug: string) => Promise<void> } = $props();
+let { onLoadFile: _onLoadFile }: { onLoadFile?: (slug: string) => Promise<void> } = $props();
 
-	const { settings, layout } = settingsStore;
-	const { dialogs } = uiStore;
-	const { tree, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
-	const {
-		tabs, currentSlug,
-		currentArchetype, currentConfigSlug, currentTab, configReloadKey,
-	} = editorStore;
+const { settings, layout } = settingsStore;
+const { dialogs } = uiStore;
+const { tree, loadTree, loadAssetTree, loadArchetypes, loadConfigTree } = fileTreeStore;
+const {
+	tabs, currentSlug,
+	currentArchetype, currentConfigSlug, currentSiteSlug, currentTab, configReloadKey,
+} = editorStore;
 
 	let ArchetypeViewComp = $state<any>(null);
 	let ConfigViewComp = $state<any>(null);
+	let SiteFileViewComp = $state<any>(null);
 	let ImageViewComp = $state<any>(null);
 	let HugoPreviewComp = $state<any>(null);
 
 	$effect(() => { if ($currentTab?.kind === 'archetype' && !ArchetypeViewComp) import('$lib/components/ArchetypeView.svelte').then(m => ArchetypeViewComp = m.default); });
 	$effect(() => { if ($currentTab?.kind === 'config' && !ConfigViewComp) import('$lib/components/ConfigView.svelte').then(m => ConfigViewComp = m.default); });
+	$effect(() => { if ($currentTab?.kind === 'site' && !SiteFileViewComp) import('$lib/components/SiteFileView.svelte').then(m => SiteFileViewComp = m.default); });
 	$effect(() => { if ($currentTab?.kind === 'static' && !ImageViewComp) import('$lib/components/ImageView.svelte').then(m => ImageViewComp = m.default); });
 	$effect(() => { if ($layout.showPreview && !HugoPreviewComp) import('$lib/components/HugoPreview.svelte').then(m => HugoPreviewComp = m.default); });
 
@@ -52,7 +54,7 @@
 
 	async function loadFile(slug: string) {
 		await editorStore.loadFile(slug, loadTree);
-		if ($currentSlug === slug) {
+		if ($currentSlug === slug && $layout.sidebarView !== 'all') {
 			settingsStore.updateLayout({ sidebarView: 'content' });
 		}
 	}
@@ -85,6 +87,14 @@
 						reloadKey={$configReloadKey}
 						onClose={() => { editorStore.tabs.set($tabs.filter(t => t.slug !== $currentSlug)); editorStore.currentConfigSlug.set(null); editorStore.currentSlug.set(null); }}
 						onDelete={(s: string) => { loadConfigTree(); editorStore.tabs.set($tabs.filter(t => t.slug !== s)); editorStore.currentConfigSlug.set(null); editorStore.currentSlug.set(null); }}
+					/>
+				{/if}
+			{:else if $currentTab?.kind === 'site'}
+				{#if SiteFileViewComp}
+					<SiteFileViewComp
+						slug={$currentSiteSlug}
+						onClose={() => { editorStore.tabs.set($tabs.filter(t => t.slug !== $currentSlug)); editorStore.currentSiteSlug.set(null); editorStore.currentSlug.set(null); }}
+						onDelete={(s: string) => { fileTreeStore.loadSiteTree(); editorStore.tabs.set($tabs.filter(t => t.slug !== s)); editorStore.currentSiteSlug.set(null); editorStore.currentSlug.set(null); }}
 					/>
 				{/if}
 			{:else if $dialogs.showSitemap && !$currentSlug}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { Save, Trash2, Loader2, Settings, FileCode } from '@lucide/svelte';
+	import { Save, Trash2, Loader2, FileCode } from '@lucide/svelte';
 	import RawEditor from './RawEditor.svelte';
 	import type { EditorLang } from './RawEditor.svelte';
 	import { editorStore } from '$lib/stores/editor.svelte';
@@ -26,18 +26,17 @@
 			case 'cjs':
 			case 'jsx':
 			case 'tsx': return 'javascript';
+			case 'md': return 'markdown';
 			default: return 'markdown';
 		}
 	}
 
 	let {
 		slug,
-		reloadKey = 0,
 		onClose,
 		onDelete,
 	}: {
 		slug: string | null;
-		reloadKey?: number;
 		onClose: () => void;
 		onDelete: (slug: string) => void;
 	} = $props();
@@ -50,15 +49,14 @@
 	let content = $derived($currentTab?.content ?? '');
 
 	$effect(() => {
-		void reloadKey;
-		if (slug) loadConfigFile(slug);
+		if (slug) loadSiteFile(slug);
 	});
 
-	async function loadConfigFile(name: string) {
+	async function loadSiteFile(name: string) {
 		loading = true;
 		error = '';
 		try {
-			await editorStore.loadConfig(name);
+			await editorStore.loadSiteFile(name);
 		} catch (e) {
 			error = (e as Error).message;
 		} finally {
@@ -75,7 +73,7 @@
 		saving = true;
 		error = '';
 		try {
-			await editorStore.saveConfig(slug);
+			await editorStore.saveSiteFile(slug);
 		} catch (e) {
 			error = (e as Error).message;
 		} finally {
@@ -85,9 +83,9 @@
 
 	async function handleDelete() {
 		if (!slug) return;
-		if (!confirm(`Supprimer le fichier de configuration "${slug}" ?`)) return;
+		if (!confirm(`Supprimer "${slug}" ?`)) return;
 		try {
-			const res = await fetch(`/api/config/${slug}`, { method: 'DELETE' });
+			const res = await fetch(`/api/site/raw/${slug}`, { method: 'DELETE' });
 			if (!res.ok) throw new Error('Erreur suppression');
 			onDelete(slug);
 		} catch (e) {
@@ -98,9 +96,9 @@
 
 {#if !slug}
 	<div class="empty-state" transition:fade={{ duration: 200 }}>
-		<Settings size={32} opacity={0.3} />
-		<h2>Configuration</h2>
-		<p>Sélectionnez un fichier de configuration dans la sidebar.</p>
+		<FileCode size={32} opacity={0.3} />
+		<h2>Fichier site</h2>
+		<p>Sélectionnez un fichier dans la vue Site.</p>
 	</div>
 {:else if loading}
 	<div class="loading-state" transition:fade={{ duration: 200 }}>
@@ -109,8 +107,8 @@
 		<div class="skeleton-block"></div>
 	</div>
 {:else}
-	<div class="config-view" transition:fade={{ duration: 150 }}>
-		<div class="config-header">
+	<div class="sitefile-view" transition:fade={{ duration: 150 }}>
+		<div class="sitefile-header">
 			<div class="header-left">
 				<FileCode size={14} color="var(--c-text-muted)" />
 				<span class="filename">{slug}</span>
@@ -132,7 +130,7 @@
 			</div>
 		</div>
 
-		<div class="config-body">
+		<div class="sitefile-body">
 			<RawEditor
 				content={content}
 				lang={lang}
@@ -188,14 +186,14 @@
 		100% { background-position: -200% 0; }
 	}
 
-	.config-view {
+	.sitefile-view {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
 	}
 
-	.config-header {
+	.sitefile-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -217,6 +215,9 @@
 		font-weight: 500;
 		color: var(--c-text-secondary);
 		font-family: var(--font-mono);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.header-actions {
@@ -269,7 +270,7 @@
 		background: var(--c-primary-light);
 	}
 
-	.config-body {
+	.sitefile-body {
 		flex: 1;
 		display: flex;
 		overflow: hidden;

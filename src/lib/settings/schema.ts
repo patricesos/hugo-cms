@@ -171,10 +171,12 @@ export const settingsSchema: SettingTab[] = [
 						label: 'Vue par défaut',
 						type: 'select',
 						options: [
+							{ value: 'all', label: 'Tout' },
 							{ value: 'content', label: 'Content' },
 							{ value: 'static', label: 'Static' },
 							{ value: 'archetypes', label: 'Archetypes' },
 							{ value: 'config', label: 'Config' },
+							{ value: 'site', label: 'Site' },
 						],
 						default: 'content',
 					},

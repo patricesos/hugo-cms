@@ -103,14 +103,23 @@ export interface CmsConfig {
 	siteValid: boolean;
 }
 
-	function looksLikeHugoRoot(dir: string): boolean {
+export const HUGO_ROOT_CONFIGS = [
+	'config.toml', 'config.yaml', 'config.yml', 'config.json',
+	'hugo.toml', 'hugo.yaml', 'hugo.yml', 'hugo.json',
+] as const;
+
+function looksLikeHugoRoot(dir: string): boolean {
 	if (!dir) return false;
 	if (!existsSync(dir)) return false;
-	const rootConfigs = ['config.toml', 'config.yaml', 'config.yml', 'hugo.toml', 'hugo.yaml', 'hugo.yml'];
-	for (const name of rootConfigs) {
+	for (const name of HUGO_ROOT_CONFIGS) {
 		if (existsSync(resolve(dir, name))) return true;
 	}
-	if (existsSync(resolve(dir, 'config'))) return true;
+	// Cherche aussi dans config/_default/ (Hugo ≥0.110)
+	if (existsSync(resolve(dir, 'config', '_default'))) {
+		for (const name of HUGO_ROOT_CONFIGS) {
+			if (existsSync(resolve(dir, 'config', '_default', name))) return true;
+		}
+	}
 	return false;
 }
 

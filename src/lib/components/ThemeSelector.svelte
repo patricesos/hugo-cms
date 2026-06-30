@@ -10,6 +10,7 @@
 	} = $props();
 
 	let searchQuery = $state('');
+	let confirmThemeId = $state<string | null>(null);
 
 	$effect(() => {
 		if (show) {
@@ -35,6 +36,20 @@
 
 	async function handleActivate(themeId: string) {
 		await themeStore.switchTheme(themeId);
+	}
+
+	async function handleUninstall(themeId: string) {
+		confirmThemeId = themeId;
+	}
+
+	async function confirmUninstall() {
+		if (!confirmThemeId) return;
+		await themeStore.uninstall(confirmThemeId);
+		confirmThemeId = null;
+	}
+
+	function cancelUninstall() {
+		confirmThemeId = null;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -79,7 +94,7 @@
 									<h4 class="card-title">{theme.name}</h4>
 									<p class="card-desc">{theme.description}</p>
 									<div class="card-tags">
-										{#each theme.tags.slice(0, 4) as tag}
+										{#each theme.tags.slice(0, 4) as tag (tag)}
 											<span class="tag">{tag}</span>
 										{/each}
 									</div>
@@ -94,13 +109,22 @@
 									{#if theme.active}
 										<span class="active-badge">Actif</span>
 									{:else if theme.installed}
-										<button
-											class="btn-activate"
-											disabled={$themeStore.installing !== null}
-											onclick={() => handleActivate(theme.id)}
-										>
-											Activer
-										</button>
+										<div class="btn-group">
+											<button
+												class="btn-activate"
+												disabled={$themeStore.installing !== null}
+												onclick={() => handleActivate(theme.id)}
+											>
+												Activer
+											</button>
+											<button
+												class="btn-uninstall"
+												disabled={$themeStore.installing !== null}
+												onclick={() => handleUninstall(theme.id)}
+											>
+												Désinstaller
+											</button>
+										</div>
 									{:else}
 										<button
 											class="btn-install"
@@ -117,6 +141,20 @@
 				{/if}
 			</div>
 		</div>
+
+		{#if confirmThemeId}
+			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+			<div class="confirm-overlay" role="presentation" onclick={cancelUninstall}>
+				<div class="confirm-dialog" role="alertdialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+					<p>Désinstaller le thème <strong>{confirmThemeId}</strong> ?</p>
+					<p class="confirm-warning">Cette action est irréversible.</p>
+					<div class="confirm-actions">
+						<button class="btn-cancel" onclick={cancelUninstall}>Annuler</button>
+						<button class="btn-confirm" onclick={confirmUninstall}>Désinstaller</button>
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -344,6 +382,107 @@
 		cursor: default;
 		background: transparent;
 		color: var(--c-primary);
+	}
+
+	.btn-group {
+		display: flex;
+		gap: 6px;
+	}
+
+	.btn-uninstall {
+		padding: 6px 14px;
+		border: 1px solid var(--c-danger-border, #e0a0a0);
+		border-radius: var(--radius-md);
+		background: transparent;
+		color: var(--c-danger, #c0392b);
+		font-size: 12px;
+		font-family: inherit;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+
+	.btn-uninstall:hover {
+		background: var(--c-danger, #c0392b);
+		color: white;
+	}
+
+	.btn-uninstall:disabled {
+		opacity: 0.5;
+		cursor: default;
+		background: transparent;
+		color: var(--c-danger, #c0392b);
+	}
+
+	.confirm-overlay {
+		position: absolute;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.35);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 10;
+		border-radius: var(--radius-xl);
+	}
+
+	.confirm-dialog {
+		background: var(--c-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-lg);
+		padding: 24px;
+		max-width: 320px;
+		text-align: center;
+		box-shadow: var(--shadow-lg);
+	}
+
+	.confirm-dialog p {
+		margin: 0 0 6px;
+		font-size: 14px;
+		color: var(--c-text);
+	}
+
+	.confirm-warning {
+		color: var(--c-danger, #c0392b) !important;
+		font-size: 12px !important;
+		margin-bottom: 16px !important;
+	}
+
+	.confirm-actions {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+	}
+
+	.btn-cancel {
+		padding: 8px 18px;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-md);
+		background: transparent;
+		color: var(--c-text);
+		font-size: 13px;
+		font-family: inherit;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.btn-cancel:hover {
+		background: var(--c-bg-muted);
+	}
+
+	.btn-confirm {
+		padding: 8px 18px;
+		border: 1px solid var(--c-danger, #c0392b);
+		border-radius: var(--radius-md);
+		background: var(--c-danger, #c0392b);
+		color: white;
+		font-size: 13px;
+		font-family: inherit;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.btn-confirm:hover {
+		opacity: 0.85;
 	}
 
 	.progress-bar-track {

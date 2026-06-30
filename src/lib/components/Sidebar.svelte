@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { Image, FileText, FileCode, Settings, ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { Image, FileText, FileCode, Settings, Layers, FolderTree, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import TreeNode from './TreeNode.svelte';
 	import type { TreeNodeData } from '$lib/types';
 
-	const views: { key: 'archetypes' | 'config' | 'content' | 'static'; label: string; icon: typeof FileText }[] = [
-		{ key: 'archetypes', label: 'Archétypes', icon: FileCode },
-		{ key: 'config', label: 'Config', icon: Settings },
+	const views: { key: 'all' | 'archetypes' | 'config' | 'content' | 'site' | 'static'; label: string; icon: typeof FileText }[] = [
+		{ key: 'all', label: 'Tout', icon: Layers },
 		{ key: 'content', label: 'Content', icon: FileText },
 		{ key: 'static', label: 'Static', icon: Image },
+		{ key: 'archetypes', label: 'Archétypes', icon: FileCode },
+		{ key: 'config', label: 'Config', icon: Settings },
+		{ key: 'site', label: 'Site', icon: FolderTree },
 	];
 
 	let {
@@ -17,6 +19,7 @@
 		assetTree = [] as TreeNodeData[],
 		archetypeTree = [] as TreeNodeData[],
 		configTree = [] as TreeNodeData[],
+		siteTree = [] as TreeNodeData[],
 		currentSlug = '',
 		sidebarView = 'content',
 		expandedSlugs = new Set<string>(),
@@ -24,12 +27,16 @@
 		onCreateFileInFolder,
 		onCreateFolderInFolder,
 		onDeleteFile,
+		onDeleteSiteFile,
 		onDeleteFolder,
+		onDeleteSiteFolder,
 		onRenameFile,
+		onRenameSite,
 		onDuplicateFile,
 		onSelectAsset,
 		onSelectArchetype,
 		onSelectConfig,
+		onSelectSite,
 		onViewChange,
 		onToggleFolder,
 	}: {
@@ -37,20 +44,25 @@
 		assetTree?: TreeNodeData[];
 		archetypeTree?: TreeNodeData[];
 		configTree?: TreeNodeData[];
+		siteTree?: TreeNodeData[];
 		currentSlug?: string | null;
-		sidebarView?: 'content' | 'static' | 'archetypes' | 'config';
+		sidebarView?: 'all' | 'content' | 'site' | 'static' | 'archetypes' | 'config';
 		expandedSlugs?: Set<string>;
 		onLoadFile?: (slug: string) => void;
 		onCreateFileInFolder?: (slug: string) => void;
 		onCreateFolderInFolder?: (slug: string) => void;
 		onDeleteFile?: (slug: string) => void;
+		onDeleteSiteFile?: (slug: string) => void;
 		onDeleteFolder?: (slug: string) => void;
+		onDeleteSiteFolder?: (slug: string) => void;
 		onRenameFile?: (oldSlug: string, newSlug: string) => void;
+		onRenameSite?: (oldSlug: string, newSlug: string) => void;
 		onDuplicateFile?: (slug: string) => void;
 		onSelectAsset?: (path: string) => void;
 		onSelectArchetype?: (slug: string) => void;
 		onSelectConfig?: (slug: string) => void;
-		onViewChange?: (view: 'content' | 'static' | 'archetypes' | 'config') => void;
+		onSelectSite?: (slug: string) => void;
+		onViewChange?: (view: 'all' | 'content' | 'site' | 'static' | 'archetypes' | 'config') => void;
 		onToggleFolder?: (slug: string) => void;
 	} = $props();
 
@@ -61,15 +73,26 @@
 		if (blurTimeout) clearTimeout(blurTimeout);
 	});
 
-	const currentView = $derived(views.find((v) => v.key === sidebarView) ?? views[2]);
+	const currentView = $derived(views.find((v) => v.key === sidebarView) ?? views[1]);
 
-	function setView(view: 'content' | 'static' | 'archetypes' | 'config') {
+	function setView(view: 'all' | 'content' | 'site' | 'static' | 'archetypes' | 'config') {
 		onViewChange?.(view);
 		dropdownOpen = false;
 	}
 
 	function handleBlur() {
 		blurTimeout = setTimeout(() => dropdownOpen = false, 150);
+	}
+
+	function handleRootDrop(e: DragEvent) {
+		if (sidebarView !== 'site') return;
+		e.preventDefault();
+		const sourceSlug = e.dataTransfer?.getData('text/plain');
+		if (!sourceSlug || !onRenameSite) return;
+		const fileName = sourceSlug.includes('/') ? sourceSlug.split('/').pop()! : sourceSlug;
+		if (fileName !== sourceSlug) {
+			onRenameSite(sourceSlug, fileName);
+		}
 	}
 </script>
 
@@ -85,6 +108,10 @@
 				<Settings size={14} />
 			{:else if currentView.icon === Image}
 				<Image size={14} />
+			{:else if currentView.icon === Layers}
+				<Layers size={14} />
+			{:else if currentView.icon === FolderTree}
+				<FolderTree size={14} />
 			{/if}
 			<span>{currentView.label}</span>
 			<ChevronRight size={12} />
@@ -101,6 +128,10 @@
 							<Settings size={14} />
 						{:else if v.icon === Image}
 							<Image size={14} />
+						{:else if v.icon === Layers}
+							<Layers size={14} />
+						{:else if v.icon === FolderTree}
+							<FolderTree size={14} />
 						{/if}
 						<span>{v.label}</span>
 					</button>
@@ -109,7 +140,7 @@
 		{/if}
 	</div>
 
-	<nav class="file-tree">
+	<nav class="file-tree" ondragover={(e) => { if (sidebarView === 'site') e.preventDefault(); }} ondrop={handleRootDrop}>
 		{#if sidebarView === 'content'}
 			{#each tree as node}
 				<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
@@ -121,6 +152,35 @@
 		{:else if sidebarView === 'config'}
 			{#each configTree as node}
 				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectConfig?.(slug)} />
+			{/each}
+		{:else if sidebarView === 'all'}
+			<div class="all-section">
+				<div class="section-header">Content</div>
+				{#each tree as node}
+					<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
+				{/each}
+			</div>
+			<div class="all-section">
+				<div class="section-header">Static</div>
+				{#each assetTree as node}
+					<TreeNode {node} depth={0} {currentSlug} {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectAsset?.(slug)} />
+				{/each}
+			</div>
+			<div class="all-section">
+				<div class="section-header">Archétypes</div>
+				{#each archetypeTree as node}
+					<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectArchetype?.(slug)} />
+				{/each}
+			</div>
+			<div class="all-section">
+				<div class="section-header">Config</div>
+				{#each configTree as node}
+					<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectConfig?.(slug)} />
+				{/each}
+			</div>
+		{:else if sidebarView === 'site'}
+			{#each siteTree as node}
+				<TreeNode {node} depth={0} currentSlug="" {expandedSlugs} {onToggleFolder} onLoadFile={(slug) => onSelectSite?.(slug)} {onCreateFileInFolder} {onCreateFolderInFolder} onDeleteFile={onDeleteSiteFile} onDeleteFolder={onDeleteSiteFolder} onRenameFile={onRenameSite} {onDuplicateFile} />
 			{/each}
 		{:else}
 			{#each archetypeTree as node}
@@ -224,5 +284,26 @@
 		flex: 1;
 		overflow-y: auto;
 		min-height: 0;
+	}
+
+	.all-section {
+		margin-bottom: 4px;
+	}
+
+	.all-section:not(:last-child)::after {
+		content: '';
+		display: block;
+		margin: 6px 0 6px -16px;
+		border-bottom: 1px solid var(--c-border);
+	}
+
+	.section-header {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--c-text-muted);
+		padding: 4px 0 2px;
+		margin: 0 0 2px;
 	}
 </style>

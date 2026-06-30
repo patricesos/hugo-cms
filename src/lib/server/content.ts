@@ -11,7 +11,7 @@ function getBase(): string {
 
 function getTrashDir(): string {
 	const config = getCmsConfig();
-	return join(config.hugoContentPath, config.trashDir);
+	return join(config.hugoSitePath, config.trashDir);
 }
 
 export function safeResolveIn(base: string, ...segments: string[]): string {
@@ -159,11 +159,19 @@ export async function deleteContent(slug: string): Promise<void> {
 }
 
 export async function renameContent(slug: string, newSlug: string): Promise<ContentItem> {
+	const cleanSlug = newSlug.replace(/\.md$/i, '');
 	const filePath = safeResolve(slug + '.md');
-	const newFilePath = safeResolve(newSlug + '.md');
+	const newFilePath = safeResolve(cleanSlug + '.md');
 	await mkdir(dirname(newFilePath), { recursive: true });
 	await rename(filePath, newFilePath);
-	return readContent(newSlug);
+	return readContent(cleanSlug);
+}
+
+export async function renameDirectory(slug: string, newSlug: string): Promise<void> {
+	const dirPath = safeResolve(slug);
+	const newDirPath = safeResolve(newSlug);
+	await mkdir(dirname(newDirPath), { recursive: true });
+	await rename(dirPath, newDirPath);
 }
 
 export async function createDirectory(slug: string): Promise<void> {

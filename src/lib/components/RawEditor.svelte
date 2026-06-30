@@ -7,6 +7,13 @@
         EditorSelection,
     } from "@codemirror/state";
     import { markdown } from "@codemirror/lang-markdown";
+    import { json } from "@codemirror/lang-json";
+    import { yaml } from "@codemirror/lang-yaml";
+    import { xml } from "@codemirror/lang-xml";
+    import { css } from "@codemirror/lang-css";
+    import { html } from "@codemirror/lang-html";
+    import { javascript } from "@codemirror/lang-javascript";
+    import type { Extension } from "@codemirror/state";
     import { getCmTheme } from "$lib/editor/codemirror-themes";
     import {
         undo,
@@ -95,25 +102,38 @@
         ];
     }
 
+    export type EditorLang = 'markdown' | 'json' | 'yaml' | 'xml' | 'html' | 'css' | 'javascript';
+
+    function getLangExt(lang: EditorLang): Extension {
+        switch (lang) {
+            case 'json': return json();
+            case 'yaml': return yaml();
+            case 'xml': return xml();
+            case 'html': return html();
+            case 'css': return css();
+            case 'javascript': return javascript();
+            default: return markdown();
+        }
+    }
+
     interface RawEditorProps {
         content?: string;
         active?: boolean;
+        lang?: EditorLang;
         onchange?: (content: string) => void;
     }
 
-    let { content = "", active = false, onchange }: RawEditorProps = $props();
+    let { content = "", active = false, lang = 'markdown', onchange }: RawEditorProps = $props();
 
     let cmView = $state<EditorView | null>(null);
     let cmContainer = $state<HTMLDivElement | undefined>();
     let cmUpdating = false;
+    const langComp = new Compartment();
 
     // Cycle de vie CM6 : création quand actif, destruction quand inactif
     $effect(() => {
         if (!active || !cmContainer) {
             if (cmView) {
-                console.log(
-                    "[RawEditor] Destroy CM view (inactive/no container)",
-                );
                 cmView.destroy();
                 cmView = null;
             }
@@ -121,17 +141,14 @@
         }
         const docContent = untrack(() => content);
         const isDark = document.documentElement.dataset.theme === "dark";
-        console.log("[RawEditor] Create CM view", {
-            contentLength: docContent.length,
-            isDark,
-        });
         const tc = new Compartment();
+        const langAtCreate = untrack(() => lang);
         const view = new EditorView({
             state: EditorState.create({
                 doc: docContent,
                 extensions: [
                     basicSetup(),
-                    markdown(),
+                    langComp.of(getLangExt(langAtCreate)),
                     tc.of(getCmTheme(isDark)),
                     EditorView.updateListener.of((update) => {
                         if (update.docChanged && !cmUpdating) {
@@ -174,11 +191,18 @@
         });
 
         return () => {
-            console.log("[RawEditor] Cleanup: destroy CM view");
             themeObs.disconnect();
             view.destroy();
             if (cmView === view) cmView = null;
         };
+    });
+
+    // Reconfiguration de la langue quand `lang` change (sans destroy)
+    $effect(() => {
+        if (!cmView) return;
+        cmView.dispatch({
+            effects: [langComp.reconfigure(getLangExt(lang))],
+        });
     });
 
     // Sync externe : quand content change depuis l'orchestrateur (frontmatter, tab switch), pousser vers CM6
@@ -186,18 +210,7 @@
         if (!cmView || cmUpdating) return;
         const current = cmView.state.doc.toString();
         const shouldSync = current !== content;
-        console.log("[RawEditor] Sync $effect", {
-            currentLen: current.length,
-            contentLen: content?.length,
-            shouldSync,
-            cmUpdating,
-        });
         if (shouldSync) {
-            console.log("[RawEditor] DISPATCHING sync", {
-                from: 0,
-                to: current.length,
-                insertLen: content?.length,
-            });
             cmUpdating = true;
             cmView.dispatch({
                 changes: { from: 0, to: current.length, insert: content },

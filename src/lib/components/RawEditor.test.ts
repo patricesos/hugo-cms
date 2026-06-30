@@ -134,6 +134,54 @@ describe('RawEditor — cycle de vie CM6', () => {
 	});
 });
 
+describe('RawEditor — prop lang', () => {
+	it('accepte la prop lang sans erreur (défaut markdown)', async () => {
+		const { default: RawEditor } = await import('./RawEditor.svelte');
+		const { render } = await import('@testing-library/svelte');
+		const { container } = render(RawEditor, { active: true, content: 'hello', lang: 'markdown' });
+
+		await vi.waitFor(() => {
+			expect(container.querySelector('.cm-editor')).toBeTruthy();
+			const lines = container.querySelectorAll('.cm-line');
+			const text = Array.from(lines).map(l => l.textContent).join('\n');
+			expect(text).toContain('hello');
+		});
+	});
+
+	it('accepte tous les langages supportés sans crash', async () => {
+		const { default: RawEditor } = await import('./RawEditor.svelte');
+		const { render } = await import('@testing-library/svelte');
+
+		for (const lang of ['markdown', 'json', 'yaml', 'xml', 'html', 'css', 'javascript'] as const) {
+			const { container, unmount } = render(RawEditor, { active: true, content: 'test', lang });
+
+			await vi.waitFor(() => {
+				expect(container.querySelector('.cm-editor')).toBeTruthy();
+			});
+			unmount();
+		}
+	});
+
+	it('change de lang sans crash (compartment reconfiguration)', async () => {
+		const { default: RawEditor } = await import('./RawEditor.svelte');
+		const { render } = await import('@testing-library/svelte');
+		const { container, rerender } = render(RawEditor, { active: true, content: 'test', lang: 'json' });
+
+		await vi.waitFor(() => {
+			expect(container.querySelector('.cm-editor')).toBeTruthy();
+		});
+
+		// Changer de lang : le $effect séparé appelle dispatch avec effects
+		await rerender({ lang: 'yaml' });
+
+		await vi.waitFor(() => {
+			const lines = container.querySelectorAll('.cm-line');
+			const text = Array.from(lines).map(l => l.textContent).join('\n');
+			expect(text).toContain('test');
+		});
+	});
+});
+
 describe('RawEditor — MutationObserver theme sync', () => {
 	let mutationCb: MutationCallback;
 	let mockObserve: ReturnType<typeof vi.fn>;

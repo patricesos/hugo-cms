@@ -8,6 +8,7 @@ export interface FileTreeState {
 	assetTree: TreeNode[];
 	archetypeTree: TreeNode[];
 	configTree: TreeNode[];
+	siteTree: TreeNode[];
 	archetypes: { name: string; label: string }[];
 }
 
@@ -16,6 +17,7 @@ const initialState: FileTreeState = {
 	assetTree: [],
 	archetypeTree: [],
 	configTree: [],
+	siteTree: [],
 	archetypes: [],
 };
 
@@ -30,6 +32,7 @@ function create() {
 		assetTree: derived(store, s => s.assetTree),
 		archetypeTree: derived(store, s => s.archetypeTree),
 		configTree: derived(store, s => s.configTree),
+		siteTree: derived(store, s => s.siteTree),
 		archetypes: derived(store, s => s.archetypes),
 
 		directories: derived(store, s =>
@@ -79,6 +82,16 @@ function create() {
 				update(state => ({ ...state, configTree }));
 			} catch {
 				update(state => ({ ...state, configTree: [] }));
+			}
+		},
+
+		async loadSiteTree() {
+			try {
+				const res = await fetch('/api/site');
+				const siteTree = await res.json() as TreeNode[];
+				update(state => ({ ...state, siteTree }));
+			} catch {
+				update(state => ({ ...state, siteTree: [] }));
 			}
 		},
 

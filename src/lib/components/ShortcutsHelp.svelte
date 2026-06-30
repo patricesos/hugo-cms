@@ -60,10 +60,10 @@
 			<button class="sh-close" onclick={onClose} title="Fermer"><X size={16} /></button>
 		</div>
 		<div class="sh-body">
-			{#each shortcuts as s}
+			{#each shortcuts as s (s.keys[0])}
 				<div class="sh-row">
 					<div class="sh-keys">
-						{#each s.keys as key}
+						{#each s.keys as key (key)}
 							<kbd>{key}</kbd>
 						{/each}
 					</div>

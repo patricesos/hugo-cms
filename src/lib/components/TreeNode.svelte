@@ -43,12 +43,10 @@
 		onToggleFolder?.(node.slug);
 	}
 
-	const indent = $derived(depth * 24);
 	const hasChildren = $derived(node.type === 'directory' && node.children !== undefined && node.children.length > 0);
-	const fileName = $derived(node.name.replace(/\.md$/, ''));
+	const fileName = $derived(node.name);
 
 	function startEdit() {
-		if (node.type !== 'file') return;
 		editValue = fileName;
 		editing = true;
 	}
@@ -62,8 +60,13 @@
 
 	function commitEdit() {
 		if (!onRenameFile || !editValue.trim()) return;
+		const trimmed = editValue.trim();
+		if (trimmed === fileName) {
+			editing = false;
+			return;
+		}
 		const parentDir = node.slug.includes('/') ? node.slug.substring(0, node.slug.lastIndexOf('/') + 1) : '';
-		const newName = editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || editValue.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '');
+		const newName = trimmed.toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') || trimmed.toLowerCase().replace(/[^a-z0-9_.-]+/g, '');
 		const newSlug = parentDir + newName;
 		if (newSlug !== node.slug && newName) {
 			onRenameFile(node.slug, newSlug);
@@ -81,7 +84,7 @@
 	}
 
 	function handleDragStart(e: DragEvent) {
-		if (node.type !== 'file') return;
+		if (node.type !== 'file' && node.type !== 'directory') return;
 		e.dataTransfer?.setData('text/plain', node.slug);
 		e.dataTransfer!.effectAllowed = 'move';
 	}
@@ -104,53 +107,73 @@
 		if (!sourceSlug) return;
 		const fileName = sourceSlug.includes('/') ? sourceSlug.split('/').pop()! : sourceSlug;
 		const newSlug = node.slug ? `${node.slug}/${fileName}` : fileName;
-		if (newSlug !== sourceSlug) {
-			onRenameFile(sourceSlug, newSlug);
-		}
+		if (newSlug === sourceSlug) return;
+		if (newSlug.startsWith(sourceSlug + '/')) return;
+		onRenameFile(sourceSlug, newSlug);
 	}
 </script>
 
-<div class="tree-node" style="padding-left: {indent}px">
+<div class="tree-node">
 	{#if node.type === 'directory'}
-	<div class="dir-row">
-		<button
-			class="tree-item dir"
-			class:drag-over={dragOver}
-			onclick={toggle}
-			title={open ? 'Réduire' : 'Développer'}
-			ondragover={handleDragOver}
-			ondragleave={handleDragLeave}
-			ondrop={handleDrop}
-		>
-			<span class="chevron">
-				{#if open}
-					<ChevronDown size={13} />
-				{:else}
-					<ChevronRight size={13} />
-				{/if}
-			</span>
-			<span class="icon"><Folder size={15} /></span>
-			<span class="name">{node.name}</span>
-		</button>
-		{#if onCreateFileInFolder}
-			<button class="create-in-folder" onclick={() => onCreateFileInFolder(node.slug)} title="Nouveau fichier dans {node.name}">
-				<Plus size={13} />
+		{#if editing}
+			<div class="file-row">
+				<div class="rename-wrap">
+					<input
+						bind:this={inputEl}
+						type="text"
+						class="rename-input"
+						bind:value={editValue}
+						onkeydown={handleKeydown}
+						onblur={commitEdit}
+					/>
+					<button class="rename-btn" onclick={commitEdit} title="Valider"><Check size={13} /></button>
+					<button class="rename-btn" onclick={cancelEdit} title="Annuler"><X size={13} /></button>
+				</div>
+			</div>
+		{:else}
+		<div class="dir-row">
+			<button
+				class="tree-item dir"
+				class:drag-over={dragOver}
+				onclick={toggle}
+				title={open ? 'Réduire' : 'Développer'}
+				draggable="true"
+				ondragstart={handleDragStart}
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
+				ondrop={handleDrop}
+				ondblclick={startEdit}
+			>
+				<span class="chevron">
+					{#if open}
+						<ChevronDown size={13} />
+					{:else}
+						<ChevronRight size={13} />
+					{/if}
+				</span>
+				<span class="icon"><Folder size={15} /></span>
+				<span class="name">{node.name}</span>
 			</button>
+			{#if onCreateFileInFolder}
+				<button class="create-in-folder" onclick={() => onCreateFileInFolder(node.slug)} title="Nouveau fichier dans {node.name}">
+					<Plus size={13} />
+				</button>
+			{/if}
+			{#if onCreateFolderInFolder}
+				<button class="create-in-folder" onclick={() => onCreateFolderInFolder(node.slug)} title="Nouveau dossier dans {node.name}">
+					<FolderPlus size={13} />
+				</button>
+			{/if}
+			{#if onDeleteFolder}
+				<button class="delete-dir-btn" onclick={() => onDeleteFolder(node.slug)} title="Supprimer le dossier">
+					<Trash2 size={13} />
+				</button>
+			{/if}
+		</div>
 		{/if}
-		{#if onCreateFolderInFolder}
-			<button class="create-in-folder" onclick={() => onCreateFolderInFolder(node.slug)} title="Nouveau dossier dans {node.name}">
-				<FolderPlus size={13} />
-			</button>
-		{/if}
-		{#if onDeleteFolder}
-			<button class="delete-dir-btn" onclick={() => onDeleteFolder(node.slug)} title="Supprimer le dossier">
-				<Trash2 size={13} />
-			</button>
-		{/if}
-	</div>
 		{#if open && hasChildren}
 			<div class="children" transition:slide={{ duration: 150 }}>
-				{#each node.children! as child}
+				{#each node.children! as child (child.slug)}
 					<TreeNode node={child} depth={depth + 1} {currentSlug} {expandedSlugs} {onToggleFolder} {onLoadFile} {onDeleteFile} {onDeleteFolder} {onRenameFile} {onDuplicateFile} {onCreateFileInFolder} {onCreateFolderInFolder} />
 				{/each}
 			</div>
@@ -179,6 +202,7 @@
 					draggable="true"
 					ondragstart={handleDragStart}
 				>
+					<span class="chevron"></span>
 					<span class="icon"><FileText size={15} /></span>
 					<span class="name">{node.name}</span>
 					{#if node.frontmatter?.draft === true}
@@ -210,6 +234,7 @@
 		display: flex;
 		align-items: center;
 		gap: 2px;
+		position: relative;
 	}
 
 	.tree-item {
@@ -217,7 +242,7 @@
 		align-items: center;
 		gap: 5px;
 		text-align: left;
-		padding: 5px 8px 5px 0;
+		padding: 5px 66px 5px 0;
 		border: none;
 		background: transparent;
 		border-radius: var(--radius-md);
@@ -297,13 +322,21 @@
 		transition: all 0.12s;
 		flex-shrink: 0;
 		padding: 0;
-		margin-left: auto;
+		position: absolute;
+		right: 22px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	/* Décale le second bouton (FolderPlus) à gauche du premier (Plus).
+	   :first-of-type ne marche pas car .tree-item.dir est le premier <button> enfant. */
+	.create-in-folder + .create-in-folder {
+		right: 44px;
 	}
 
 	.tree-node:hover .create-in-folder {
 		opacity: 1;
 	}
-
 	.create-in-folder:hover {
 		background: var(--c-bg-muted);
 		color: var(--c-primary);
@@ -322,12 +355,14 @@
 
 	.children {
 		overflow: hidden;
+		padding-left: 24px;
 	}
 
 	.file-row {
 		display: flex;
 		align-items: center;
 		gap: 2px;
+		position: relative;
 	}
 
 	.file-row .tree-item {
@@ -348,6 +383,10 @@
 		opacity: 0;
 		transition: all 0.12s;
 		flex-shrink: 0;
+		position: absolute;
+		right: 0;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.file-row:hover .delete-node-btn {
@@ -372,6 +411,10 @@
 		opacity: 0;
 		transition: all 0.12s;
 		flex-shrink: 0;
+		position: absolute;
+		right: 0;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.dir-row:hover .delete-dir-btn {
@@ -396,6 +439,10 @@
 		opacity: 0;
 		transition: all 0.12s;
 		flex-shrink: 0;
+		position: absolute;
+		right: 22px;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
 	.file-row:hover .duplicate-node-btn {

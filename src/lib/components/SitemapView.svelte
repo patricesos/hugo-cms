@@ -24,11 +24,12 @@
 	} = $props();
 
 	import { untrack } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
-	let openDirs = $state<Set<string>>(new Set());
+	let openDirs = $state(new SvelteSet<string>());
 
 	$effect(() => {
-		const slugs = new Set<string>();
+		const slugs = new SvelteSet<string>();
 		function collect(nodes: TreeNode[]) {
 			for (const n of nodes) {
 				if (n.type === 'directory') slugs.add(n.slug);
@@ -40,14 +41,14 @@
 		if (current.size === 0) {
 			openDirs = slugs;
 		} else {
-			const filtered = new Set([...current].filter(s => slugs.has(s)));
+			const filtered = new SvelteSet([...current].filter(s => slugs.has(s)));
 			const changed = filtered.size !== current.size;
 			if (changed) openDirs = filtered;
 		}
 	});
 
 	function toggleDir(slug: string) {
-		const next = new Set(openDirs);
+		const next = new SvelteSet(openDirs);
 		if (next.has(slug)) {
 			next.delete(slug);
 		} else {
@@ -98,7 +99,7 @@
 		<div class="empty-tree">Aucun contenu trouvé</div>
 	{:else}
 		<div class="sitemap-body">
-			{#each tree as node}
+			{#each tree as node (node.slug)}
 				{#if node.type === 'directory'}
 					<div class="section-card">
 						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -116,7 +117,7 @@
 						</div>
 						{#if openDirs.has(node.slug)}
 							<div class="section-children">
-								{#each node.children || [] as child}
+								{#each node.children || [] as child (child.slug)}
 									<SitemapTreeItem {child} {currentSlug} {onLoadFile} depth={0} {openDirs} {toggleDir} />
 								{/each}
 							</div>

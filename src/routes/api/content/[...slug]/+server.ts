@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { readContent, createContent, updateContent, deleteContent, renameContent, safeResolveIn } from '$lib/server/content';
+import { readContent, createContent, updateContent, deleteContent, renameContent, renameDirectory, safeResolveIn } from '$lib/server/content';
 import { listArchetypes, renderArchetype } from '$lib/server/archetypes';
 import { writeFile, mkdir, stat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
@@ -88,8 +88,17 @@ export async function PATCH({ params, request }) {
 	if (!newSlug) error(400, 'newSlug is required');
 	if (newSlug.includes('..')) error(400, 'Path traversal detected in newSlug');
 	try {
-		const item = await renameContent(slug, newSlug);
-		return json(item);
+		const filePath = safeResolveIn(getCmsConfig().hugoContentPath, slug + '.md');
+		const dirPath = safeResolveIn(getCmsConfig().hugoContentPath, slug);
+		if (existsSync(filePath)) {
+			const item = await renameContent(slug, newSlug);
+			return json(item);
+		} else if (existsSync(dirPath)) {
+			await renameDirectory(slug, newSlug);
+			return json({ slug: newSlug });
+		} else {
+			error(404, 'Not found');
+		}
 	} catch (e) {
 		error(409, (e as Error).message);
 	}
