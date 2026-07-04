@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 /// <summary>
 /// Fenêtre de console affichant stdout/stderr du processus Node.
@@ -72,6 +73,7 @@ class TrayLauncher : Form
     private ToolStripMenuItem openMenuItem;       // "Ouvrir dans le navigateur"
     private ToolStripMenuItem stopMenuItem;       // "Démarrer / Arrêter le serveur"
     private ToolStripMenuItem restartMenuItem;    // "Redémarrer"
+    private ToolStripMenuItem autostartMenuItem;  // "Lancer au démarrage de Windows"
     private LogWindow logWindow;
     private string appDir;
     private string nodePath;
@@ -132,6 +134,11 @@ class TrayLauncher : Form
 
         restartMenuItem = new ToolStripMenuItem("Redémarrer", null, OnRestart);
         trayMenu.Items.Add(restartMenuItem);
+
+        trayMenu.Items.Add("-");
+        autostartMenuItem = new ToolStripMenuItem("Lancer au démarrage de Windows", null, OnToggleAutostart);
+        autostartMenuItem.Checked = IsAutostartEnabled();
+        trayMenu.Items.Add(autostartMenuItem);
 
         trayMenu.Items.Add("-");
         trayMenu.Items.Add("Quitter", null, OnQuit);
@@ -597,5 +604,75 @@ class TrayLauncher : Form
             value = false;
         }
         base.SetVisibleCore(value);
+    }
+
+    // =========================================================================
+    // Autostart au démarrage de Windows (via le registre)
+    // =========================================================================
+
+    private const string AutostartRegPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string AutostartRegValueName = "HugoCMS";
+
+    /// <summary>
+    /// Vérifie si l'autostart est actif : la clé HugoCMS existe dans le Run
+    /// ET pointe vers le même exécutable que celui qui tourne.
+    /// </summary>
+    private bool IsAutostartEnabled()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(AutostartRegPath))
+            {
+                if (key == null) return false;
+                string stored = key.GetValue(AutostartRegValueName) as string;
+                if (stored == null) return false;
+                // Compare avec le chemin du .exe actuel (entre guillemets ou pas)
+                string currentExe = Assembly.GetExecutingAssembly().Location;
+                string quoted = "\"" + currentExe + "\"";
+                return stored == currentExe || stored == quoted;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Active ou désactive l'autostart en écrivant/supprimant la clé
+    /// HKCU\Software\Microsoft\Windows\CurrentVersion\Run\HugoCMS.
+    /// </summary>
+    private void SetAutostart(bool enable)
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(AutostartRegPath, writable: true)
+                   ?? Registry.CurrentUser.CreateSubKey(AutostartRegPath))
+            {
+                if (key == null) return;
+
+                if (enable)
+                {
+                    string exePath = Assembly.GetExecutingAssembly().Location;
+                    key.SetValue(AutostartRegValueName, "\"" + exePath + "\"");
+                }
+                else
+                {
+                    key.DeleteValue(AutostartRegValueName, throwOnMissingValue: false);
+                }
+            }
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handler du clic sur "Lancer au démarrage de Windows".
+    /// Bascule l'état et rafraîchit le checkmark.
+    /// </summary>
+    private void OnToggleAutostart(object sender, EventArgs e)
+    {
+        bool currentlyEnabled = autostartMenuItem.Checked;
+        SetAutostart(!currentlyEnabled);
+        autostartMenuItem.Checked = IsAutostartEnabled();
     }
 }
