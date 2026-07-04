@@ -32,7 +32,13 @@
 		}
 	});
 
+	/** URL pour l'affichage dans le picker (passe par l'API CMS). */
 	function assetUrl(path: string): string {
+		return `/api/assets/${path}`;
+	}
+
+	/** URL compatible Hugo (sans /api/assets/) pour insertion dans le contenu. */
+	function hugoUrl(path: string): string {
 		return `/${path}`;
 	}
 
@@ -58,7 +64,7 @@
 			if (data.path) {
 				const relativePath = data.path.replace(/^\//, '');
 				images = [relativePath, ...images];
-				onSelect(assetUrl(relativePath));
+				onSelect(hugoUrl(relativePath));
 				onClose();
 			}
 		} finally {
@@ -92,7 +98,7 @@
 
 	function handleConfirm() {
 		if (selectedUrl) {
-			onSelect(assetUrl(selectedUrl));
+			onSelect(hugoUrl(selectedUrl));
 			onClose();
 		}
 	}
@@ -133,7 +139,7 @@
 							class="ip-item"
 							class:selected={selectedUrl === img}
 							onclick={() => selectedUrl = img}
-							ondblclick={() => { onSelect(img.startsWith('http') ? img : assetUrl(img)); onClose(); }}
+							ondblclick={() => { onSelect(img.startsWith('http') ? img : hugoUrl(img)); onClose(); }}
 						>
 							<img src={img.startsWith('http') ? img : assetUrl(img)} alt={img} loading="lazy" />
 						</button>
