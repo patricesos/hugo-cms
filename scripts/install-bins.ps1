@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Resolve-Path "$PSScriptRoot/.."
-$hugoDir = "$root/dist/bin/hugo"
+$hugoDir = "$root/dist/bin"
 $hugoExe = 'hugo.exe'
 
 function Resolve-RealPath
@@ -24,7 +24,7 @@ function Resolve-RealPath
     return $Path
 }
 
-# On resout hugo.exe dans le PATH (Get-Command suit la variable d'environnement)
+# On résout hugo.exe dans le PATH (Get-Command suit la variable d'environnement)
 $resolved = Get-Command $hugoExe -ErrorAction SilentlyContinue
 if (-not $resolved)
 {

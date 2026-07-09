@@ -22,7 +22,7 @@ export const MAX_LOG_ENTRIES = 2000;
 /**
  * Résout le chemin du binaire Hugo avec la priorité suivante :
  *   1. Variable d'environnement HUGO_BINARY_PATH
- *   2. bin/hugo/hugo(.exe) relatif à CWD (marche en dev ET dans dist/)
+ *   2. bin/hugo(.exe) — binaire portable à côté du CMS (dev + dist)
  *   3. 'hugo' dans le PATH système (fallback)
  */
 export function resolveHugoBinary(): string {
@@ -30,7 +30,7 @@ export function resolveHugoBinary(): string {
 	if (cfg.hugoBinaryPath) return cfg.hugoBinaryPath;
 
 	const binaryName = process.platform === 'win32' ? 'hugo.exe' : 'hugo';
-	const localBinary = resolve(process.cwd(), 'bin', 'hugo', binaryName);
+	const localBinary = resolve(process.cwd(), 'bin', binaryName);
 	if (existsSync(localBinary)) return localBinary;
 
 	return 'hugo';

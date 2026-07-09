@@ -198,10 +198,16 @@ class TrayLauncher : Form
     }
 
     /// <summary>
-    /// Cherche node.exe dans le PATH, Program Files, ou le dossier local.
+    /// Cherche node.exe dans bin/, le PATH, Program Files, ou le dossier local.
     /// </summary>
     private string FindNode()
     {
+        // Priorité 1 : binaire portable empaqueté dans bin/
+        string bundledNode = Path.Combine(appDir, "bin", "node.exe");
+        if (File.Exists(bundledNode))
+            return bundledNode;
+
+        // Priorité 2 : legacy — racine du dossier dist
         string localNode = Path.Combine(appDir, "node.exe");
         if (File.Exists(localNode))
             return localNode;

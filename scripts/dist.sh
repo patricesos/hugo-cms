@@ -68,16 +68,20 @@ fi
 print_header "5. Fichiers auxiliaires"
 cp "$ROOT/.env.example" "$DIST_DIR/.env.example"
 cp "$ROOT/scripts/tray-launcher.py" "$DIST_DIR/tray-launcher.py"
-# start.sh adapté à dist/ : lance bundle.mjs (esbuild) au lieu de build/index.js
-cat > "$DIST_DIR/start.sh" << 'EOF'
+# start.sh adapté à dist/ : détecte automatiquement le binaire Node
+NODE_CMD="node"
+if [ -f "$DIST_DIR/bin/node" ]; then
+    NODE_CMD='$DIR/bin/node'
+fi
+cat > "$DIST_DIR/start.sh" << EOF
 #!/usr/bin/env bash
-DIR="$(cd "$(dirname "$0")" && pwd)"
+DIR="\$(cd "\$(dirname "\$0")" && pwd)"
 echo "Démarrage de Hugo CMS..."
-if [ ! -f "$DIR/.env" ]; then
-    cp "$DIR/.env.example" "$DIR/.env"
+if [ ! -f "\$DIR/.env" ]; then
+    cp "\$DIR/.env.example" "\$DIR/.env"
     echo "Copie de .env.example vers .env — modifiez-le selon votre configuration."
 fi
-exec node "$DIR/bundle.mjs"
+exec $NODE_CMD "\$DIR/bundle.mjs"
 EOF
 chmod +x "$DIST_DIR/start.sh" "$DIST_DIR/tray-launcher.py"
 print_ok ".env.example, tray-launcher.py, start.sh"
@@ -89,10 +93,21 @@ if [ -z "$HUGO_SRC" ]; then
     echo "Error: hugo not found in PATH" >&2
     exit 1
 fi
-mkdir -p "$DIST_DIR/bin/hugo"
-cp "$HUGO_SRC" "$DIST_DIR/bin/hugo/hugo"
-chmod +x "$DIST_DIR/bin/hugo/hugo"
+mkdir -p "$DIST_DIR/bin"
+cp "$HUGO_SRC" "$DIST_DIR/bin/hugo"
+chmod +x "$DIST_DIR/bin/hugo"
 print_ok "Hugo copied from $HUGO_SRC"
+
+# ── 5c. Bundler Node binaire (soft) ──
+print_header "5c. Bundle Node binary"
+NODE_SRC=$(which node 2>/dev/null || command -v node)
+if [ -n "$NODE_SRC" ]; then
+    cp "$NODE_SRC" "$DIST_DIR/bin/node"
+    chmod +x "$DIST_DIR/bin/node"
+    print_ok "Node copied from $NODE_SRC"
+else
+    print_info "node not found in PATH — start.sh will use system Node"
+fi
 
 # ── 6. Générer .desktop file ──
 print_header "6. Entrée de menu (.desktop)"
@@ -121,7 +136,7 @@ echo ""
 
 # Taille totale
 TOTAL_SIZE=$(du -sh "$DIST_DIR" | cut -f1)
-echo "  Taille totale : ~${TOTAL_SIZE} (includes portable Hugo in bin/)"
+echo "  Taille totale : ~${TOTAL_SIZE} (includes portable Hugo + Node in bin/)"
 echo ""
 print_info "Lancement rapide :"
 print_info "  cd ${DIST_DIR} && ./start.sh"

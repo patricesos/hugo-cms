@@ -69,19 +69,34 @@ if (Test-Path $shimFile) {
     $content = Get-Content $shimFile -Raw
     if ($content -match 'path\s*=\s*"([^"]+)"') { $source = $matches[1] }
 }
-$hugoTarget = "$distDir/bin/hugo"
-New-Item -ItemType Directory -Path $hugoTarget -Force | Out-Null
-Copy-Item $source "$hugoTarget/$hugoExe" -Force
+New-Item -ItemType Directory -Path "$distDir/bin" -Force | Out-Null
+Copy-Item $source "$distDir/bin/hugo.exe" -Force
 Write-Host "Hugo copied from $source" -ForegroundColor Green
 
+Write-Host "=== 8b. Bundle Node binary ===" -ForegroundColor Cyan
+$nodeResolved = Get-Command 'node.exe' -ErrorAction SilentlyContinue
+if ($nodeResolved) {
+    $nodeSource = $nodeResolved.Source
+    $nodeShimFile = $nodeSource -replace '\.exe$', '.shim'
+    if (Test-Path $nodeShimFile) {
+        $content = Get-Content $nodeShimFile -Raw
+        if ($content -match 'path\s*=\s*"([^"]+)"') { $nodeSource = $matches[1] }
+    }
+    Copy-Item $nodeSource "$distDir/bin/node.exe" -Force
+    Write-Host "Node copied from $nodeSource" -ForegroundColor Green
+} else {
+    Write-Host "node.exe not found in PATH — start.bat will use system Node" -ForegroundColor Yellow
+}
+
 Write-Host "=== 9. Generate start.bat ===" -ForegroundColor Cyan
+$nodeCmd = if (Test-Path "$distDir/bin/node.exe") { "%~dp0bin\node.exe" } else { "node" }
 @"
 @echo off
 if not exist "%~dp0.env" (
     copy "%~dp0.env.example" "%~dp0.env" >nul
-    echo Copie de .env.example vers .env — modifiez-le selon votre configuration.
+    echo Copie de .env.example vers .env - modifiez-le selon votre configuration.
 )
-node "%~dp0bundle.mjs"
+$nodeCmd "%~dp0bundle.mjs"
 pause
 "@ | Out-File "$distDir/start.bat" -Encoding ASCII
 Write-Host "start.bat created" -ForegroundColor Green
@@ -91,4 +106,4 @@ Write-Host "Distribution folder: $distDir" -ForegroundColor Green
 Get-ChildItem $distDir -Name | ForEach-Object { "  $_" }
 
 $size = [math]::Round(((Get-Item "$distDir/bundle.mjs").Length + (Get-Item "$distDir/hugo-cms.exe").Length + (Get-Item "$distDir/hugo-cms.ico").Length + (Get-ChildItem -Recurse "$distDir/client" | Measure-Object -Property Length -Sum).Sum + (Get-ChildItem -Recurse "$distDir/bin" -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum) / 1MB, 1)
-Write-Host "Total size: ~${size} MB (includes portable Hugo in bin/)" -ForegroundColor Green
+Write-Host "Total size: ~${size} MB (includes portable Hugo + Node in bin/)" -ForegroundColor Green
