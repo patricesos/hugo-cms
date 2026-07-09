@@ -5,8 +5,10 @@
 		SuggestionMenu,
 		getDefaultSlashMenuItems,
 		filterSuggestionItems,
+		createExtension,
 	} from '@blocknote/core';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
+	import { Selection } from 'prosemirror-state';
 	import '@blocknote/core/style.css';
 
 	type BlockNoteEditorProps = {
@@ -35,7 +37,34 @@
 	let smExtension: ReturnType<typeof SuggestionMenu> | null = null;
 
 	onMount(() => {
-		editor = BNEditor.create({ animations: true });
+		editor = BNEditor.create({
+			animations: true,
+			extensions: [
+				createExtension({
+					key: 'enter-fix',
+					keyboardShortcuts: {
+						Enter: ({ editor: bnEditor }) => {
+							const tip = bnEditor._tiptapEditor;
+							const sel = tip.state.selection.$from;
+							if (
+								!sel ||
+								sel.parentOffset !== 0 ||
+								sel.parent.type.name !== 'heading'
+							) return false;
+
+							const insertPos = sel.before(sel.depth - 1);
+							const schema = tip.state.schema;
+							const para = schema.nodes.paragraph.create();
+							const blockContainer = schema.nodes.blockContainer.create(null, para);
+							const tr = tip.state.tr.insert(insertPos, blockContainer);
+							tr.setSelection(Selection.near(tr.doc.resolve(insertPos + 1)));
+							tip.view.dispatch(tr);
+							return true;
+						},
+					},
+				}),
+			],
+		});
 		editor.mount(container, { portalTarget: floatingContainer });
 
 		// --- Configuration du slash menu ---
@@ -94,6 +123,8 @@
 	});
 
 	function handleKeydown(event: KeyboardEvent) {
+		// Navigation du slash menu — les autres touches sont gérées
+		// par l'extension BlockNote (enter-fix pour Enter sur heading, etc.)
 		if (!menuShown) return;
 
 		if (event.key === 'ArrowDown') {
