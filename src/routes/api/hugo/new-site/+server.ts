@@ -4,6 +4,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { loadUserSettings, saveUserSettings } from '$lib/server/user-config';
 import { resetCmsConfig } from '$lib/server/config';
+import { resolveHugoBinary } from '$lib/server/hugo';
 
 const execFileAsync = promisify(execFile);
 
@@ -27,7 +28,7 @@ export async function POST({ request }) {
 	}
 
 	try {
-		await execFileAsync('hugo', ['new', 'site', path], { timeout: 30000 });
+		await execFileAsync(resolveHugoBinary(), ['new', 'site', path], { timeout: 30000 });
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
 		return json({ error: `Échec de la création : ${msg}` }, { status: 500 });

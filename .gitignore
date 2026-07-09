@@ -31,4 +31,8 @@ my-hugo/
 /graphics/
 
 scripts/*.ps1
+!scripts/install-bins.ps1
 scripts/esbuild-*
+
+# Portable binaires
+/bin/

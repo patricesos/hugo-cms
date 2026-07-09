@@ -99,6 +99,8 @@ export interface CmsConfig {
 	fmSaveDelay: number;
 	appTitle: string;
 	defaultArchetype: string;
+	/** Chemin explicite du binaire Hugo (vide = résolution auto). */
+	hugoBinaryPath: string;
 	/** false quand HUGO_SITE_PATH est manquant ou n'est pas une racine Hugo valide */
 	siteValid: boolean;
 }
@@ -171,6 +173,7 @@ export function buildConfig(sitePath: string, userSettings: UserSettings): CmsCo
 		fmSaveDelay: envInt('FM_SAVE_DELAY', 2000),
 		appTitle: env('APP_TITLE', 'Hugo CMS'),
 		defaultArchetype: env('DEFAULT_ARCHETYPE', 'default'),
+		hugoBinaryPath: env('HUGO_BINARY_PATH', ''),
 		siteValid: false,
 	};
 }

@@ -43,6 +43,7 @@
 	let CommitDialogComp = $state<any>(null);
 	let NewSiteDialogComp = $state<any>(null);
 	let ThemeSelectorComp = $state<any>(null);
+	let AboutDialogComp = $state<any>(null);
 
 	// Etat one-time (serveur, hydratation)
 	let clientCfg = $state<{ externalPollInterval: number; fmSaveDelay: number; appTitle: string; trashDir: string } | null>(null);
@@ -134,6 +135,7 @@
 	$effect(() => { if ($dialogs.showCommitDialog && !CommitDialogComp) import('$lib/components/CommitDialog.svelte').then(m => CommitDialogComp = m.default); });
 	$effect(() => { if ($dialogs.showNewSiteDialog && !NewSiteDialogComp) import('$lib/components/NewSiteDialog.svelte').then(m => NewSiteDialogComp = m.default); });
 	$effect(() => { if ($dialogs.showThemeSelector && !ThemeSelectorComp) import('$lib/components/ThemeSelector.svelte').then(m => ThemeSelectorComp = m.default); });
+	$effect(() => { if ($dialogs.showAbout && !AboutDialogComp) import('$lib/components/AboutDialog.svelte').then(m => AboutDialogComp = m.default); });
 
 	// Theme (base sur $settings.theme)
 	$effect(() => {
@@ -356,6 +358,13 @@
 	<ThemeSelectorComp
 		show={$dialogs.showThemeSelector}
 		onClose={() => uiStore.updateDialogs({ showThemeSelector: false })}
+	/>
+{/if}
+
+{#if AboutDialogComp}
+	<AboutDialogComp
+		show={$dialogs.showAbout}
+		onClose={() => uiStore.updateDialogs({ showAbout: false })}
 	/>
 {/if}
 

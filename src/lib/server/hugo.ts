@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getCmsConfig } from './config';
 
@@ -18,6 +18,23 @@ export interface LogEntry {
 }
 
 export const MAX_LOG_ENTRIES = 2000;
+
+/**
+ * Résout le chemin du binaire Hugo avec la priorité suivante :
+ *   1. Variable d'environnement HUGO_BINARY_PATH
+ *   2. bin/hugo/hugo(.exe) relatif à CWD (marche en dev ET dans dist/)
+ *   3. 'hugo' dans le PATH système (fallback)
+ */
+export function resolveHugoBinary(): string {
+	const cfg = getCmsConfig();
+	if (cfg.hugoBinaryPath) return cfg.hugoBinaryPath;
+
+	const binaryName = process.platform === 'win32' ? 'hugo.exe' : 'hugo';
+	const localBinary = resolve(process.cwd(), 'bin', 'hugo', binaryName);
+	if (existsSync(localBinary)) return localBinary;
+
+	return 'hugo';
+}
 
 /** État mutable du module — encapsulé pour éviter les variables globales éparses. */
 const state = {
@@ -89,7 +106,7 @@ export async function startHugoServer(): Promise<HugoStatus> {
 	const root = findHugoRoot() || resolve(getCmsConfig().hugoContentPath, '..');
 	const port = getCmsConfig().hugoServerPort;
 
-	const proc = spawn('hugo', [
+	const proc = spawn(resolveHugoBinary(), [
 		'server',
 		'-D',
 		'--port', String(port),

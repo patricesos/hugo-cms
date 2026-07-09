@@ -154,6 +154,18 @@ class TrayLauncher : Form
         // Synchroniser l'état du menu avec l'état initial
         UpdateMenuState();
 
+        // Créer .env depuis .env.example si absent
+        string envPath = Path.Combine(appDir, ".env");
+        if (!File.Exists(envPath))
+        {
+            string examplePath = Path.Combine(appDir, ".env.example");
+            if (File.Exists(examplePath))
+            {
+                File.Copy(examplePath, envPath);
+                logWindow.Append("[start] .env created from .env.example\n");
+            }
+        }
+
         StartServer();
     }
 
