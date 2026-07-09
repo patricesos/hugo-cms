@@ -68,6 +68,20 @@
 
 ---
 
+### EPIC BLOCKNOTE — Remplacer Tiptap par BlockNote comme éditeur WYSIWYG
+
+> **Branche :** `exp/blocknote`
+> **Statut :** Rewrite complet, suppression Tiptap, 10 tests verts
+
+- [x] **BN-001** — Interface API complète (`getMarkdown`, `exec`, `isActive`, `toggleHeading`, `setLink`, `setContent`, `focus`) pour compatibilité avec `Editor.svelte`
+- [x] **BN-002** — Pipeline shortcodes préservé (`protectShortcodes`/`restoreShortcodes`)
+- [x] **BN-003** — Slash menu avec rendu Svelte flottant + `showSlashMenu` paramétrable
+- [x] **BN-004** — Bubble menu natif BlockNote contrôlé par `showBubbleMenu`
+- [x] **BN-005** — Enter-fix extension (Enter en début de heading → paragraphe)
+- [x] **BN-006** — Nettoyage : suppression `WysiwygEditor.svelte`, `slash-commands.ts`, `tiptap-image-block.ts`, sandbox
+- [x] **BN-007** — Tests adaptés : mocks BlockNote, 10 tests passent
+- [x] **BN-008** — Debug logs retirés, store subscribe cleanup, indentation fix
+
 ### EPIC A — Création d'un nouveau site Hugo depuis la web app
 
 - [x] **US-080** — Détection de l'absence de site Hugo valide au démarrage (ne plus throw dans `getCmsConfig()`, flag `siteValid`, gardes explicites dans les appelants)

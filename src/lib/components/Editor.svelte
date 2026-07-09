@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { ModeSync, getRawBody, splitRawContent } from '$lib/editor/mode-sync.svelte';
 	import RawEditor from './RawEditor.svelte';
-	import WysiwygEditor from './WysiwygEditor.svelte';
+	import BlockNoteEditor from '$lib/editor/BlockNoteEditor.svelte';
 	import ImagePicker from './ImagePicker.svelte';
 	import ShortcodeDialog from './ShortcodeDialog.svelte';
 	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2, Image as ImageIcon, Zap } from '@lucide/svelte';
@@ -36,7 +36,7 @@
 	let prevContent = '';
 	let prevRawMode = false;
 	let rawEditor = $state<RawEditor | null>(null);
-	let wysiwygEditor = $state<WysiwygEditor | null>(null);
+	let blocknoteEditor: any = $state(null);
 
 	let showImagePicker = $state(false);
 	let pendingImageUrl = $state('');
@@ -61,10 +61,10 @@
 	}
 
 	async function doAutoSave() {
-		if (!wysiwygEditor) return;
+		if (!blocknoteEditor) return;
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		await onSave?.(wysiwygEditor.getMarkdown());
+		await onSave?.(blocknoteEditor.getMarkdown());
 		if (version !== saveVersion) return;
 		onSaveState?.('saved');
 		autoSaveTimeout = null;
@@ -97,15 +97,15 @@
 			const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
 			if (fm) onFrontmatterChange?.(fm);
 			await onSave?.(body);
-		} else if (wysiwygEditor) {
-			await onSave?.(wysiwygEditor.getMarkdown());
+		} else if (blocknoteEditor) {
+			await onSave?.(blocknoteEditor.getMarkdown());
 		}
 		onSaveState?.('saved');
 	}
 
 	function updateStats() {
-		if (!wysiwygEditor) return;
-		const md = wysiwygEditor.getMarkdown();
+		if (!blocknoteEditor) return;
+		const md = blocknoteEditor.getMarkdown();
 		onStats?.({
 			words: md.trim() ? md.trim().split(/\s+/).length : 0,
 			chars: md.length,
@@ -116,7 +116,7 @@
 		if (rawMode) {
 			rawEditor?.rawWrap('![', `](${url})`);
 		} else {
-			wysiwygEditor?.exec('setImage', { src: url });
+			blocknoteEditor?.exec('setImage', { src: url });
 		}
 		showImagePicker = false;
 	}
@@ -138,7 +138,7 @@
 		if (rawMode) {
 			rawEditor?.rawWrapInner(shortcode);
 		} else {
-			wysiwygEditor?.exec('insertContent', shortcode);
+			blocknoteEditor?.exec('insertContent', shortcode);
 		}
 		showShortcodeDialog = false;
 	}
@@ -147,7 +147,7 @@
 		if (rawMode) {
 			rawEditor?.rawHeading(level);
 		} else {
-			wysiwygEditor?.toggleHeading(level);
+			blocknoteEditor?.toggleHeading(level);
 		}
 	}
 
@@ -155,7 +155,7 @@
 		if (rawMode) {
 			rawEditor?.rawWrap('**', '**');
 		} else {
-			wysiwygEditor?.exec('toggleBold');
+			blocknoteEditor?.exec('toggleBold');
 		}
 	}
 
@@ -163,7 +163,7 @@
 		if (rawMode) {
 			rawEditor?.rawWrap('*', '*');
 		} else {
-			wysiwygEditor?.exec('toggleItalic');
+			blocknoteEditor?.exec('toggleItalic');
 		}
 	}
 
@@ -171,7 +171,7 @@
 		if (rawMode) {
 			rawEditor?.rawWrap('`', '`');
 		} else {
-			wysiwygEditor?.exec('toggleCode');
+			blocknoteEditor?.exec('toggleCode');
 		}
 	}
 
@@ -179,7 +179,7 @@
 		if (rawMode) {
 			rawEditor?.rawLink();
 		} else {
-			wysiwygEditor?.setLink();
+			blocknoteEditor?.setLink();
 		}
 	}
 
@@ -187,7 +187,7 @@
 		if (rawMode) {
 			rawEditor?.rawBlockquote();
 		} else {
-			wysiwygEditor?.exec('toggleBlockquote');
+			blocknoteEditor?.exec('toggleBlockquote');
 		}
 	}
 
@@ -195,7 +195,7 @@
 		if (rawMode) {
 			rawEditor?.rawList(ordered);
 		} else {
-			wysiwygEditor?.exec(ordered ? 'toggleOrderedList' : 'toggleBulletList');
+			blocknoteEditor?.exec(ordered ? 'toggleOrderedList' : 'toggleBulletList');
 		}
 	}
 
@@ -203,7 +203,7 @@
 		if (rawMode) {
 			rawEditor?.rawHr();
 		} else {
-			wysiwygEditor?.exec('setHorizontalRule');
+			blocknoteEditor?.exec('setHorizontalRule');
 		}
 	}
 
@@ -211,7 +211,7 @@
 		if (rawMode) {
 			rawEditor?.rawUndo();
 		} else {
-			wysiwygEditor?.exec('undo');
+			blocknoteEditor?.exec('undo');
 		}
 	}
 
@@ -219,7 +219,7 @@
 		if (rawMode) {
 			rawEditor?.rawRedo();
 		} else {
-			wysiwygEditor?.exec('redo');
+			blocknoteEditor?.exec('redo');
 		}
 	}
 
@@ -238,12 +238,12 @@
 		sync = new ModeSync();
 		const initAction = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
 		onSaveState?.('saved');
-		getContent?.(() => rawMode ? getRawBody(sync?.rawContent ?? '') : wysiwygEditor?.getMarkdown() ?? '');
+		getContent?.(() => rawMode ? getRawBody(sync?.rawContent ?? '') : blocknoteEditor?.getMarkdown() ?? '');
 		onSetContent?.((c: string) => {
 			if (rawMode) {
 				if (sync) sync.rawContent = c;
 			} else {
-				wysiwygEditor?.setContent(c);
+				blocknoteEditor?.setContent(c);
 			}
 		});
 
@@ -265,17 +265,17 @@
 			const action = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
 			const body = action.buildEditor ?? action.setWysiwygContent;
 			if (body) {
-				wysiwygEditor?.setContent(body);
+				blocknoteEditor?.setContent(body);
 			}
 		}
 		if (rChanged) {
 			if (rawMode) {
 				if (!cChanged) {
-					sync.toggleToRaw(() => wysiwygEditor?.getMarkdown() ?? '', frontmatter, frontmatterFormat);
+					sync.toggleToRaw(() => blocknoteEditor?.getMarkdown() ?? '', frontmatter, frontmatterFormat);
 				}
 			} else if (!cChanged) {
 				const { body } = sync.toggleToWysiwyg();
-				wysiwygEditor?.setContent(body);
+				blocknoteEditor?.setContent(body);
 			}
 		}
 
@@ -309,20 +309,20 @@
 		<button onclick={handleUndo} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
 		<button onclick={handleRedo} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={() => toggleHeading(1)} class:active={!rawMode && wysiwygEditor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
-		<button onclick={() => toggleHeading(2)} class:active={!rawMode && wysiwygEditor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
-		<button onclick={() => toggleHeading(3)} class:active={!rawMode && wysiwygEditor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
+		<button onclick={() => toggleHeading(1)} class:active={!rawMode && blocknoteEditor?.isActive('heading', { level: 1 })} title="Titre 1"><Heading1 size={15} /></button>
+		<button onclick={() => toggleHeading(2)} class:active={!rawMode && blocknoteEditor?.isActive('heading', { level: 2 })} title="Titre 2"><Heading2 size={15} /></button>
+		<button onclick={() => toggleHeading(3)} class:active={!rawMode && blocknoteEditor?.isActive('heading', { level: 3 })} title="Titre 3"><Heading3 size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={handleBold} class:active={!rawMode && wysiwygEditor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
-		<button onclick={handleItalic} class:active={!rawMode && wysiwygEditor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
-		<button onclick={handleCode} class:active={!rawMode && wysiwygEditor?.isActive('code')} title="Code"><Code size={15} /></button>
+		<button onclick={handleBold} class:active={!rawMode && blocknoteEditor?.isActive('bold')} title="Gras (Ctrl+B)"><Bold size={15} /></button>
+		<button onclick={handleItalic} class:active={!rawMode && blocknoteEditor?.isActive('italic')} title="Italique (Ctrl+I)"><Italic size={15} /></button>
+		<button onclick={handleCode} class:active={!rawMode && blocknoteEditor?.isActive('code')} title="Code"><Code size={15} /></button>
 		<button onclick={handleLink} title="Lien"><Link size={15} /></button>
 		<button onclick={toolbarImage} title="Image"><ImageIcon size={15} /></button>
 		<button onclick={toolbarShortcode} title="Shortcode Hugo"><Zap size={15} /></button>
 		<span class="sep"></span>
-		<button onclick={handleBlockquote} class:active={!rawMode && wysiwygEditor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
-		<button onclick={() => handleList(false)} class:active={!rawMode && wysiwygEditor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
-		<button onclick={() => handleList(true)} class:active={!rawMode && wysiwygEditor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
+		<button onclick={handleBlockquote} class:active={!rawMode && blocknoteEditor?.isActive('blockquote')} title="Citation"><Quote size={15} /></button>
+		<button onclick={() => handleList(false)} class:active={!rawMode && blocknoteEditor?.isActive('bulletList')} title="Liste à puces"><List size={15} /></button>
+		<button onclick={() => handleList(true)} class:active={!rawMode && blocknoteEditor?.isActive('orderedList')} title="Liste numérotée"><ListOrdered size={15} /></button>
 		<button onclick={handleHr} title="Ligne horizontale"><Minus size={15} /></button>
 		<span class="sep"></span>
 		<button class:toggle-active={rawMode} onclick={() => onRawModeChange?.(!rawMode)} title={rawMode ? 'Mode visuel' : 'Mode Markdown brut'}><Code2 size={15} /></button>
@@ -335,13 +335,12 @@
 		onchange={(c) => { if (sync) sync.rawContent = c; markRawUnsaved(); }}
 	/>
 
-	<WysiwygEditor
-		bind:this={wysiwygEditor}
+	<BlockNoteEditor
+		bind:this={blocknoteEditor}
 		content={content}
 		active={!rawMode}
 		{showBubbleMenu}
 		{showSlashMenu}
-		{historyDepth}
 		onchange={markUnsaved}
 	/>
 </div>

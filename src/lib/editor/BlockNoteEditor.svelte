@@ -9,36 +9,46 @@
 	} from '@blocknote/core';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 	import { Selection } from 'prosemirror-state';
+	import { protectShortcodes } from '$lib/shortcode-utils';
 	import '@blocknote/core/style.css';
 
-	type BlockNoteEditorProps = {
+	interface BlockNoteEditorProps {
 		content?: string;
-		editable?: boolean;
-		onChange?: (markdown: string) => void;
+		active?: boolean;
+		showBubbleMenu?: boolean;
+		showSlashMenu?: boolean;
+		onchange?: () => void;
 		onEditorReady?: (editor: BNEditor) => void;
-	};
+	}
 
-	let { content = '', editable = true, onChange, onEditorReady }: BlockNoteEditorProps = $props();
+	let {
+		content = '',
+		active = false,
+		showBubbleMenu = true,
+		showSlashMenu = true,
+		onchange,
+		onEditorReady,
+	}: BlockNoteEditorProps = $props();
 
 	let container: HTMLDivElement;
 	let floatingContainer: HTMLDivElement;
 	let editor = $state<BNEditor | null>(null);
-	let markdownOutput = $state('');
+	let _latestMarkdown = $state('');
 
-	// -- État du slash menu --
+	// Slash menu state
 	let menuShown = $state(false);
 	let menuQuery = $state('');
 	let menuX = $state(0);
 	let menuY = $state(0);
 	let menuItems = $state<DefaultSuggestionItem[]>([]);
 	let menuSelectedIndex = $state(0);
-
-	// Référence à l'extension SuggestionMenu pour fermer le menu
 	let smExtension: ReturnType<typeof SuggestionMenu> | null = null;
+	let _unsubStore: (() => void) | null = null;
 
 	onMount(() => {
 		editor = BNEditor.create({
 			animations: true,
+			disableExtensions: showBubbleMenu ? [] : ['formattingToolbar'],
 			extensions: [
 				createExtension({
 					key: 'enter-fix',
@@ -67,37 +77,34 @@
 		});
 		editor.mount(container, { portalTarget: floatingContainer });
 
-		// --- Configuration du slash menu ---
-		const sm = editor.getExtension('suggestionMenu') as unknown as ReturnType<typeof SuggestionMenu>;
-
-		if (sm) {
-			smExtension = sm;
-
-			sm.addSuggestionMenu({ triggerCharacter: '/' });
-
-			sm.store.subscribe(() => {
-				const state = sm.store.state;
-				if (state?.show && state.referencePos) {
-					menuShown = true;
-					menuQuery = state.query;
-					menuX = state.referencePos.x;
-					menuY = state.referencePos.y + state.referencePos.height + 4;
-					menuSelectedIndex = 0;
-
-					const items = getDefaultSlashMenuItems(editor!);
-					menuItems = state.query
-						? filterSuggestionItems(items, state.query)
-						: items;
-				} else {
-					menuShown = false;
-					menuItems = [];
-				}
-			});
+		if (showSlashMenu) {
+			const sm = editor.getExtension('suggestionMenu') as unknown as ReturnType<typeof SuggestionMenu>;
+			if (sm) {
+				smExtension = sm;
+				sm.addSuggestionMenu({ triggerCharacter: '/' });
+				_unsubStore = sm.store.subscribe(() => {
+					const state = sm.store.state;
+					if (state?.show && state.referencePos) {
+						menuShown = true;
+						menuQuery = state.query;
+						menuX = state.referencePos.x;
+						menuY = state.referencePos.y + state.referencePos.height + 4;
+						menuSelectedIndex = 0;
+						const items = getDefaultSlashMenuItems(editor!);
+						menuItems = state.query
+							? filterSuggestionItems(items, state.query)
+							: items;
+					} else {
+						menuShown = false;
+						menuItems = [];
+					}
+				});
+			}
 		}
 
-		// --- Chargement du contenu initial ---
 		if (content) {
-			const blocks = editor.tryParseMarkdownToBlocks(content);
+			const protectedContent = protectShortcodes(content);
+			const blocks = editor.tryParseMarkdownToBlocks(protectedContent);
 			if (blocks.length > 0) {
 				editor.replaceBlocks(editor.document, blocks);
 			}
@@ -105,26 +112,26 @@
 
 		editor.focus();
 
-		if (!editable) {
+		if (!active) {
 			editor._tiptapEditor.setEditable(false);
 		}
 
 		editor.onChange((ed) => {
-			markdownOutput = ed.blocksToMarkdownLossy();
-			onChange?.(markdownOutput);
+			_latestMarkdown = ed.blocksToMarkdownLossy();
+			onchange?.();
 		});
 
 		onEditorReady?.(editor);
 
 		return () => {
+			_unsubStore?.();
+			_unsubStore = null;
 			editor?.unmount();
 			editor = null;
 		};
 	});
 
 	function handleKeydown(event: KeyboardEvent) {
-		// Navigation du slash menu — les autres touches sont gérées
-		// par l'extension BlockNote (enter-fix pour Enter sur heading, etc.)
 		if (!menuShown) return;
 
 		if (event.key === 'ArrowDown') {
@@ -148,9 +155,6 @@
 	}
 
 	function selectItem(item: DefaultSuggestionItem) {
-		// On efface d'abord le texte "/query" pour que le bloc courant soit vide,
-		// ce qui permet à insertOrUpdateBlockForSlashMenu de remplacer le bloc
-		// sur place au lieu d'insérer après.
 		smExtension?.clearQuery();
 		item.onItemClick();
 		smExtension?.closeMenu();
@@ -158,26 +162,180 @@
 		editor?.focus();
 	}
 
-	$effect(() => {
-		if (editor && editable) {
-			editor._tiptapEditor.setEditable(true);
-		} else if (editor && !editable) {
-			editor._tiptapEditor.setEditable(false);
-		}
-	});
+$effect(() => {
+	if (!editor) return;
+	if (active) {
+		editor._tiptapEditor.setEditable(true);
+		editor._tiptapEditor.view.dom.style.display = '';
+	} else {
+		editor._tiptapEditor.setEditable(false);
+		editor._tiptapEditor.view.dom.style.display = 'none';
+	}
+});
 
-	// On écoute en phase capture pour intercepter avant ProseMirror
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-		window.addEventListener('keydown', handleKeydown, true);
-		return () => window.removeEventListener('keydown', handleKeydown, true);
-	});
+$effect(() => {
+	if (typeof window === 'undefined') return;
+	window.addEventListener('keydown', handleKeydown, true);
+	return () => window.removeEventListener('keydown', handleKeydown, true);
+});
+
+	// -- Exported API (matches WysiwygEditor interface) --
+
+	export function getMarkdown(): string {
+		return _latestMarkdown;
+	}
+
+	function changeBlockType(type: string, props?: Record<string, unknown>) {
+		const pos = editor?.getTextCursorPosition();
+		if (!pos) return;
+		editor?.updateBlock(pos.block.id, { type, props: props as Record<string, string> });
+	}
+
+	export function exec(command: string, ...args: unknown[]) {
+		const bnEditor = editor;
+		if (!bnEditor) return;
+
+		switch (command) {
+			case 'toggleBold':
+				bnEditor.toggleStyles({ bold: true });
+				break;
+			case 'toggleItalic':
+				bnEditor.toggleStyles({ italic: true });
+				break;
+			case 'toggleCode':
+				bnEditor.toggleStyles({ code: true });
+				break;
+			case 'setParagraph':
+				changeBlockType('paragraph');
+				break;
+			case 'toggleBlockquote':
+				changeBlockType('quote');
+				break;
+			case 'toggleBulletList':
+				changeBlockType('bulletListItem');
+				break;
+			case 'toggleOrderedList':
+				changeBlockType('numberedListItem');
+				break;
+			case 'setHorizontalRule': {
+				const pos = bnEditor.getTextCursorPosition();
+				if (pos) {
+					bnEditor.insertBlocks(
+						[{ type: 'divider', props: {} }],
+						pos.block.id,
+						'after',
+					);
+				}
+				break;
+			}
+			case 'setImage': {
+				const src = (args[0] as Record<string, unknown>)?.src as string | undefined;
+				if (!src) break;
+				const imgPos = bnEditor.getTextCursorPosition();
+				if (imgPos) {
+					bnEditor.insertBlocks(
+						[{ type: 'image', props: { url: src, caption: '' } }],
+						imgPos.block.id,
+						'after',
+					);
+				}
+				break;
+			}
+			case 'insertContent': {
+				const text = args[0] as string;
+				if (text) {
+					const tip = bnEditor._tiptapEditor;
+					tip.chain().focus().insertContent(text).run();
+				}
+				break;
+			}
+			case 'undo':
+				bnEditor.undo();
+				break;
+			case 'redo':
+				bnEditor.redo();
+				break;
+			case 'setLink': {
+				const href = (args[0] as Record<string, unknown>)?.href as string | undefined;
+				if (href) {
+					const tip = bnEditor._tiptapEditor;
+					tip.chain().focus().setLink({ href }).run();
+				}
+				break;
+			}
+			default:
+				console.error(`BlockNote: unknown command "${command}"`);
+		}
+	}
+
+	export function setLink() {
+		const url = window.prompt('URL du lien:');
+		if (url && editor) {
+			const tip = editor._tiptapEditor;
+			tip.chain().focus().setLink({ href: url }).run();
+		}
+	}
+
+	export function toggleHeading(level: 1 | 2 | 3) {
+		const bnEditor = editor;
+		if (!bnEditor) return;
+		const pos = bnEditor.getTextCursorPosition();
+		if (!pos) return;
+		if (pos.block.type === 'heading' && (pos.block.props as Record<string, unknown>)?.level === level) {
+			changeBlockType('paragraph');
+		} else {
+			changeBlockType('heading', { level });
+		}
+	}
+
+	export function isActive(name: string, attrs?: Record<string, unknown>): boolean {
+		const bnEditor = editor;
+		if (!bnEditor) return false;
+
+		if (name === 'bold' || name === 'italic' || name === 'code') {
+			const styles = bnEditor.getActiveStyles() as Record<string, boolean>;
+			return styles[name] === true;
+		}
+		if (name === 'link') {
+			return bnEditor.getSelectedLinkUrl() !== undefined;
+		}
+
+		const pos = bnEditor.getTextCursorPosition();
+		if (!pos) return false;
+
+		switch (name) {
+			case 'heading':
+				return pos.block.type === 'heading' && (!attrs?.level || (pos.block.props as Record<string, unknown>)?.level === attrs.level);
+			case 'blockquote':
+				return pos.block.type === 'quote';
+			case 'bulletList':
+				return pos.block.type === 'bulletListItem';
+			case 'orderedList':
+				return pos.block.type === 'numberedListItem';
+			default:
+				return false;
+		}
+	}
+
+	export function focus() {
+		editor?.focus();
+	}
+
+	export function setContent(c: string) {
+		const bnEditor = editor;
+		if (!bnEditor) return;
+		const protectedContent = protectShortcodes(c);
+		const blocks = bnEditor.tryParseMarkdownToBlocks(protectedContent);
+		if (blocks.length > 0) {
+			bnEditor.replaceBlocks(bnEditor.document, blocks);
+		}
+	}
 </script>
 
-<div class="blocknote-root" role="application">
+<div class="blocknote-root" class:active role="application">
 	<div class="blocknote-editor-wrapper" bind:this={container}></div>
 	<div bind:this={floatingContainer}>
-		{#if menuShown && menuItems.length > 0}
+		{#if showSlashMenu && menuShown && menuItems.length > 0}
 			<div
 				class="bn-slash-menu"
 				style="left: {menuX}px; top: {menuY}px;"
@@ -211,14 +369,125 @@
 	.blocknote-root {
 		position: relative;
 		width: 100%;
+		display: none;
+		flex: 1;
+	}
+
+	.blocknote-root.active {
+		display: flex;
+		flex-direction: column;
 	}
 
 	.blocknote-editor-wrapper {
-		min-height: 200px;
-		padding: 1rem;
-		border: 1px solid var(--c-border, #ddd);
-		border-radius: 6px;
-		background: var(--c-bg, #fff);
+		flex: 1;
+		padding: 32px 48px;
+		max-width: var(--editor-max-width, 740px);
+		margin: 0 auto;
+		width: 100%;
+		font-family: var(--editor-font, var(--font-serif));
+		font-size: var(--editor-font-size, 16px);
+		line-height: 1.8;
+		overflow-y: auto;
+	}
+
+	:global(.bn-block-group) {
+		margin: 0;
+		padding: 0;
+	}
+
+	:global(.bn-block) {
+		margin: 0.25em 0;
+	}
+
+	:global(.bn-inline-content) {
+		font-family: inherit;
+		font-size: inherit;
+		line-height: inherit;
+	}
+
+	:global(.bn-inline-content h1) {
+		font-size: 2em;
+		margin: 0.67em 0;
+		font-weight: 700;
+		color: var(--c-text);
+	}
+
+	:global(.bn-inline-content h2) {
+		font-size: 1.5em;
+		margin: 0.75em 0;
+		font-weight: 600;
+		color: var(--c-text);
+	}
+
+	:global(.bn-inline-content h3) {
+		font-size: 1.17em;
+		margin: 0.83em 0;
+		font-weight: 600;
+		color: var(--c-text);
+	}
+
+	:global(.bn-inline-content p) {
+		margin: 0.5em 0;
+	}
+
+	:global(.bn-blockquote) {
+		border-left: 3px solid var(--c-border);
+		margin: 1em 0;
+		padding: 0.5em 1em 0.5em 1.2em;
+		color: var(--c-text-secondary);
+		font-style: italic;
+	}
+
+	:global(.bn-code-block) {
+		background: var(--c-code-bg);
+		color: var(--c-code-text);
+		padding: 16px;
+		border-radius: var(--radius-lg);
+		font-family: var(--font-mono);
+		font-size: 14px;
+		overflow-x: auto;
+	}
+
+	:global(.bn-inline-content code) {
+		background: var(--c-bg-muted);
+		padding: 2px 6px;
+		border-radius: var(--radius-sm);
+		font-family: var(--font-mono);
+		font-size: 0.9em;
+	}
+
+	:global(.bn-image) {
+		max-width: 100%;
+		height: auto;
+		border-radius: var(--radius-md);
+	}
+
+	:global(.bn-link) {
+		color: var(--c-primary);
+		text-decoration: underline;
+	}
+
+	/* BlockNote native formatting toolbar styling */
+	:global(.bn-formatting-toolbar) {
+		background: var(--c-bg) !important;
+		border: 1px solid var(--c-border) !important;
+		border-radius: var(--radius-lg) !important;
+		box-shadow: var(--shadow-md) !important;
+		gap: 2px !important;
+		padding: 4px !important;
+	}
+
+	:global(.bn-formatting-toolbar button) {
+		border-radius: var(--radius-sm) !important;
+	}
+
+	:global(.bn-formatting-toolbar button:hover) {
+		background: var(--c-bg-muted) !important;
+	}
+
+	:global(.bn-formatting-toolbar button.bn-button-is-active) {
+		background: var(--c-primary-light) !important;
+		color: var(--c-primary) !important;
 	}
 
 	/* Slash menu flottant */
@@ -276,43 +545,5 @@
 		background: var(--c-muted-bg, #e8e8e8);
 		color: var(--c-muted, #666);
 		font-family: monospace;
-	}
-
-	/* Héritage des styles BlockNote */
-	:global(.bn-block-group) {
-		margin: 0;
-		padding: 0;
-	}
-
-	:global(.bn-block) {
-		margin: 0.25em 0;
-	}
-
-	:global(.bn-inline-content) {
-		font-family: var(--font-editor, 'Inter', sans-serif);
-		font-size: 1rem;
-		line-height: 1.6;
-	}
-
-	:global(.bn-inline-content h1) {
-		font-size: 1.8rem;
-		font-weight: 700;
-		margin: 0.5em 0 0.25em;
-	}
-
-	:global(.bn-inline-content h2) {
-		font-size: 1.4rem;
-		font-weight: 600;
-		margin: 0.5em 0 0.25em;
-	}
-
-	:global(.bn-inline-content h3) {
-		font-size: 1.15rem;
-		font-weight: 600;
-		margin: 0.5em 0 0.25em;
-	}
-
-	:global(.bn-inline-content p) {
-		margin: 0.4em 0;
 	}
 </style>

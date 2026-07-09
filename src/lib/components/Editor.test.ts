@@ -98,6 +98,51 @@ vi.mock('@lucide/svelte', () => {
 	return mod;
 });
 
+// @blocknote/core ne peut pas tourner dans jsdom (ProseMirror, CSS)
+vi.mock('prosemirror-state', () => ({ Selection: { near: () => ({}) } }));
+vi.mock('@blocknote/core', () => {
+	const noopFn = () => {};
+	const mockEditor = {
+		_tiptapEditor: {
+			setEditable: noopFn,
+			isActive: () => false,
+			chain: () => ({ focus: () => ({ run: () => true, setLink: () => ({ run: () => true }), insertContent: () => ({ run: () => true }) }) }),
+			view: { dom: { style: {}, addEventListener: noopFn, removeEventListener: noopFn } },
+			state: { schema: { nodes: {} } },
+		},
+		mount: noopFn,
+		unmount: noopFn,
+		focus: noopFn,
+		undo: noopFn,
+		redo: noopFn,
+		toggleStyles: noopFn,
+		addStyles: noopFn,
+		removeStyles: noopFn,
+		getActiveStyles: () => ({}),
+		getSelectedLinkUrl: () => undefined,
+		getTextCursorPosition: () => ({ block: { id: 'mock', type: 'paragraph', props: {}, content: [] }, blockIdentifier: 'mock', inlineContent: [] }),
+		updateBlock: () => ({}),
+		insertBlocks: () => [],
+		replaceBlocks: () => ({ insertedBlocks: [], removedBlocks: [] }),
+		tryParseMarkdownToBlocks: () => [],
+		blocksToMarkdownLossy: () => '',
+		onChange: () => noopFn,
+		onEditorContentChange: () => noopFn,
+		document: [],
+		getExtension: () => undefined,
+	};
+	return {
+		BlockNoteEditor: { create: () => mockEditor },
+		createExtension: () => noopFn,
+		SuggestionMenu: null,
+		getDefaultSlashMenuItems: () => [],
+		filterSuggestionItems: (a: unknown[]) => a,
+	};
+});
+
+// mock du CSS BlockNote
+vi.mock('@blocknote/core/style.css', () => ({}));
+
 vi.mock('@tiptap/core', () => {
 	const noop = { configure: () => noop };
 	const extension = { extend: () => extension, configure: () => extension };
@@ -125,11 +170,7 @@ vi.mock('@tiptap/core', () => {
 	};
 });
 
-vi.mock('@tiptap/starter-kit', () => ({ default: { configure: () => ({}) } }));
-vi.mock('@tiptap/extension-link', () => ({ default: { configure: () => ({}) } }));
-vi.mock('@tiptap/extension-placeholder', () => ({ default: { configure: () => ({}) } }));
-vi.mock('@tiptap/extension-bubble-menu', () => ({ default: { configure: () => ({}) } }));
-vi.mock('tiptap-markdown', () => ({ Markdown: { configure: () => ({}) } }));
+
 
 afterEach(cleanup);
 
@@ -241,14 +282,6 @@ describe('Editor — mode brut / CM6', () => {
 		expect(toggle!.classList.contains('toggle-active')).toBe(true);
 	});
 
-	it('le bubble-menu existe toujours dans le DOM', async () => {
-		const { default: Editor } = await import('./Editor.svelte');
-		const { render } = await import('@testing-library/svelte');
-		const { container } = render(Editor, { rawMode: true });
-
-		expect(container.querySelector('.bubble-menu')).toBeTruthy();
-	});
-
 	it('affiche le bon contenu après toggle rawMode + changement de content simultanés (régression K-010)', async () => {
 		const { default: Editor } = await import('./Editor.svelte');
 		const { render } = await import('@testing-library/svelte');
@@ -260,7 +293,7 @@ describe('Editor — mode brut / CM6', () => {
 
 		// Laisser le premier render s'installer
 		await waitFor(() => {
-			expect(container.querySelector('.editor-content.active')).toBeTruthy();
+			expect(container.querySelector('.blocknote-root.active')).toBeTruthy();
 		});
 
 		// Simuler toggle rawMode + changement d'onglet dans un même update
