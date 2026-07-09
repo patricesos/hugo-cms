@@ -36,6 +36,7 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
+    "@blocknote/core": "^0.51.4",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.10.3",
     "@codemirror/lang-json": "^6.0.2",
