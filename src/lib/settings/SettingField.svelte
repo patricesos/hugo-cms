@@ -4,8 +4,8 @@
 
 	let { field, value, onChange }: {
 		field: SettingField;
-		value: any;
-		onChange: (key: string, value: any) => void;
+		value: unknown;
+		onChange: (key: string, value: unknown) => void;
 	} = $props();
 
 	let showFolderPicker = $state(false);

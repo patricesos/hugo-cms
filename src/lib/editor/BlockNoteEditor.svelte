@@ -9,6 +9,7 @@
 	} from '@blocknote/core';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 	import { Selection } from 'prosemirror-state';
+	import type { Block } from '@blocknote/core';
 	import { protectShortcodes } from '$lib/shortcode-utils';
 	import { promptLink } from '$lib/prompt-link';
 	import '@blocknote/core/style.css';
@@ -51,8 +52,17 @@
 	let sideMenuShow = $state(false);
 	let sideMenuX = $state(0);
 	let sideMenuY = $state(0);
-	let sideMenuBlock: any = $state(null);
-	let sideMenuExt: any = $state(null);
+	interface SideMenuExt {
+		store: {
+			subscribe: (cb: (state: unknown) => void) => () => void;
+			state: { show?: boolean; referencePos?: { x: number; y: number; height: number }; block?: unknown } | undefined;
+		};
+		blockDragStart: (event: { dataTransfer: DataTransfer | null; clientY: number }, block: unknown) => void;
+		blockDragEnd: () => void;
+		freezeMenu: () => void;
+	}
+	let sideMenuBlock: Block | null = $state(null);
+	let sideMenuExt: SideMenuExt | null = $state(null);
 	let _isDragging = $state(false);
 	let _unsubSideMenu: (() => void) | null = null;
 

@@ -39,7 +39,15 @@
 	let prevContent = '';
 	let prevRawMode = false;
 	let rawEditor = $state<RawEditor | null>(null);
-	let blocknoteEditor: any = $state(null);
+	interface BlockNoteEditorAPI {
+		getMarkdown(): string;
+		exec(command: string, ...args: unknown[]): void;
+		setLink(): void;
+		toggleHeading(level: 1 | 2 | 3): void;
+		isActive(name: string, attrs?: Record<string, unknown>): boolean;
+		setContent(c: string): void;
+	}
+	let blocknoteEditor: BlockNoteEditorAPI | null = $state(null);
 
 	let showImagePicker = $state(false);
 	let pendingImageUrl = $state('');

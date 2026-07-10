@@ -6,7 +6,7 @@
 		schema: SettingTab[];
 		values: Record<string, any>;
 		serverConfig?: Record<string, string | number | boolean> | null;
-		onChange: (key: string, value: any) => void;
+		onChange: (key: string, value: unknown) => void;
 	} = $props();
 
 	let activeTab = $state('');

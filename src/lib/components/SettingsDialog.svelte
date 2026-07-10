@@ -43,7 +43,7 @@
 		onClose();
 	}
 
-	function handleFieldChange(key: string, val: any) {
+	function handleFieldChange(key: string, val: unknown) {
 		(local as any)[key] = val;
 		emit();
 	}
