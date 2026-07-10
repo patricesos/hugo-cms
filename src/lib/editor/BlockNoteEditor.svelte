@@ -45,6 +45,15 @@
 	let smExtension: ReturnType<typeof SuggestionMenu> | null = null;
 	let _unsubStore: (() => void) | null = null;
 
+	// Side menu / drag handle state
+	let sideMenuShow = $state(false);
+	let sideMenuX = $state(0);
+	let sideMenuY = $state(0);
+	let sideMenuBlock: any = $state(null);
+	let sideMenuExt: any = $state(null);
+	let _isDragging = $state(false);
+	let _unsubSideMenu: (() => void) | null = null;
+
 	onMount(() => {
 		editor = BNEditor.create({
 			animations: true,
@@ -102,6 +111,24 @@
 			}
 		}
 
+		// Side menu / drag handle
+		const smExt = editor.getExtension('sideMenu') as any;
+		if (smExt) {
+			sideMenuExt = smExt;
+			_unsubSideMenu = smExt.store.subscribe(() => {
+				const state = smExt.store.state;
+				if (state?.show && state.referencePos) {
+					sideMenuShow = true;
+					sideMenuX = state.referencePos.x - 26;
+					sideMenuY = state.referencePos.y + state.referencePos.height / 2;
+					sideMenuBlock = state.block;
+				} else if (!_isDragging) {
+					sideMenuShow = false;
+					sideMenuBlock = null;
+				}
+			});
+		}
+
 		if (content) {
 			const protectedContent = protectShortcodes(content);
 			const blocks = editor.tryParseMarkdownToBlocks(protectedContent);
@@ -126,6 +153,8 @@
 		return () => {
 			_unsubStore?.();
 			_unsubStore = null;
+			_unsubSideMenu?.();
+			_unsubSideMenu = null;
 			editor?.unmount();
 			editor = null;
 		};
@@ -160,6 +189,19 @@
 		smExtension?.closeMenu();
 		menuShown = false;
 		editor?.focus();
+	}
+
+	function onDragHandleDragStart(e: DragEvent) {
+		if (!sideMenuBlock || !sideMenuExt) return;
+		_isDragging = true;
+		sideMenuExt.blockDragStart(e, sideMenuBlock);
+	}
+
+	function onDragHandleDragEnd() {
+		_isDragging = false;
+		sideMenuExt?.blockDragEnd();
+		sideMenuShow = false;
+		sideMenuBlock = null;
 	}
 
 $effect(() => {
@@ -362,6 +404,20 @@ $effect(() => {
 				{/each}
 			</div>
 		{/if}
+		{#if sideMenuShow && sideMenuBlock}
+			<div
+				class="bn-drag-handle"
+				style="left: {sideMenuX}px; top: {sideMenuY}px;"
+				draggable="true"
+				ondragstart={onDragHandleDragStart}
+				ondragend={onDragHandleDragEnd}
+				role="button"
+				aria-label="Drag block"
+				tabindex="-1"
+			>
+				⠿
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -545,5 +601,39 @@ $effect(() => {
 		background: var(--c-muted-bg, #e8e8e8);
 		color: var(--c-muted, #666);
 		font-family: monospace;
+	}
+
+	/* Drag handle (comme Notion) */
+	.bn-drag-handle {
+		position: fixed;
+		z-index: 999;
+		width: 20px;
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: grab;
+		color: var(--c-muted, #888);
+		border-radius: var(--radius-sm, 4px);
+		transform: translateY(-50%);
+		user-select: none;
+		font-size: 14px;
+		line-height: 1;
+		opacity: 0;
+		transition: opacity 0.12s, background 0.12s;
+	}
+
+	.blocknote-root:hover .bn-drag-handle {
+		opacity: 1;
+	}
+
+	.bn-drag-handle:hover {
+		background: var(--c-hover, #f0f0f0);
+		color: var(--c-text, #333);
+	}
+
+	.bn-drag-handle:active {
+		cursor: grabbing;
+		background: var(--c-hover, #e0e0e0);
 	}
 </style>
