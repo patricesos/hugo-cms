@@ -24,7 +24,7 @@
 		historyDepth?: number;
 		saveRequest?: number;
 		getContent?: (fn: () => string) => void;
-		onSave?: (markdown: string) => void;
+		onSave?: (markdown: string) => Promise<boolean | void> | void;
 		onFrontmatterChange?: (fm: Record<string, unknown>) => void;
 		onStats?: (stats: { words: number; chars: number }) => void;
 		onSaveState?: (state: 'saved' | 'unsaved' | 'saving') => void;
@@ -79,6 +79,8 @@
 	let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let rawSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let saveVersion = 0;
+	/** Copie non-réactive du body pour getContent — évite le warning "derived_inert" lors du switchToTab */
+	let _latestBody = '';
 
 	function clearAutoSave() {
 		if (autoSaveTimeout) {
@@ -92,16 +94,19 @@
 		++saveVersion;
 		onSaveState?.('unsaved');
 		autoSaveTimeout = setTimeout(doAutoSave, autoSaveDelay);
+		if (blocknoteEditor) _latestBody = blocknoteEditor.getMarkdown();
 	}
 
 	async function doAutoSave() {
 		if (!blocknoteEditor) return;
 		const version = ++saveVersion;
 		onSaveState?.('saving');
-		await onSave?.(blocknoteEditor.getMarkdown());
+		const ok = await onSave?.(blocknoteEditor.getMarkdown()) ?? false;
 		if (version !== saveVersion) return;
-		onSaveState?.('saved');
-		autoSaveTimeout = null;
+		if (ok) {
+			onSaveState?.('saved');
+			autoSaveTimeout = null;
+		}
 	}
 
 	async function doRawAutoSave() {
@@ -109,10 +114,12 @@
 		onSaveState?.('saving');
 		const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
 		if (fm) onFrontmatterChange?.(fm);
-		await onSave?.(body);
+		const ok = await onSave?.(body) ?? false;
 		if (version !== saveVersion) return;
-		onSaveState?.('saved');
-		rawSaveTimeout = null;
+		if (ok) {
+			onSaveState?.('saved');
+			rawSaveTimeout = null;
+		}
 	}
 
 	function markRawUnsaved() {
@@ -120,6 +127,8 @@
 		++saveVersion;
 		onSaveState?.('unsaved');
 		rawSaveTimeout = setTimeout(doRawAutoSave, autoSaveDelay);
+		const { body } = splitRawContent(sync?.rawContent ?? '');
+		_latestBody = body;
 	}
 
 	async function handleManualSave() {
@@ -127,14 +136,15 @@
 		if (rawSaveTimeout) clearTimeout(rawSaveTimeout);
 		++saveVersion;
 		onSaveState?.('saving');
+		let ok = false;
 		if (rawMode) {
 			const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
 			if (fm) onFrontmatterChange?.(fm);
-			await onSave?.(body);
+			ok = await onSave?.(body) ?? false;
 		} else if (blocknoteEditor) {
-			await onSave?.(blocknoteEditor.getMarkdown());
+			ok = await onSave?.(blocknoteEditor.getMarkdown()) ?? false;
 		}
-		onSaveState?.('saved');
+		if (ok) onSaveState?.('saved');
 	}
 
 	function updateStats() {
@@ -272,7 +282,8 @@
 		sync = new ModeSync();
 		const initAction = sync.loadContent(content, rawMode, frontmatter, frontmatterFormat);
 		onSaveState?.('saved');
-		getContent?.(() => rawMode ? getRawBody(sync?.rawContent ?? '') : blocknoteEditor?.getMarkdown() ?? '');
+		getContent?.(() => _latestBody);
+		_latestBody = rawMode ? getRawBody(sync?.rawContent ?? '') : content;
 		onSetContent?.((c: string) => {
 			if (rawMode) {
 				if (sync) sync.rawContent = c;
@@ -301,15 +312,22 @@
 			if (body) {
 				blocknoteEditor?.setContent(body);
 			}
+			if (rawMode) {
+				_latestBody = getRawBody(sync?.rawContent ?? '');
+			} else if (blocknoteEditor) {
+				_latestBody = blocknoteEditor.getMarkdown();
+			}
 		}
 		if (rChanged) {
 			if (rawMode) {
 				if (!cChanged) {
 					sync.toggleToRaw(() => blocknoteEditor?.getMarkdown() ?? '', frontmatter, frontmatterFormat);
+					_latestBody = getRawBody(sync?.rawContent ?? '');
 				}
 			} else if (!cChanged) {
 				const { body } = sync.toggleToWysiwyg();
 				blocknoteEditor?.setContent(body);
+				if (blocknoteEditor) _latestBody = blocknoteEditor.getMarkdown();
 			}
 		}
 

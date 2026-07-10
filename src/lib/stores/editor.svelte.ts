@@ -169,12 +169,12 @@ function create() {
 			}
 		},
 
-		async handleSave(markdown: string) {
+		async handleSave(markdown: string): Promise<boolean> {
 			const curSlug = get(currentSlug);
-			if (!curSlug) return;
+			if (!curSlug) return false;
 			const curTabs = get(tabs);
 			const tab = curTabs.find(t => t.slug === curSlug);
-			if (!tab) return;
+			if (!tab) return false;
 			const expectedMtimeMs = tab.mtimeMs;
 			const fm = { ...get(currentFrontmatter) };
 			const res = await fetch(`/api/content/${curSlug}`, {
@@ -186,13 +186,14 @@ function create() {
 				const { serverMtimeMs } = await res.json();
 				conflictSlug.set(curSlug);
 				conflictServerMtimeMs.set(serverMtimeMs);
-				tabs.update(t => t.map(ti => ti.slug === curSlug ? { ...ti, content: markdown, frontmatter: fm } : ti));
-				return;
+				return false;
 			}
 			if (res.ok) {
 				const data = await res.json();
 				tabs.update(t => t.map(ti => ti.slug === curSlug ? { ...ti, content: markdown, frontmatter: fm, mtimeMs: data.mtimeMs ?? ti.mtimeMs } : ti));
+				return true;
 			}
+			return false;
 		},
 
 		handleCloseTab(slug: string) {

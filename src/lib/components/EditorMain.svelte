@@ -39,8 +39,8 @@
 		};
 	});
 
-	async function handleSave(markdown: string) {
-		await editorStore.handleSave(markdown);
+	async function handleSave(markdown: string): Promise<boolean> {
+		return await editorStore.handleSave(markdown);
 	}
 
 	function handleFrontmatterChange(fm: Record<string, unknown>) {

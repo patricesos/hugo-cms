@@ -39,6 +39,12 @@ export function resolveConflict(action: 'reload' | 'overwrite') {
 	if (!tab) { editorStore.conflictSlug.set(null); return; }
 	if (action === 'reload') {
 		editorStore.reloadFileFromDisk(tab);
+	} else {
+		const serverMtime = get(editorStore.conflictServerMtimeMs);
+		editorStore.tabs.update(t => t.map(ti =>
+			ti.slug === slug ? { ...ti, mtimeMs: serverMtime } : ti
+		));
+		editorStore.saveRequest.update(n => n + 1);
 	}
 	editorStore.conflictSlug.set(null);
 }

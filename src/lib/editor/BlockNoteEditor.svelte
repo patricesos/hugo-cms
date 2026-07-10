@@ -34,6 +34,7 @@
 	let floatingContainer: HTMLDivElement;
 	let editor = $state<BNEditor | null>(null);
 	let _latestMarkdown = $state('');
+	let _suppressChange = false;
 
 	// Slash menu state
 	let menuShown = $state(false);
@@ -145,7 +146,7 @@
 
 		editor.onChange((ed) => {
 			_latestMarkdown = ed.blocksToMarkdownLossy();
-			onchange?.();
+			if (!_suppressChange) onchange?.();
 		});
 
 		onEditorReady?.(editor);
@@ -369,7 +370,9 @@ $effect(() => {
 		const protectedContent = protectShortcodes(c);
 		const blocks = bnEditor.tryParseMarkdownToBlocks(protectedContent);
 		if (blocks.length > 0) {
+			_suppressChange = true;
 			bnEditor.replaceBlocks(bnEditor.document, blocks);
+			_suppressChange = false;
 		}
 	}
 </script>
@@ -384,7 +387,7 @@ $effect(() => {
 				role="listbox"
 				aria-label="Insert block"
 			>
-				{#each menuItems as item, i}
+				{#each menuItems as item, i (item.title)}
 					<button
 						class="bn-slash-item"
 						class:active={i === menuSelectedIndex}
