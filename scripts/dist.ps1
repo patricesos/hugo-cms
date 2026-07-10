@@ -90,15 +90,16 @@ if ($nodeResolved) {
 
 Write-Host "=== 9. Generate start.bat ===" -ForegroundColor Cyan
 $nodeCmd = if (Test-Path "$distDir/bin/node.exe") { "%~dp0bin\node.exe" } else { "node" }
-@"
-@echo off
-if not exist "%~dp0.env" (
-    copy "%~dp0.env.example" "%~dp0.env" >nul
-    echo Copie de .env.example vers .env - modifiez-le selon votre configuration.
+$batLines = @(
+    '@echo off',
+    'if not exist "%~dp0.env" (',
+    '    copy "%~dp0.env.example" "%~dp0.env" >nul',
+    '    echo Copie de .env.example vers .env - modifiez-le selon votre configuration.',
+    ')',
+    "$nodeCmd `"%~dp0bundle.mjs`"",
+    'pause'
 )
-$nodeCmd "%~dp0bundle.mjs"
-pause
-"@ | Out-File "$distDir/start.bat" -Encoding ASCII
+$batLines -join "`r`n" | Out-File -FilePath "$distDir/start.bat" -Encoding ASCII
 Write-Host "start.bat created" -ForegroundColor Green
 
 Write-Host "=== Done ===" -ForegroundColor Green

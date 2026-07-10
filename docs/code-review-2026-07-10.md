@@ -43,7 +43,7 @@ Chacun viole le principe de responsabilité unique. `FrontMatterEditor.svelte` e
 
 **Différence subtile :** `splitRawContent` retourne `{ frontmatter: null, body: text }` en cas d'erreur, tandis que `parseFrontmatter` retourne `{ frontmatter: {}, body: raw }`. Deux chemins de parsing différents = deux comportements d'erreur différents.
 
-### 1.4 Usage excessif de `any`
+### 1.4 Usage excessif de `any` — [x] corrigé
 
 | Fichier | Ligne | Expression |
 |---------|-------|------------|
@@ -368,5 +368,5 @@ Ces versions majeures récentes peuvent avoir des breaking changes non document�
 
 ---
 
-*Généré le 10 juillet 2026 — corrections appliquées : LOW (8/8), MEDIUM (6/12), HIGH (4/4).*
-*Restants : God components (1.2), usage excessif de `any` (1.4), tests manquants (6.1), i18n (9.1).*
+*Généré le 10 juillet 2026 — corrections appliquées : LOW (8/8), MEDIUM (7/12), HIGH (4/4).*
+*Restants : God components (1.2), tests manquants (6.1), i18n (9.1).*
