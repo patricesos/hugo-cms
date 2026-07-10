@@ -95,7 +95,10 @@
 		++saveVersion;
 		onSaveState?.('unsaved');
 		autoSaveTimeout = setTimeout(doAutoSave, autoSaveDelay);
-		if (blocknoteEditor) _latestBody = blocknoteEditor.getMarkdown();
+		if (blocknoteEditor) {
+			_latestBody = blocknoteEditor.getMarkdown();
+			updateStats();
+		}
 	}
 
 	async function doAutoSave() {
@@ -130,6 +133,10 @@
 		rawSaveTimeout = setTimeout(doRawAutoSave, autoSaveDelay);
 		const { body } = splitRawContent(sync?.rawContent ?? '');
 		_latestBody = body;
+		onStats?.({
+			words: body.trim() ? body.trim().split(/\s+/).length : 0,
+			chars: body.length,
+		});
 	}
 
 	async function handleManualSave() {
