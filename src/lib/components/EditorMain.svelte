@@ -15,7 +15,7 @@
 	const { settings, layout } = settingsStore;
 	const {
 		currentSlug, editorContent, currentFrontmatter, currentFmFormat,
-		wordCount, charCount, saveState, saveRequest, loading, conflictSlug, currentTab,
+		saveState, saveRequest, loading, conflictSlug, currentTab,
 	} = editorStore;
 
 	// Lazy import Editor (seul composant lourd)
@@ -121,7 +121,7 @@
 							onSetContent={(fn: (content: string) => void) => { editorStore.setEditorSetContent(fn); }}
 							onSave={handleSave}
 							onFrontmatterChange={(fm: Record<string, unknown>) => { editorStore.handleFrontmatterChange(fm); if ($currentSlug) fileTreeStore.updateTreeFrontmatter($currentSlug, fm); }}
-							onStats={(s: { words: number; chars: number }) => { $wordCount = s.words; $charCount = s.chars; }}
+							onStats={(s: { words: number; chars: number }) => { editorStore.wordCount.set(s.words); editorStore.charCount.set(s.chars); }}
 							onSaveState={(s: 'saved' | 'unsaved' | 'saving') => { editorStore.saveState.set(s); }}
 							onRawModeChange={(mode: boolean) => { if ($currentSlug) editorStore.updateTabRawMode($currentSlug, mode); }}
 						/>
@@ -147,7 +147,7 @@
 			{/if}
 		</div>
 	</div>
-	<StatusBar wordCount={$wordCount} charCount={$charCount} saveState={$saveState} onHelp={() => uiStore.updateDialogs({ showShortcuts: true })} />
+	<StatusBar saveState={$saveState} onHelp={() => uiStore.updateDialogs({ showShortcuts: true })} />
 </div>
 
 <style>

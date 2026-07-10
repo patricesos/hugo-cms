@@ -105,7 +105,12 @@ Body.`,
 			const { frontmatter, body } = parseFrontmatter(c.input);
 			const serialized = serializeFrontmatter(body, frontmatter);
 			const { frontmatter: fm2, body: b2 } = parseFrontmatter(serialized);
-			expect(fm2).toEqual(frontmatter);
+			// Les Dates du YAML sont normalisées en chaînes YYYY-MM-DD (M-003)
+			const normalizeDate = (v: unknown): unknown =>
+				v instanceof Date ? v.toISOString().slice(0, 10) : v;
+			const normalizeRecord = (r: Record<string, unknown>): Record<string, unknown> =>
+				Object.fromEntries(Object.entries(r).map(([k, v]) => [k, normalizeDate(v)]));
+			expect(normalizeRecord(fm2)).toEqual(normalizeRecord(frontmatter));
 			expect(b2.trim()).toBe(body.trim());
 		});
 	}

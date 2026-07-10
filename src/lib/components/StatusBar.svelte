@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { CheckCircle2, AlertCircle, Loader2, Type, Hash, CircleHelp } from '@lucide/svelte';
+	import { editorStore } from '$lib/stores/editor.svelte';
+
+	const { wordCount, charCount } = editorStore;
 
 	let {
-		wordCount = 0,
-		charCount = 0,
 		saveState = 'saved',
 		onHelp,
 	}: {
-		wordCount?: number;
-		charCount?: number;
 		saveState?: 'saved' | 'unsaved' | 'saving';
 		onHelp?: () => void;
 	} = $props();
@@ -41,12 +40,12 @@
 		{/if}
 		<span class="stat">
 			<Type size={12} />
-			{wordCount} mots
+			{$wordCount} mots
 		</span>
 		<span class="stat-sep">·</span>
 		<span class="stat">
 			<Hash size={12} />
-			{charCount} caractères
+			{$charCount} caractères
 		</span>
 	</div>
 </div>

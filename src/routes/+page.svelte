@@ -74,7 +74,7 @@
 	// Sauvegarde les tabs dans localStorage à chaque changement (fermeture, etc.)
 	$effect(() => {
 		$tabs; // track
-		settingsStore.persist();
+		settingsStore.persistDebounced();
 	});
 
 	// --- Conflit : polling modifications externes ---

@@ -2,10 +2,6 @@ export const SH_OPEN_ANGLE = 'SH_OPEN_ANGLE';
 export const SH_OPEN_PERCENT = 'SH_OPEN_PERCENT';
 export const SH_CLOSE_ANGLE = 'SH_CLOSE_ANGLE';
 export const SH_CLOSE_PERCENT = 'SH_CLOSE_PERCENT';
-/** @deprecated Utiliser SH_OPEN_ANGLE ou SH_OPEN_PERCENT */
-export const SH_OPEN_SH = SH_OPEN_ANGLE;
-/** @deprecated Utiliser SH_CLOSE_ANGLE ou SH_CLOSE_PERCENT */
-export const SH_CLOSE_SH = SH_CLOSE_ANGLE;
 
 const SH_CLOSE = `(?:${SH_CLOSE_ANGLE}|${SH_CLOSE_PERCENT})`;
 const SH_OPEN = `(?:${SH_OPEN_ANGLE}|${SH_OPEN_PERCENT})`;

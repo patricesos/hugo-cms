@@ -99,6 +99,7 @@ function createSettingsStore() {
   const settings = writable<SettingsState>({ ...SETTINGS_DEFAULTS });
   const layout = writable<LayoutState>({ ...LAYOUT_DEFAULTS });
   let _hydrated = false;
+  let _persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Getters injectes depuis +page.svelte pour eviter l'import direct de editorStore. */
   let _getTabs: () => Array<{ slug: string; title: string; frontmatterLanguage?: string; kind: string; rawMode?: boolean }> = () => [];
@@ -273,6 +274,11 @@ function createSettingsStore() {
     },
 
     persist,
+
+    persistDebounced() {
+      if (_persistTimer) clearTimeout(_persistTimer);
+      _persistTimer = setTimeout(persist, 500);
+    },
   };
 }
 

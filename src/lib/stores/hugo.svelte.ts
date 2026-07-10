@@ -93,7 +93,7 @@ function create() {
 
 		openPreviewInTab() {
 			const snap = get(hugoStore);
-			if (snap.url) window.open(snap.url, '_blank');
+			if (snap.url) window.open(snap.url, '_blank', 'noopener,noreferrer');
 		},
 
 		snapshot(): HugoState {

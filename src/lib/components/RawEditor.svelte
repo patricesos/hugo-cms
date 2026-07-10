@@ -15,6 +15,7 @@
     import { javascript } from "@codemirror/lang-javascript";
     import type { Extension } from "@codemirror/state";
     import { getCmTheme } from "$lib/editor/codemirror-themes";
+    import { promptLink } from "$lib/prompt-link";
     import {
         undo,
         redo,
@@ -212,10 +213,13 @@
         const shouldSync = current !== content;
         if (shouldSync) {
             cmUpdating = true;
-            cmView.dispatch({
-                changes: { from: 0, to: current.length, insert: content },
-            });
-            cmUpdating = false;
+            try {
+                cmView.dispatch({
+                    changes: { from: 0, to: current.length, insert: content },
+                });
+            } finally {
+                cmUpdating = false;
+            }
         }
     });
 
@@ -309,7 +313,7 @@
     }
 
     export function rawLink() {
-        const url = window.prompt("URL du lien:");
+        const url = promptLink();
         if (!url) return;
         rawWrap("[", `](${url})`);
     }

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ModeSync, getRawBody, splitRawContent } from '$lib/editor/mode-sync.svelte';
+	import { ModeSync } from '$lib/editor/mode-sync.svelte';
+	import { getRawBody, splitRawContent } from '$lib/frontmatter';
 	import RawEditor from './RawEditor.svelte';
 	import BlockNoteEditor from '$lib/editor/BlockNoteEditor.svelte';
 	import ImagePicker from './ImagePicker.svelte';
@@ -113,10 +114,10 @@
 		const version = ++saveVersion;
 		onSaveState?.('saving');
 		const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
-		if (fm) onFrontmatterChange?.(fm);
 		const ok = await onSave?.(body) ?? false;
 		if (version !== saveVersion) return;
 		if (ok) {
+			if (fm) onFrontmatterChange?.(fm);
 			onSaveState?.('saved');
 			rawSaveTimeout = null;
 		}
@@ -139,8 +140,8 @@
 		let ok = false;
 		if (rawMode) {
 			const { frontmatter: fm, body } = splitRawContent(sync?.rawContent ?? '');
-			if (fm) onFrontmatterChange?.(fm);
 			ok = await onSave?.(body) ?? false;
+			if (ok && fm) onFrontmatterChange?.(fm);
 		} else if (blocknoteEditor) {
 			ok = await onSave?.(blocknoteEditor.getMarkdown()) ?? false;
 		}
@@ -359,7 +360,7 @@
 <div class="editor-container" style="--editor-font: var(--font-{editorFont}); --editor-font-size: {editorFontSize === 'small' ? '14px' : editorFontSize === 'large' ? '18px' : '16px'}; --editor-max-width: {editorMaxWidth === 'custom' ? editorMaxWidthCustom + 'px' : editorMaxWidth}" bind:this={editorContainer}>
 	<ScrollProgress container={scrollEl} />
 	<BackToTop container={scrollEl} />
-	<div class="editor-toolbar">
+	<div class="editor-toolbar" role="toolbar" aria-label="Barre d'édition">
 		<button onclick={handleUndo} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
 		<button onclick={handleRedo} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
 		<span class="sep"></span>

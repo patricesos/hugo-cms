@@ -1,12 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-	getRawBody,
-	splitRawContent,
-	serializeFm,
-	countYamlComments,
-	ModeSync,
-} from './mode-sync.svelte';
+import { getRawBody, splitRawContent, serializeFm, countYamlComments } from '$lib/frontmatter';
+import { ModeSync } from './mode-sync.svelte';
 
 describe('mode-sync — helpers purs', () => {
 	it('serializeFm: YAML avec frontmatter', () => {
@@ -246,11 +241,11 @@ describe('ModeSync — handleFrontmatterChange', () => {
 		expect(sync.rawContent).not.toContain('title: Old');
 	});
 
-	it('frontmatter vidé → rawContent contient FM vide sérialisé', () => {
+	it('frontmatter vidé → rawContent ne contient pas de FM vide', () => {
 		sync.loadContent('Body', true, { title: 'Test' }, 'yaml');
 		expect(sync.handleFrontmatterChange({}, 'yaml')).toBe(true);
-		expect(sync.rawContent).toContain('{}');
-		expect(sync.rawContent).toContain('Body');
+		expect(sync.rawContent).not.toContain('---');
+		expect(sync.rawContent).toBe('Body');
 	});
 });
 

@@ -10,6 +10,7 @@
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 	import { Selection } from 'prosemirror-state';
 	import { protectShortcodes } from '$lib/shortcode-utils';
+	import { promptLink } from '$lib/prompt-link';
 	import '@blocknote/core/style.css';
 
 	interface BlockNoteEditorProps {
@@ -312,11 +313,10 @@ $effect(() => {
 	}
 
 	export function setLink() {
-		const url = window.prompt('URL du lien:');
-		if (url && editor) {
-			const tip = editor._tiptapEditor;
-			tip.chain().focus().setLink({ href: url }).run();
-		}
+		const url = promptLink();
+		if (!url || !editor) return;
+		const tip = editor._tiptapEditor;
+		tip.chain().focus().setLink({ href: url }).run();
 	}
 
 	export function toggleHeading(level: 1 | 2 | 3) {
@@ -557,10 +557,10 @@ $effect(() => {
 		min-width: 220px;
 		max-height: 300px;
 		overflow-y: auto;
-		background: var(--c-bg, #fff);
-		border: 1px solid var(--c-border, #ddd);
-		border-radius: 8px;
-		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+		background: var(--c-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg);
 		padding: 4px;
 		display: flex;
 		flex-direction: column;
@@ -573,7 +573,7 @@ $effect(() => {
 		gap: 8px;
 		padding: 8px 12px;
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		cursor: pointer;
 		text-align: left;
@@ -584,26 +584,26 @@ $effect(() => {
 
 	.bn-slash-item.active,
 	.bn-slash-item:hover {
-		background: var(--c-hover, #f0f0f0);
+		background: var(--c-bg-muted);
 	}
 
 	.bn-slash-title {
 		font-weight: 500;
-		color: var(--c-text, #333);
+		color: var(--c-text);
 		flex: 1;
 	}
 
 	.bn-slash-subtext {
 		font-size: 0.8rem;
-		color: var(--c-muted, #888);
+		color: var(--c-text-muted);
 	}
 
 	.bn-slash-badge {
 		font-size: 0.75rem;
 		padding: 2px 6px;
-		border-radius: 4px;
-		background: var(--c-muted-bg, #e8e8e8);
-		color: var(--c-muted, #666);
+		border-radius: var(--radius-sm);
+		background: var(--c-bg-muted);
+		color: var(--c-text-muted);
 		font-family: monospace;
 	}
 
@@ -617,8 +617,8 @@ $effect(() => {
 		align-items: center;
 		justify-content: center;
 		cursor: grab;
-		color: var(--c-muted, #888);
-		border-radius: var(--radius-sm, 4px);
+		color: var(--c-text-muted);
+		border-radius: var(--radius-sm);
 		transform: translateY(-50%);
 		user-select: none;
 		font-size: 14px;
@@ -632,12 +632,12 @@ $effect(() => {
 	}
 
 	.bn-drag-handle:hover {
-		background: var(--c-hover, #f0f0f0);
-		color: var(--c-text, #333);
+		background: var(--c-bg-muted);
+		color: var(--c-text);
 	}
 
 	.bn-drag-handle:active {
 		cursor: grabbing;
-		background: var(--c-hover, #e0e0e0);
+		background: var(--c-bg-muted);
 	}
 </style>
