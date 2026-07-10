@@ -5,6 +5,8 @@
 	import BlockNoteEditor from '$lib/editor/BlockNoteEditor.svelte';
 	import ImagePicker from './ImagePicker.svelte';
 	import ShortcodeDialog from './ShortcodeDialog.svelte';
+	import ScrollProgress from './ScrollProgress.svelte';
+	import BackToTop from './BackToTop.svelte';
 	import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Code, Link, Quote, List, ListOrdered, Minus, Pilcrow, Code2, Image as ImageIcon, Zap } from '@lucide/svelte';
 
 	interface EditorProps {
@@ -41,6 +43,38 @@
 	let showImagePicker = $state(false);
 	let pendingImageUrl = $state('');
 	let showShortcodeDialog = $state(false);
+
+	let editorContainer = $state<HTMLElement | null>(null);
+	let scrollEl = $state<HTMLElement | null>(null);
+
+	function findEditorScrollable() {
+		if (!editorContainer) return;
+		scrollEl = rawMode
+			? editorContainer.querySelector<HTMLElement>('.cm-scroller')
+			: editorContainer.querySelector<HTMLElement>('.blocknote-editor-wrapper');
+	}
+
+	function retryFind() {
+		findEditorScrollable();
+		if (!scrollEl) requestAnimationFrame(retryFind);
+	}
+
+	$effect(() => {
+		// Force une re-recherche quand rawMode change
+		rawMode;
+		if (!editorContainer) return;
+		findEditorScrollable();
+		if (!scrollEl) requestAnimationFrame(retryFind);
+		// Seulement les ajouts/suppressions d'éléments, pas les mutations de texte
+		const mo = new MutationObserver((mutations) => {
+			const relevant = mutations.some(
+				(m) => m.type === 'childList' && Array.from(m.addedNodes).some((n) => n.nodeType === Node.ELEMENT_NODE)
+			);
+			if (relevant) findEditorScrollable();
+		});
+		mo.observe(editorContainer, { childList: true, subtree: true });
+		return () => mo.disconnect();
+	});
 
 	let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 	let rawSaveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -304,7 +338,9 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="editor-container" style="--editor-font: var(--font-{editorFont}); --editor-font-size: {editorFontSize === 'small' ? '14px' : editorFontSize === 'large' ? '18px' : '16px'}; --editor-max-width: {editorMaxWidth === 'custom' ? editorMaxWidthCustom + 'px' : editorMaxWidth}">
+<div class="editor-container" style="--editor-font: var(--font-{editorFont}); --editor-font-size: {editorFontSize === 'small' ? '14px' : editorFontSize === 'large' ? '18px' : '16px'}; --editor-max-width: {editorMaxWidth === 'custom' ? editorMaxWidthCustom + 'px' : editorMaxWidth}" bind:this={editorContainer}>
+	<ScrollProgress container={scrollEl} />
+	<BackToTop container={scrollEl} />
 	<div class="editor-toolbar">
 		<button onclick={handleUndo} title="Annuler (Ctrl+Z)"><Undo2 size={15} /></button>
 		<button onclick={handleRedo} title="Rétablir (Ctrl+Shift+Z)"><Redo2 size={15} /></button>
@@ -361,7 +397,9 @@
 	.editor-container {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
+		flex: 1;
+		position: relative;
+		min-height: 0;
 	}
 
 	.editor-toolbar {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw, Globe, Lock } from '@lucide/svelte';
+	import { ExternalLink, Play, Square, Loader2, AlertTriangle, RefreshCw, Globe, Lock, ArrowUp } from '@lucide/svelte';
+	import ScrollProgress from './ScrollProgress.svelte';
+	import BackToTop from './BackToTop.svelte';
 
 	let { show, onClose, onStatusChange, onUrlChange, onLiveChange, reloadKey, style = '' }: {
 		show: boolean;
@@ -18,10 +20,38 @@
 	let errorMessage = $state<string | null>(null);
 	let checking = $state(false);
 	let iframeKey = $state(0);
+	let iframeEl = $state<HTMLIFrameElement | null>(null);
+	let previewScrollEl = $state<HTMLElement | null>(null);
 
 	$effect(() => {
 		onStatusChange?.(status);
 		onUrlChange?.(url);
+	});
+
+	$effect(() => {
+		const iframe = iframeEl;
+		if (!iframe || status !== 'running') {
+			previewScrollEl = null;
+			return;
+		}
+
+		function tryFindScroller() {
+			try {
+				const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+				if (doc) {
+					previewScrollEl = doc.documentElement ?? doc.body;
+				}
+			} catch {
+				previewScrollEl = null;
+			}
+		}
+
+		tryFindScroller();
+		iframe.addEventListener('load', tryFindScroller);
+		return () => {
+			iframe.removeEventListener('load', tryFindScroller);
+			previewScrollEl = null;
+		};
 	});
 
 	$effect(() => {
@@ -102,6 +132,7 @@
 
 {#if show}
 	<aside class="hugo-preview" {style}>
+		<ScrollProgress container={previewScrollEl} />
 		<div class="preview-header">
 			<span class="preview-title">
 				<ExternalLink size={14} />
@@ -135,8 +166,10 @@
 				</div>
 			{:else if status === 'running' && url}
 				<div class="preview-content">
+					<BackToTop container={previewScrollEl} threshold={200} />
 					{#key iframeKey}
 						<iframe
+							bind:this={iframeEl}
 							src={url}
 							class="preview-iframe"
 							title="Aperçu Hugo"
@@ -184,7 +217,7 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		flex-shrink: 0;
+		position: relative;
 	}
 
 	.preview-header {

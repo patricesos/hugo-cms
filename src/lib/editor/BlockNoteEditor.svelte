@@ -427,6 +427,7 @@ $effect(() => {
 		width: 100%;
 		display: none;
 		flex: 1;
+		min-height: 0;
 	}
 
 	.blocknote-root.active {
