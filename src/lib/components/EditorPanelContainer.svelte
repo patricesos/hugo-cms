@@ -4,11 +4,11 @@ import { PenLine } from '@lucide/svelte';
 import TabBar from './TabBar.svelte';
 import SitemapView from './SitemapView.svelte';
 import EditorMain from './EditorMain.svelte';
-import { editorStore } from '$lib/stores/editor.svelte';
-import { settingsStore } from '$lib/stores/settings.svelte';
-import { uiStore } from '$lib/stores/ui.svelte';
-import { fileTreeStore } from '$lib/stores/fileTree.svelte';
-import { hugoStore, previewReloadKey } from '$lib/stores/hugo.svelte';
+import { editorStore } from '$lib/stores/editor';
+import { settingsStore } from '$lib/stores/settings';
+import { uiStore } from '$lib/stores/ui';
+import { fileTreeStore } from '$lib/stores/fileTree';
+import { hugoStore, previewReloadKey } from '$lib/stores/hugo';
 import { startPreviewResize, cleanupAllResize } from '$lib/resize';
 
 let { onLoadFile: _onLoadFile }: { onLoadFile?: (slug: string) => Promise<void> } = $props();

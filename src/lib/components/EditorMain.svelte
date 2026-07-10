@@ -3,10 +3,10 @@
 	import { PenLine, Save, Loader2, CheckCircle2, AlertTriangle, PanelRightOpen, PanelRightClose } from '@lucide/svelte';
 	import StatusBar from './StatusBar.svelte';
 	import FrontMatterEditor from './FrontMatterEditor.svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
-	import { settingsStore } from '$lib/stores/settings.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
-	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+	import { editorStore } from '$lib/stores/editor';
+	import { settingsStore } from '$lib/stores/settings';
+	import { uiStore } from '$lib/stores/ui';
+	import { fileTreeStore } from '$lib/stores/fileTree';
 	import { startFmResize, cleanupAllResize } from '$lib/resize';
 	import { resolveConflict } from '$lib/conflict';
 

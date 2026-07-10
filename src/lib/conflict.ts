@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { editorStore } from '$lib/stores/editor.svelte';
+import { editorStore } from '$lib/stores/editor';
 
 let conflictPollTimer: ReturnType<typeof setInterval> | null = null;
 

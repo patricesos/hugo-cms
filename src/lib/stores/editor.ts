@@ -1,8 +1,8 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
 import { flattenTree } from '$lib/tree-utils';
-import { confirmStore } from '$lib/stores/confirm.svelte';
-import { settingsStore } from '$lib/stores/settings.svelte';
+import { confirmStore } from '$lib/stores/confirm';
+import { settingsStore } from '$lib/stores/settings';
 
 export type TabKind = 'content' | 'static' | 'archetype' | 'config' | 'site';
 
@@ -142,19 +142,19 @@ function create() {
 							: ti
 					));
 				}
-			currentSlug.set(tab.slug);
-			editorContent.set(tab.content);
-			currentFrontmatter.set({ ...tab.frontmatter });
-			currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml');
-		} else if (tab.kind === 'archetype') {
-			currentArchetype.set(tab.slug);
-			currentSlug.set(tab.slug);
-		} else if (tab.kind === 'config') {
-			currentConfigSlug.set(tab.slug);
-		currentSlug.set(tab.slug);
-		} else if (tab.kind === 'site') {
-			currentSiteSlug.set(tab.slug);
-		currentSlug.set(tab.slug);
+				currentSlug.set(tab.slug);
+				editorContent.set(tab.content);
+				currentFrontmatter.set({ ...tab.frontmatter });
+				currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml');
+			} else if (tab.kind === 'archetype') {
+				currentArchetype.set(tab.slug);
+				currentSlug.set(tab.slug);
+			} else if (tab.kind === 'config') {
+				currentConfigSlug.set(tab.slug);
+				currentSlug.set(tab.slug);
+			} else if (tab.kind === 'site') {
+				currentSiteSlug.set(tab.slug);
+				currentSlug.set(tab.slug);
 			} else {
 				currentSlug.set(tab.slug);
 			}

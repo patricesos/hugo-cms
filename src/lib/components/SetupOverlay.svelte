@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { FolderOpen, Plus } from '@lucide/svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
+	import { uiStore } from '$lib/stores/ui';
 </script>
 
 <div class="setup-overlay">

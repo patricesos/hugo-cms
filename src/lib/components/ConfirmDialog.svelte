@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { confirmStore } from '$lib/stores/confirm.svelte';
+	import { confirmStore } from '$lib/stores/confirm';
 
 	function handleConfirm() {
 		confirmStore.resolve(true);

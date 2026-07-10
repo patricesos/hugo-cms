@@ -1,7 +1,7 @@
-import { writable, get } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { ThemeCatalogEntry } from '$lib/server/theme-catalog';
-import { hugoStore } from './hugo.svelte';
-import { editorStore } from './editor.svelte';
+import { hugoStore } from './hugo';
+import { editorStore } from './editor';
 
 export interface ThemeStoreState {
 	catalog: (ThemeCatalogEntry & { installed: boolean; active: boolean })[];
@@ -143,6 +143,13 @@ function createThemeStore() {
 
 	return {
 		subscribe: store.subscribe,
+
+		// Sous-stores derived (Pattern B)
+		catalog: derived(store, s => s.catalog),
+		loading: derived(store, s => s.loading),
+		installing: derived(store, s => s.installing),
+		installProgress: derived(store, s => s.installProgress),
+		error: derived(store, s => s.error),
 
 		fetchCatalog,
 		install,

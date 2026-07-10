@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { CheckCircle2, AlertCircle, Loader2, Type, Hash, CircleHelp } from '@lucide/svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
+	import { editorStore } from '$lib/stores/editor';
 
 	const { wordCount, charCount } = editorStore;
 

@@ -59,7 +59,7 @@ Le projet est configuré en `strict: true` dans `tsconfig.json`, mais ces `any` 
 
 ## 2. BUGS & PROBLÈMES LOGIQUES
 
-### 2.1 [HIGH] Indentation trompeuse dans `switchToTab`
+### 2.1 [HIGH] Indentation trompeuse dans `switchToTab` — [x] corrigé
 
 `src/lib/stores/editor.svelte.ts`, lignes 130-170 :
 
@@ -76,6 +76,8 @@ currentFmFormat.set(tab.frontmatterLanguage ?? 'yaml'); // (correct)
 ```
 
 L'indentation suggère que `currentSlug.set` et suivantes appartiennent au bloc `if`, ce qui est VRAI logiquement. Mais si un jour quelqu'un ajoute une ligne entre la `}` ligne 144 et `currentSlug.set`, elle s'exécutera pour tous les types d'onglets, pas seulement `content`. **Très dangereux pour les modifications futures.**
+
+**Fix :** toute la fonction ré-indentée proprement. Les `currentSlug.set` pendants dans les branches `config` et `site` sont aussi corrigés. La hiérarchie visuelle correspond désormais exactement à la hiérarchie logique.
 
 ### 2.2 [MEDIUM] Race condition dans `handleManualSave` — [x] corrigé
 
@@ -148,7 +150,7 @@ Si `frontmatter` est `{}`, ça produit `---\n{}\n---\n\nbody`. Le commentaire di
 
 ## 3. SÉCURITÉ
 
-### 3.1 [HIGH] CSRF désactivé avec wildcard
+### 3.1 [HIGH] CSRF désactivé avec wildcard — [x] corrigé
 
 `svelte.config.js` :
 ```js
@@ -156,6 +158,8 @@ csrf: { trustedOrigins: ['*'] }
 ```
 
 Application locale = risque limité. Mais si l'utilisateur visite un site malveillant en parallèle, ce site peut envoyer des requêtes vers `http://localhost:1703/api/...` et le CMS les traitera comme légitimes car CSRF est désactivé pour toutes les origines.
+
+**Fix :** `'*'` remplacé par `[]` (comportement par défaut de SvelteKit — seule l'origine du serveur est trustée). Comme le CMS est local-first, toutes les requêtes API sont same-origin. La protection CSRF est désormais active.
 
 ### 3.2 [LOW] `window.open` sans `noopener` — [x] corrigé
 
@@ -262,14 +266,26 @@ Vérifier les imports : `+page.svelte` importe `$lib/components/FrontMatterEdito
 
 ## 8. QUALITÉ DE CODE
 
-### 8.1 API stores incohérente
+### 8.1 API stores incohérente — [x] harmonisé
 
-- **Pattern A** (`git`, `hugo`, `theme`) : `{ subscribe, ...methods }` — les stores Svelte standards retournés directement
-- **Pattern B** (`editor`, `fileTree`, `settings`) : `{ tabs: writable, currentSlug: writable, ...methods }` — un objet qui contient des stores + méthodes
+- **Pattern A** (`hugo`, `theme`) : `{ subscribe, ...methods }` — le store Svelte lui-même est le writable
+- **Pattern B** (`git`, `editor`, `fileTree`, `settings`) : `{ field: writable/derived, ...methods }` — chaque champ est son propre store
 
-Pattern A s'utilise `const { subscribe } = store` puis `$storeName.property`.  
-Pattern B s'utilise `const { currentSlug } = store` puis `$currentSlug`.  
-Les deux patterns coexistent dans le même projet. Les nouveaux contributeurs ne sauront pas lequel choisir.
+Note : la review originale catégoriait `git` en Pattern A, mais il était déjà en Pattern B (`{ status, loading, initialized, ... }`).
+
+**Fix :** `hugoStore` et `themeStore` exposent désormais des sous-stores `derived` en plus de leur `subscribe` originel. Les deux patterns fonctionnent :
+
+```ts
+// Pattern A (ancien, toujours compatible)
+$hugoStore.status
+$themeStore.catalog
+
+// Pattern B (nouveau, réactivité fine)
+const { status } = hugoStore;  $status
+const { catalog } = themeStore;  $catalog
+```
+
+Aucun breaking change. Les nouveaux stores doivent privilégier le Pattern B.
 
 ### 8.2 `SH_OPEN_SH` / `SH_CLOSE_SH` dépréciés — [x] corrigé
 
@@ -346,10 +362,11 @@ Ces versions majeures récentes peuvent avoir des breaking changes non document�
 
 | Severité | Nombre | Items clés |
 |----------|--------|------------|
-| **HIGH** | 4 | CSRF wildcard, switchToTab indent, stores hybrides, cmUpdating stuck |
-| **MEDIUM** | 12 | God components, duplication parsing, ~~race condition~~ [x], ~~persist non-debounced~~ [x], ~~CSS hardcodé~~ [x], tests manquants, incohérence store API, ~~window.prompt~~ [x], ~~Tiptap résiduel~~ [x], ~~FM duplication~~ [x] |
+| **HIGH** | 4 | ~~CSRF wildcard~~ [x], ~~switchToTab indent~~ [x], ~~stores hybrides~~ [x], ~~cmUpdating stuck~~ [x] |
+| **MEDIUM** | 12 | God components, duplication parsing, ~~race condition~~ [x], ~~persist non-debounced~~ [x], ~~CSS hardcodé~~ [x], tests manquants, ~~incohérence store API~~ [x], ~~window.prompt~~ [x], ~~Tiptap résiduel~~ [x], ~~FM duplication~~ [x] |
 | **LOW** | 8 | ~~Deprecated exports~~ [x], ~~fallback colors~~ [x], French-only, ~~aria manquants~~ [x], ~~dépendance morte~~ [x], ~~try/catch vide~~ [x], ~~cmUpdating stuck~~ [x], ~~FM vide sérialisé~~ [x], ~~window.open noopener~~ [x] |
 
 ---
 
-*Généré le 10 juillet 2026 — corrections LOW appliquées le 10 juillet (8 items), MEDIUM appliquées le 10 juillet (6 items).*
+*Généré le 10 juillet 2026 — corrections appliquées : LOW (8/8), MEDIUM (6/12), HIGH (4/4).*
+*Restants : God components (1.2), usage excessif de `any` (1.4), tests manquants (6.1), i18n (9.1).*

@@ -3,7 +3,7 @@
 	import { Save, Trash2, Loader2, Settings, FileCode } from '@lucide/svelte';
 	import RawEditor from './RawEditor.svelte';
 	import type { EditorLang } from './RawEditor.svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
+	import { editorStore } from '$lib/stores/editor';
 
 	const { currentTab } = editorStore;
 

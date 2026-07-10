@@ -1,7 +1,7 @@
-import { editorStore } from '$lib/stores/editor.svelte';
-import type { Tab as EditorTab } from '$lib/stores/editor.svelte';
-import { gitStore } from '$lib/stores/git.svelte';
-import { settingsStore } from '$lib/stores/settings.svelte';
+import { editorStore } from '$lib/stores/editor';
+import type { Tab as EditorTab } from '$lib/stores/editor';
+import { gitStore } from '$lib/stores/git';
+import { settingsStore } from '$lib/stores/settings';
 
 export interface RestoreResult {
 	activeSlug: string | null;

@@ -3,7 +3,7 @@
 	import { Settings, X } from '@lucide/svelte';
 	import SettingsPanel from '$lib/settings/SettingsPanel.svelte';
 	import { settingsSchema } from '$lib/settings/schema';
-	import type { SettingsData } from '$lib/stores/settings.svelte';
+	import type { SettingsData } from '$lib/stores/settings';
 
 	let { show = false, settings = {} as SettingsData, serverConfig = null, onClose, onSave, onConfirm }: {
 		show: boolean;

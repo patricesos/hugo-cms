@@ -7,14 +7,14 @@
 	import ActionBar from '$lib/components/ActionBar.svelte';
 	import EditorPanelContainer from '$lib/components/EditorPanelContainer.svelte';
 	import SetupOverlay from '$lib/components/SetupOverlay.svelte';
-	import { hugoStore } from '$lib/stores/hugo.svelte';
-	import { gitStore } from '$lib/stores/git.svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
-	import { settingsStore, settingsData } from '$lib/stores/settings.svelte';
-	import type { SettingsData } from '$lib/stores/settings.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
+	import { hugoStore } from '$lib/stores/hugo';
+	import { gitStore } from '$lib/stores/git';
+	import { editorStore } from '$lib/stores/editor';
+	import { settingsStore, settingsData } from '$lib/stores/settings';
+	import type { SettingsData } from '$lib/stores/settings';
+	import { uiStore } from '$lib/stores/ui';
 	import { startConflictPoll, stopConflictPoll, handleVisibilityChange } from '$lib/conflict';
-	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+	import { fileTreeStore } from '$lib/stores/fileTree';
 	import { restoreAppState as restoreState } from '$lib/restore';
 	import { getClientConfig, getServerConfig } from '$lib/client-config';
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import StatusBar from './StatusBar.svelte';
-import { editorStore } from '$lib/stores/editor.svelte';
+import { editorStore } from '$lib/stores/editor';
 
 afterEach(() => {
 	cleanup();

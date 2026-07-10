@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { settingsStore } from '$lib/stores/settings.svelte';
-	import { confirmStore } from '$lib/stores/confirm.svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
-	import { gitStore } from '$lib/stores/git.svelte';
-	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+	import { settingsStore } from '$lib/stores/settings';
+	import { confirmStore } from '$lib/stores/confirm';
+	import { editorStore } from '$lib/stores/editor';
+	import { uiStore } from '$lib/stores/ui';
+	import { gitStore } from '$lib/stores/git';
+	import { fileTreeStore } from '$lib/stores/fileTree';
 	import { startSidebarResize } from '$lib/resize';
 	import Sidebar from './Sidebar.svelte';
 

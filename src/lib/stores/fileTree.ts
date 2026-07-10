@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import type { TreeNode } from '$lib/server/types';
 import { flattenTree } from '$lib/tree-utils';
-import { editorStore } from './editor.svelte';
+import { editorStore } from './editor';
 
 export interface FileTreeState {
 	tree: TreeNode[];

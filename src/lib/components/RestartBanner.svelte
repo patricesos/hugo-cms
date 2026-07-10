@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { uiStore } from '$lib/stores/ui.svelte';
+	import { uiStore } from '$lib/stores/ui';
 </script>
 
 <div class="restart-banner">

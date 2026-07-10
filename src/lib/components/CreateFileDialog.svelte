@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { X } from '@lucide/svelte';
 	import { getClientConfigSync } from '$lib/client-config';
-	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+	import { fileTreeStore } from '$lib/stores/fileTree';
 
 	interface Archetype {
 		name: string;

@@ -11,17 +11,25 @@ export interface HugoState {
 }
 
 function create() {
-	const { subscribe, update } = writable<HugoState>({
+	const store = writable<HugoState>({
 		status: 'stopped',
 		url: null,
 		live: false,
 		togglingLive: false,
 		previewReloadKey: 0,
 	});
+	const { subscribe, update } = store;
 
 	return {
 		subscribe,
 		update,
+
+		// Sous-stores derived (Pattern B) — réactivité fine par champ
+		status: derived(store, s => s.status),
+		url: derived(store, s => s.url),
+		live: derived(store, s => s.live),
+		togglingLive: derived(store, s => s.togglingLive),
+		previewReloadKey: derived(store, s => s.previewReloadKey),
 
 		async start() {
 			update(s => ({ ...s, status: 'loading' }));

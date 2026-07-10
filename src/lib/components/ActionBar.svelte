@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { PanelLeftClose, PanelLeftOpen, Search, FilePlus, FolderPlus, RefreshCw, Map, Eye, Terminal, GitBranch, Globe, Lock, Loader2, ExternalLink, Settings, Layers, Info } from '@lucide/svelte';
-	import { settingsStore } from '$lib/stores/settings.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
-	import { hugoStore, hugoStatus, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo.svelte';
-	import { gitStore } from '$lib/stores/git.svelte';
-	import { fileTreeStore } from '$lib/stores/fileTree.svelte';
+	import { settingsStore } from '$lib/stores/settings';
+	import { uiStore } from '$lib/stores/ui';
+	import { hugoStore, hugoStatus, hugoLive, hugoTogglingLive, previewReloadKey } from '$lib/stores/hugo';
+	import { gitStore } from '$lib/stores/git';
+	import { fileTreeStore } from '$lib/stores/fileTree';
 
 	const { layout } = settingsStore;
 	const { dialogs } = uiStore;

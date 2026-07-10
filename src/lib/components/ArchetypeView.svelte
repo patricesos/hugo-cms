@@ -2,7 +2,7 @@
 	import { fade } from 'svelte/transition';
 	import { Save, Trash2, Loader2, PenLine } from '@lucide/svelte';
 	import RawEditor from './RawEditor.svelte';
-	import { editorStore } from '$lib/stores/editor.svelte';
+	import { editorStore } from '$lib/stores/editor';
 
 	const { currentTab } = editorStore;
 
