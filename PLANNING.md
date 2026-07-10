@@ -81,6 +81,7 @@
 - [x] **BN-006** — Nettoyage : suppression `WysiwygEditor.svelte`, `slash-commands.ts`, `tiptap-image-block.ts`, sandbox
 - [x] **BN-007** — Tests adaptés : mocks BlockNote, 10 tests passent
 - [x] **BN-008** — Debug logs retirés, store subscribe cleanup, indentation fix
+- [x] **BN-009** — Drag & drop block reordering : grip (⠿) sur SideMenu store, `blockDragStart` avec vrai `DragEvent`, flag `_isDragging` pour garder le grip dans le DOM pendant le drag
 
 ### EPIC A — Création d'un nouveau site Hugo depuis la web app
 

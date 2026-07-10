@@ -5,10 +5,11 @@ import { resolveHugoBinary } from '$lib/server/hugo';
 const execFileAsync = promisify(execFile);
 
 /**
- * Version de l'application, synchronisee manuellement avec package.json.
- * Centralisee ici pour eviter les import JSON fragiles dans le bundle.
+ * Version de l'application, injectee par Vite define depuis package.json
+ * au moment du build. Centralisee ici pour eviter les import JSON fragiles
+ * dans le bundle.
  */
-export const APP_VERSION = '1.6.2';
+export const APP_VERSION: string = __APP_VERSION__;
 
 /**
  * Retourne la version de Node.js (process.version, invariant).
