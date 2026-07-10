@@ -11,7 +11,7 @@ export function stopConflictPoll() {
 }
 
 async function checkExternalChanges(slug: string) {
-	if (!slug || get(editorStore.saveState) === 'unsaved') return;
+	if (!slug || get(editorStore.saveState) !== 'saved') return;
 	const tab = get(editorStore.tabs).find(t => t.slug === slug);
 	if (!tab || tab.kind !== 'content') return;
 	try {
@@ -20,8 +20,7 @@ async function checkExternalChanges(slug: string) {
 		const data = await res.json();
 		const serverMtime: number = data.mtimeMs;
 		if (Math.abs(serverMtime - tab.mtimeMs) > 1) {
-			editorStore.conflictSlug.set(slug);
-			editorStore.conflictServerMtimeMs.set(serverMtime);
+			editorStore.reloadFileFromDisk(tab);
 		}
 	} catch { /* ignore */ }
 }
